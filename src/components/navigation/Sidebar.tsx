@@ -102,11 +102,11 @@ function SidebarHeader({
   onToggleCollapse: () => void
 }) {
   return (
-    <div className="flex h-[88px] items-center justify-between py-0 pr-6 pl-[21px]">
+    <div className="flex h-22 items-center justify-between py-0 pr-6 pl-5.25">
       <img
         src={brand.logo}
         alt={brand.name}
-        className="h-[38px] w-[73px] object-cover object-center"
+        className="h-9.5 w-18.25 object-cover object-center"
       />
       <button
         className={iconButtonClass}
@@ -133,7 +133,7 @@ function HomeNav({
       aria-label="Main"
     >
       <button
-        className={cn(navButtonClass, 'px-[26px] py-0', isCollapsed && 'justify-center px-0')}
+        className={cn(navButtonClass, 'px-6.5 py-0', isCollapsed && 'justify-center px-0')}
         onClick={onGoHome}
         type="button"
       >
@@ -224,7 +224,7 @@ function ProjectItem({
       >
         <Collapsible.Trigger asChild>{itemButton}</Collapsible.Trigger>
         {item.children && item.children.length > 0 ? (
-          <Collapsible.Content className="ml-8 w-[calc(100%_-_32px)]">
+          <Collapsible.Content className="ml-8 w-[calc(100%-32px)]">
             {item.children.map((child) => (
               <ProjectItem
                 item={child}
@@ -264,20 +264,20 @@ function ProjectNavigation({
 
   return (
     <section
-      className="min-h-0 flex-1 overflow-y-auto px-5 pt-[23px] pb-6 max-[900px]:pb-4"
+      className="min-h-0 flex-1 overflow-y-auto px-5 pt-5.75 pb-6 max-[900px]:pb-4"
       aria-labelledby="project-nav-title"
     >
       <h2
-        className="mt-0 mr-0 mb-[13px] ml-[3px] text-[14px] leading-[22px] font-medium tracking-[0.14px] text-black"
+        className="mt-0 mr-0 mb-3.25 ml-0.75 text-[14px] leading-5.5 font-medium tracking-[0.14px] text-black"
         id="project-nav-title"
       >
         Your Project
       </h2>
-      <button className="flex h-[46px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white">
+      <button className="flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white">
         <PlusCircle size={21} />
         <span>Create Form</span>
       </button>
-      <label className="mt-4 mb-[21px] flex h-[42px] items-center justify-between rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180]">
+      <label className="mt-4 mb-5.25 flex h-10.5 items-center justify-between rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180]">
         <span className="sr-only">Search forms</span>
         <input
           className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3f4045] outline-0 placeholder:text-[#6e7180] placeholder:opacity-100"
@@ -315,11 +315,11 @@ function ProjectNavigation({
 
 function UserProfile({ user }: { user: SidebarUser }) {
   return (
-    <div className="flex h-[83px] items-center gap-2.5 border-t border-[#eef1f5] pr-[23px] pl-[29px]">
-      <div className="flex size-[31px] shrink-0 items-center justify-center rounded-full bg-[#4c71f7] text-white">
+    <div className="flex h-20.75 items-center gap-2.5 border-t border-[#eef1f5] pr-5.75 pl-7.25">
+      <div className="flex size-7.75 shrink-0 items-center justify-center rounded-full bg-[#4c71f7] text-white">
         <Smile size={19} />
       </div>
-      <div className="min-w-0 flex-1 leading-[1.25]">
+      <div className="min-w-0 flex-1 leading-tight">
         <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[16px] font-semibold tracking-[0.16px] text-[#3f4045]">
           {user.name}
         </strong>
@@ -358,7 +358,7 @@ export function Sidebar({
       className={cn(
         'sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white transition-[width,flex-basis] duration-200 ease-in-out',
         'max-[900px]:fixed max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:z-40 max-[900px]:h-dvh max-[900px]:border-b-0 max-[900px]:shadow-2xl',
-        'w-[313px] basis-[313px] max-[1200px]:w-[286px] max-[1200px]:basis-[286px] max-[900px]:w-[min(313px,calc(100vw-24px))] max-[900px]:basis-auto',
+        'w-78.25 basis-78.25 max-[1200px]:w-71.5 max-[1200px]:basis-71.5 max-[900px]:w-[min(313px,calc(100vw-24px))] max-[900px]:basis-auto',
       )}
       aria-label="Primary navigation"
     >
