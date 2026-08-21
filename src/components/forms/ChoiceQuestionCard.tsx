@@ -120,7 +120,7 @@ export function ChoiceQuestionCard({
           onClick={() => onChange({ ...question, hasOther: !question.hasOther })}
           type="button"
         >
-          Add &ldquo;Other&rdquo; option
+          Add "Other" option
         </button>
       </div>
 

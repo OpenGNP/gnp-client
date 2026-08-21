@@ -34,13 +34,33 @@ const demographicQuestionTypes: QuestionTypeOption[] = [
   {
     value: 'choice',
     label: 'Choice',
-    icon: <Circle className="fill-current" size={16} strokeWidth={0} />,
+    icon: (
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-[#1e55c5] bg-white text-[#1e55c5]">
+        <Circle className="fill-current" size={10} strokeWidth={0} />
+      </span>
+    ),
   },
-  { value: 'text', label: 'Text', icon: <Type size={16} /> },
+  { 
+    value: 'text', 
+    label: 'Text', 
+    icon: (
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-white text-[#1e55c5]">
+        <Type size={14} strokeWidth={3} />
+      </span>
+    ),
+  },
 ]
 
 const feedbackQuestionTypes: QuestionTypeOption[] = [
-  { value: 'text', label: 'Text', icon: <Type size={16} /> },
+  { 
+    value: 'text', 
+    label: 'Text', 
+    icon: (
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-white text-[#1e55c5]">
+        <Type size={14} strokeWidth={3} />
+      </span>
+    ),
+  },
 ]
 
 function useQuestionSection() {
