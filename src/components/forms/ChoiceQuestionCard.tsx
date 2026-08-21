@@ -1,3 +1,4 @@
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 import { Asterisk, Circle, MessageSquareText, Plus, Square, X } from 'lucide-react'
 
 import {
@@ -13,12 +14,16 @@ export type ChoiceQuestionCardProps = {
   question: ChoiceQuestion
   onChange: (question: ChoiceQuestion) => void
   onDelete: () => void
+  dragHandleAttributes?: DraggableAttributes
+  dragHandleListeners?: DraggableSyntheticListeners
 }
 
 export function ChoiceQuestionCard({
   question,
   onChange,
   onDelete,
+  dragHandleAttributes,
+  dragHandleListeners,
 }: ChoiceQuestionCardProps) {
   const OptionIcon = question.allowMultiple ? Square : Circle
 
@@ -138,7 +143,7 @@ export function ChoiceQuestionCard({
         />
       </QuestionCardFooter>
 
-      <MoveHandle />
+      <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
     </QuestionCardShell>
   )
 }

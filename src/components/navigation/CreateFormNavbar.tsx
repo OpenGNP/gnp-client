@@ -45,7 +45,7 @@ export function CreateFormNavbar({
   onToggleSidebar,
 }: CreateFormNavbarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-[63px] items-center justify-between gap-4 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 text-black max-[900px]:border-l-2 max-[720px]:px-4">
+    <header className="sticky top-0 z-30 flex h-[63px] items-center justify-between gap-4 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] text-black max-[900px]:border-l-2 max-[720px]:px-4">
       <div className="flex min-w-0 items-center gap-3">
         {showSidebarToggle ? (
           <button

@@ -1,8 +1,9 @@
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 import { Asterisk, MessageSquareText } from 'lucide-react'
 
 import { cn } from '../../lib/utils'
 import {
-  AiAnalyzeButton,
+  AiAnalyzeLabel,
   LabeledToggle,
   MoveHandle,
   QuestionCardFooter,
@@ -15,12 +16,18 @@ export type TextQuestionCardProps = {
   question: TextQuestion
   onChange: (question: TextQuestion) => void
   onDelete: () => void
+  showAiAnalyze?: boolean
+  dragHandleAttributes?: DraggableAttributes
+  dragHandleListeners?: DraggableSyntheticListeners
 }
 
 export function TextQuestionCard({
   question,
   onChange,
   onDelete,
+  showAiAnalyze = false,
+  dragHandleAttributes,
+  dragHandleListeners,
 }: TextQuestionCardProps) {
   const isLong = question.answerLength === 'long'
 
@@ -62,10 +69,19 @@ export function TextQuestionCard({
         />
       </QuestionCardFooter>
 
-      <div className="flex w-full items-center justify-center gap-4">
-        <AiAnalyzeButton />
-        <MoveHandle />
-      </div>
+      {showAiAnalyze ? (
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+          <span aria-hidden="true" />
+          <MoveHandle
+            attributes={dragHandleAttributes}
+            className="justify-self-center"
+            listeners={dragHandleListeners}
+          />
+          <AiAnalyzeLabel className="justify-self-end" />
+        </div>
+      ) : (
+        <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
+      )}
     </QuestionCardShell>
   )
 }

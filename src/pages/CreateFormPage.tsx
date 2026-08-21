@@ -12,7 +12,7 @@ export function CreateFormPage({
   onCloseSettings,
 }: CreateFormPageProps) {
   return (
-    <div className="min-h-[calc(100vh_-_63px)] bg-[#f5f9ff] px-14 pt-21.5 pb-16 max-[900px]:px-6 max-[560px]:px-4 max-[560px]:pt-8">
+    <div className="min-h-[calc(100vh_-_63px)] bg-[#f5f9ff] px-14 pt-21.5 pb-16 font-['Inter_Variable'] max-[900px]:px-6 max-[560px]:px-4 max-[560px]:pt-8">
       <div
         className={cn(
           'mx-auto flex w-full items-start gap-10.25 max-[1200px]:flex-col max-[1200px]:items-center',

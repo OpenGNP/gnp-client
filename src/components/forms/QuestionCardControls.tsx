@@ -1,4 +1,5 @@
-import { Move, Sparkles, Trash2 } from 'lucide-react'
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
+import { GripHorizontal, Sparkles, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Switch } from 'radix-ui'
 
@@ -97,28 +98,44 @@ export function QuestionCardFooter({ children }: { children: ReactNode }) {
   )
 }
 
-export function MoveHandle({ className }: { className?: string }) {
+export function MoveHandle({
+  className,
+  attributes,
+  listeners,
+}: {
+  className?: string
+  attributes?: DraggableAttributes
+  listeners?: DraggableSyntheticListeners
+}) {
   return (
-    <div
-      className={cn('flex items-center justify-center text-[#b0b1b3]', className)}
-      aria-hidden="true"
+    <button
+      className={cn(
+        'flex touch-none items-center justify-center rounded-md text-[#b0b1b3] hover:text-[#7b7d86] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none',
+        listeners ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
+        className,
+      )}
+      aria-label="Drag to reorder question"
+      type="button"
+      {...attributes}
+      {...listeners}
     >
-      <Move size={20} />
-    </div>
+      <GripHorizontal size={20} />
+    </button>
   )
 }
 
-export function AiAnalyzeButton({ onClick }: { onClick?: () => void }) {
+export function AiAnalyzeLabel({ className }: { className?: string }) {
   return (
-    <button
-      className="inline-flex cursor-pointer items-center gap-2.5 rounded-md border-0 bg-transparent text-[16px] tracking-[0.16px] text-[#3f4045] hover:text-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
-      onClick={onClick}
-      type="button"
+    <span
+      className={cn(
+        'inline-flex items-center gap-2.5 text-[16px] tracking-[0.16px] text-[#3f4045]',
+        className,
+      )}
     >
       <span className="flex h-6.5 w-7 items-center justify-center rounded-[4px] bg-[#e8eeff] text-[#1e55c5]">
         <Sparkles size={15} />
       </span>
       AI Analyze
-    </button>
+    </span>
   )
 }

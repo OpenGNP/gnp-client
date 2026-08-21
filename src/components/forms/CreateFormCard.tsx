@@ -1,16 +1,31 @@
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { Circle, Type } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { AddQuestionButton } from './AddQuestionButton'
-import { ChoiceQuestionCard } from './ChoiceQuestionCard'
 import { CoverImageField } from './CoverImageField'
 import { createQuestion } from './question-types'
 import type { Question, QuestionTypeOption, QuestionTypeValue } from './question-types'
-import { TextQuestionCard } from './TextQuestionCard'
+import { SortableQuestionCard } from './SortableQuestionCard'
 
 type FormSectionProps = {
   title: string
   questionTypes: QuestionTypeOption[]
+  showAiAnalyze?: boolean
 }
 
 const dividerClass = 'h-px w-full bg-[#e8eaf1]'
@@ -45,41 +60,64 @@ function useQuestionSection() {
     setQuestions((previous) => previous.filter((question) => question.id !== id))
   }
 
-  return { questions, addQuestion, updateQuestion, removeQuestion }
+  const reorderQuestions = (activeId: string, overId: string) => {
+    setQuestions((previous) => {
+      const oldIndex = previous.findIndex((question) => question.id === activeId)
+      const newIndex = previous.findIndex((question) => question.id === overId)
+      if (oldIndex === -1 || newIndex === -1) {
+        return previous
+      }
+      return arrayMove(previous, oldIndex, newIndex)
+    })
+  }
+
+  return { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions }
 }
 
-function FormSection({ title, questionTypes }: FormSectionProps) {
-  const { questions, addQuestion, updateQuestion, removeQuestion } = useQuestionSection()
+function FormSection({ title, questionTypes, showAiAnalyze = false }: FormSectionProps) {
+  const { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions } =
+    useQuestionSection()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      reorderQuestions(String(active.id), String(over.id))
+    }
+  }
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby={`${title}-title`}>
       <h2
-        className="m-0 text-[32px] leading-10 font-semibold tracking-[0.32px] text-[#616161] max-[560px]:text-[28px]"
+        className="m-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] max-[560px]:text-[28px]"
         id={`${title}-title`}
       >
         {title}
       </h2>
 
       {questions.length > 0 ? (
-        <div className="flex w-full flex-col gap-7.5">
-          {questions.map((question) =>
-            question.type === 'text' ? (
-              <TextQuestionCard
-                key={question.id}
-                onChange={updateQuestion}
-                onDelete={() => removeQuestion(question.id)}
-                question={question}
-              />
-            ) : (
-              <ChoiceQuestionCard
-                key={question.id}
-                onChange={updateQuestion}
-                onDelete={() => removeQuestion(question.id)}
-                question={question}
-              />
-            ),
-          )}
-        </div>
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+          <SortableContext
+            items={questions.map((question) => question.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex w-full flex-col gap-7.5">
+              {questions.map((question) => (
+                <SortableQuestionCard
+                  key={question.id}
+                  onChange={updateQuestion}
+                  onDelete={() => removeQuestion(question.id)}
+                  question={question}
+                  showAiAnalyze={showAiAnalyze}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : null}
 
       <AddQuestionButton onAddQuestion={addQuestion} questionTypes={questionTypes} />
@@ -112,7 +150,7 @@ export function CreateFormCard() {
 
         <div className="flex flex-col gap-3">
           <input
-            className="w-full border-0 bg-transparent p-0 text-[32px] leading-10 font-semibold tracking-[0.32px] text-[#616161] outline-none placeholder:text-[#616161] max-[560px]:text-[28px]"
+            className="w-full border-0 bg-transparent p-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] outline-none placeholder:text-[#616161] max-[560px]:text-[28px]"
             aria-label="Form title"
             defaultValue="Untitled form"
             id="create-form-title"
@@ -130,7 +168,11 @@ export function CreateFormCard() {
 
         <div className={dividerClass} />
 
-        <FormSection questionTypes={feedbackQuestionTypes} title="Feedback" />
+        <FormSection
+          questionTypes={feedbackQuestionTypes}
+          showAiAnalyze
+          title="Feedback"
+        />
       </div>
     </section>
   )
