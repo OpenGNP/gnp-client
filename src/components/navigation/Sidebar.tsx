@@ -33,6 +33,7 @@ export type SidebarProps = {
   openFolderIds: Set<string>
   searchTerm: string
   selectedProjectId: string
+  onCreateForm: () => void
   onGoHome: () => void
   onMoveProject: (projectId: string, folderId: string) => void
   onSearchChange: (value: string) => void
@@ -224,7 +225,7 @@ function ProjectItem({
       >
         <Collapsible.Trigger asChild>{itemButton}</Collapsible.Trigger>
         {item.children && item.children.length > 0 ? (
-          <Collapsible.Content className="ml-8 w-[calc(100%-32px)]">
+          <Collapsible.Content className="ml-8 w-[calc(100%_-_32px)]">
             {item.children.map((child) => (
               <ProjectItem
                 item={child}
@@ -252,6 +253,7 @@ function ProjectNavigation({
   openFolderIds,
   searchTerm,
   selectedProjectId,
+  onCreateForm,
   onSearchChange,
   onSelectProject,
   onMoveProject,
@@ -273,7 +275,11 @@ function ProjectNavigation({
       >
         Your Project
       </h2>
-      <button className="flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white">
+      <button
+        className="flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white"
+        onClick={onCreateForm}
+        type="button"
+      >
         <PlusCircle size={21} />
         <span>Create Form</span>
       </button>
@@ -342,6 +348,7 @@ export function Sidebar({
   searchTerm,
   selectedProjectId,
   user,
+  onCreateForm,
   onGoHome,
   onMoveProject,
   onSearchChange,
@@ -358,7 +365,7 @@ export function Sidebar({
       className={cn(
         'sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white transition-[width,flex-basis] duration-200 ease-in-out',
         'max-[900px]:fixed max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:z-40 max-[900px]:h-dvh max-[900px]:border-b-0 max-[900px]:shadow-2xl',
-        'w-78.25 basis-78.25 max-[1200px]:w-71.5 max-[1200px]:basis-71.5 max-[900px]:w-[min(313px,calc(100vw-24px))] max-[900px]:basis-auto',
+        'w-78.25 basis-78.25 max-[1200px]:w-71.5 max-[1200px]:basis-71.5 max-[900px]:w-[min(313px,calc(100vw_-_24px))] max-[900px]:basis-auto',
       )}
       aria-label="Primary navigation"
     >
@@ -374,6 +381,7 @@ export function Sidebar({
             openFolderIds={openFolderIds}
             searchTerm={searchTerm}
             selectedProjectId={selectedProjectId}
+            onCreateForm={onCreateForm}
             onMoveProject={onMoveProject}
             onSearchChange={onSearchChange}
             onSelectProject={onSelectProject}
