@@ -1,10 +1,7 @@
-import { Home, Menu, Save, Send, Settings, SlidersHorizontal } from 'lucide-react'
-import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { forwardRef, useState } from 'react'
-import { Popover } from 'radix-ui'
+import { Home } from 'lucide-react'
 
-import { cn } from '../../lib/utils'
-import { PublishModal } from './PublishModal'
+import { FormActionBar } from './FormActionBar'
+import { SidebarToggleButton } from './SidebarToggleButton'
 
 export type CreateFormNavbarProps = {
   isSettingsOpen: boolean
@@ -17,26 +14,6 @@ export type CreateFormNavbarProps = {
 const iconButtonClass =
   'inline-flex size-9 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none'
 
-const FormActionButton = forwardRef<
-  HTMLButtonElement,
-  ComponentPropsWithoutRef<'button'> & { icon: ReactNode }
->(function FormActionButton({ children, className, icon, ...props }, ref) {
-  return (
-    <button
-      ref={ref}
-      className={cn(
-        'inline-flex h-9.5 cursor-pointer items-center justify-center gap-2 rounded-[5px] border-0 px-3.5 text-[16px] font-bold tracking-[0.16px] text-white transition-transform active:translate-y-px max-[560px]:size-9.5 max-[560px]:px-0',
-        className,
-      )}
-      type="button"
-      {...props}
-    >
-      {icon}
-      <span className="max-[560px]:sr-only">{children}</span>
-    </button>
-  )
-})
-
 export function CreateFormNavbar({
   isSettingsOpen,
   showSidebarToggle = false,
@@ -44,20 +21,11 @@ export function CreateFormNavbar({
   onToggleSettings,
   onToggleSidebar,
 }: CreateFormNavbarProps) {
-  const [isPublished, setIsPublished] = useState(false)
-
   return (
     <header className="sticky top-0 z-30 flex h-[63px] items-center justify-between gap-4 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] text-black max-[900px]:border-l-2 max-[720px]:px-4">
       <div className="flex min-w-0 items-center gap-3">
         {showSidebarToggle ? (
-          <button
-            className={iconButtonClass}
-            aria-label="Expand sidebar"
-            onClick={onToggleSidebar}
-            type="button"
-          >
-            <Menu size={24} strokeWidth={2.4} />
-          </button>
+          <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
         ) : null}
         <button
           className={iconButtonClass}
@@ -72,60 +40,7 @@ export function CreateFormNavbar({
         </span>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2.5">
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <FormActionButton
-              className={
-                isPublished
-                  ? 'border border-[#4b4ebb] bg-white text-[#4b4ebb] hover:bg-[#f5f5ff]'
-                  : 'bg-[#4b4ebb] hover:bg-[#4143a9]'
-              }
-              icon={
-                isPublished ? (
-                  <SlidersHorizontal size={16} strokeWidth={2.4} />
-                ) : (
-                  <Send size={18} strokeWidth={2.4} />
-                )
-              }
-            >
-              {isPublished ? 'Published' : 'Publish'}
-            </FormActionButton>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              align="end"
-              className="z-40"
-              sideOffset={8}
-              side="bottom"
-            >
-              <PublishModal
-                isPublished={isPublished}
-                onPublish={() => setIsPublished(true)}
-              />
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
-        <FormActionButton
-          className="bg-[#1e55c5] hover:bg-[#1a49aa]"
-          icon={<Save size={18} strokeWidth={2.4} />}
-        >
-          Save draft
-        </FormActionButton>
-        <button
-          className={cn(
-            iconButtonClass,
-            'size-9.5 rounded-[5px]',
-            isSettingsOpen && 'bg-[#f0f4ff] text-[#1e55c5]',
-          )}
-          aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
-          aria-pressed={isSettingsOpen}
-          onClick={onToggleSettings}
-          type="button"
-        >
-          <Settings size={24} strokeWidth={2.2} />
-        </button>
-      </div>
+      <FormActionBar isSettingsOpen={isSettingsOpen} onToggleSettings={onToggleSettings} />
     </header>
   )
 }

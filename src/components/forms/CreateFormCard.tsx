@@ -26,6 +26,7 @@ type FormSectionProps = {
   title: string
   questionTypes: QuestionTypeOption[]
   showAiAnalyze?: boolean
+  initialQuestions?: Question[]
 }
 
 const dividerClass = 'h-px w-full bg-[#e8eaf1]'
@@ -63,8 +64,8 @@ const feedbackQuestionTypes: QuestionTypeOption[] = [
   },
 ]
 
-function useQuestionSection() {
-  const [questions, setQuestions] = useState<Question[]>([])
+function useQuestionSection(initialQuestions: Question[] = []) {
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions)
 
   const addQuestion = (type: QuestionTypeValue) => {
     setQuestions((previous) => [...previous, createQuestion(type, crypto.randomUUID())])
@@ -94,9 +95,14 @@ function useQuestionSection() {
   return { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions }
 }
 
-function FormSection({ title, questionTypes, showAiAnalyze = false }: FormSectionProps) {
+function FormSection({
+  title,
+  questionTypes,
+  showAiAnalyze = false,
+  initialQuestions,
+}: FormSectionProps) {
   const { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions } =
-    useQuestionSection()
+    useQuestionSection(initialQuestions)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -145,8 +151,22 @@ function FormSection({ title, questionTypes, showAiAnalyze = false }: FormSectio
   )
 }
 
-export function CreateFormCard() {
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
+export type CreateFormCardProps = {
+  initialTitle?: string
+  initialDescription?: string
+  initialCoverImageUrl?: string | null
+  initialDemographicQuestions?: Question[]
+  initialFeedbackQuestions?: Question[]
+}
+
+export function CreateFormCard({
+  initialTitle = 'Untitled form',
+  initialDescription = 'Form description',
+  initialCoverImageUrl = null,
+  initialDemographicQuestions,
+  initialFeedbackQuestions,
+}: CreateFormCardProps) {
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(initialCoverImageUrl)
 
   useEffect(() => {
     return () => {
@@ -172,23 +192,28 @@ export function CreateFormCard() {
           <input
             className="w-full border-0 bg-transparent p-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] outline-none placeholder:text-[#616161] max-[560px]:text-[28px]"
             aria-label="Form title"
-            defaultValue="Untitled form"
+            defaultValue={initialTitle}
             id="create-form-title"
           />
           <textarea
             className="h-6 w-full resize-none border-0 bg-transparent p-0 text-[16px] leading-6 font-normal tracking-[0.16px] text-[#616161] outline-none placeholder:text-[#616161]"
             aria-label="Form description"
-            defaultValue="Form description"
+            defaultValue={initialDescription}
           />
         </div>
 
         <div className={dividerClass} />
 
-        <FormSection questionTypes={demographicQuestionTypes} title="Demographic" />
+        <FormSection
+          initialQuestions={initialDemographicQuestions}
+          questionTypes={demographicQuestionTypes}
+          title="Demographic"
+        />
 
         <div className={dividerClass} />
 
         <FormSection
+          initialQuestions={initialFeedbackQuestions}
           questionTypes={feedbackQuestionTypes}
           showAiAnalyze
           title="Feedback"

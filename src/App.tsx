@@ -7,7 +7,7 @@ import { Sidebar } from './components/navigation/Sidebar'
 import { brand, projectTree, user, type ProjectTreeItem } from './data/dashboard'
 import { useProjectTree } from './hooks/useProjectTree'
 import { CreateFormPage } from './pages/CreateFormPage'
-import { FormBlankPage } from './pages/FormBlankPage'
+import { EditFormPage } from './pages/EditFormPage'
 import { HomePage } from './pages/HomePage'
 import { getSelectedProjectId } from './utils/projectTree'
 
@@ -22,6 +22,7 @@ function App() {
     useState(false)
   const selectedProjectId = getSelectedProjectId(location.pathname)
   const isCreateFormRoute = location.pathname === '/create-form'
+  const isFormDetailRoute = location.pathname.startsWith('/forms/')
 
   function handleGoHome() {
     setIsCreateFormSettingsOpen(false)
@@ -69,7 +70,7 @@ function App() {
               setIsCreateFormSettingsOpen((currentValue) => !currentValue)
             }
           />
-        ) : (
+        ) : isFormDetailRoute ? null : (
           <Navbar
             title="Overview"
             showSidebarToggle={isSidebarCollapsed}
@@ -87,7 +88,15 @@ function App() {
               />
             }
           />
-          <Route path="/forms/:projectId" element={<FormBlankPage />} />
+          <Route
+            path="/forms/:projectId"
+            element={
+              <EditFormPage
+                showSidebarToggle={isSidebarCollapsed}
+                onToggleSidebar={() => setIsSidebarCollapsed(false)}
+              />
+            }
+          />
         </Routes>
       </main>
     </div>
