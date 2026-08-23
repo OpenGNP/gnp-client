@@ -107,7 +107,7 @@ export function PublishModal({ isPublished, onPublish }: PublishModalProps) {
                 Open for answer
               </span>
             </div>
-            <ToggleSwitch defaultChecked />
+            <ToggleSwitch />
           </div>
 
           <div className="h-px w-full bg-[#e8eaf1]" />
