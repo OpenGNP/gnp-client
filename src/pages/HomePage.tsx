@@ -1,9 +1,28 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
-import { recentForms } from '../data/dashboard'
+import { recentForms as initialRecentForms } from '../data/dashboard'
+import type { RecentForm } from '../data/dashboard'
 
 export function HomePage() {
+  const navigate = useNavigate()
+  const [forms, setForms] = useState<RecentForm[]>(initialRecentForms)
+
+  function handleOpenForm(id: string) {
+    navigate(`/forms/${encodeURIComponent(id)}`)
+  }
+
+  function handleDeleteForm(id: string) {
+    const form = forms.find((item) => item.id === id)
+    if (form && !window.confirm(`Delete "${form.title}"? This can't be undone.`)) {
+      return
+    }
+    setForms((previous) => previous.filter((item) => item.id !== id))
+  }
+
   return (
     <PageContainer>
       <section className="grid h-65.5 grid-cols-[minmax(320px,419px)_minmax(420px,562px)] items-center gap-14.25 max-[1200px]:h-auto max-[1200px]:grid-cols-1 max-[1200px]:gap-6 max-[1200px]:py-12 max-[1200px]:pb-7 max-[560px]:py-8">
@@ -26,8 +45,13 @@ export function HomePage() {
           Recent forms
         </h2>
         <div className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
-          {recentForms.map((form) => (
-            <FormCard key={form.id} {...form} />
+          {forms.map((form) => (
+            <FormCard
+              key={form.id}
+              {...form}
+              onDelete={() => handleDeleteForm(form.id)}
+              onOpen={() => handleOpenForm(form.id)}
+            />
           ))}
         </div>
       </section>

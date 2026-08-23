@@ -157,7 +157,8 @@ function ProjectItem({
 }: ProjectItemProps) {
   const isFolder = item.type === 'folder'
   const isOpen = isFolder && (openFolderIds.has(item.id) || searchTerm.trim())
-  const isSelected = item.id === selectedProjectId
+  const isSelected =
+    item.id === selectedProjectId || item.formId === selectedProjectId
   const Icon = isFolder ? (isOpen ? FolderOpen : Folder) : FileText
 
   function handleSelect() {
