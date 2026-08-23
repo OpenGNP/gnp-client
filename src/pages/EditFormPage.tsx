@@ -64,7 +64,7 @@ export function EditFormPage({
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />
-        <div className="flex justify-end border-2 border-t-0 border-l-0 border-[#e8eaf1] bg-[#f5f9ff] px-14 py-4 max-[900px]:border-l-2 max-[900px]:px-6 max-[560px]:px-4">
+        <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
           <FormActionBar
             defaultPublished
             isSettingsOpen={isSettingsOpen}
