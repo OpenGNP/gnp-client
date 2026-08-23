@@ -6,6 +6,7 @@ import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal } from './components/navigation/SaveDraftModal'
 import { Sidebar } from './components/navigation/Sidebar'
 import { brand, projectTree, user, type ProjectTreeItem } from './data/dashboard'
+import { useFormAccessSettings } from './hooks/useFormAccessSettings'
 import { useProjectTree } from './hooks/useProjectTree'
 import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
@@ -24,6 +25,10 @@ function App() {
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
   const [saveDraftMode, setSaveDraftMode] = useState<'save' | 'move'>('save')
   const [saveDraftOpenCount, setSaveDraftOpenCount] = useState(0)
+  const {
+    settings: createFormAccessSettings,
+    updateSettings: onUpdateCreateFormAccessSettings,
+  } = useFormAccessSettings()
   const selectedProjectId = getSelectedProjectId(location.pathname)
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
@@ -99,12 +104,14 @@ function App() {
       <main className="min-w-0 flex-1 bg-[#f5f9ff]">
         {isCreateFormRoute ? (
           <CreateFormNavbar
+            formAccessSettings={createFormAccessSettings}
             isSettingsOpen={isCreateFormSettingsOpen}
             onGoHome={handleGoHome}
             onSaveDraft={handleOpenSaveDraft}
             onToggleSettings={() =>
               setIsCreateFormSettingsOpen((currentValue) => !currentValue)
             }
+            onUpdateFormAccessSettings={onUpdateCreateFormAccessSettings}
           />
         ) : isFormDetailRoute ? null : (
           <Navbar
@@ -119,8 +126,10 @@ function App() {
             path="/create-form"
             element={
               <CreateFormPage
-                showSettings={isCreateFormSettingsOpen}
+                formAccessSettings={createFormAccessSettings}
                 onCloseSettings={() => setIsCreateFormSettingsOpen(false)}
+                onUpdateFormAccessSettings={onUpdateCreateFormAccessSettings}
+                showSettings={isCreateFormSettingsOpen}
               />
             }
           />

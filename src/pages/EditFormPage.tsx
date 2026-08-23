@@ -7,6 +7,7 @@ import type { Question } from '../components/forms/question-types'
 import { FormActionBar } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { useAutoSaveStatus } from '../hooks/useAutoSaveStatus'
+import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
 import { cn } from '../lib/utils'
 
 const demographicSeedQuestions: Question[] = [
@@ -60,6 +61,8 @@ export function EditFormPage({
 }: EditFormPageProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const saveStatus = useAutoSaveStatus()
+  const { settings: formAccessSettings, updateSettings: onUpdateFormAccessSettings } =
+    useFormAccessSettings()
 
   return (
     <div>
@@ -70,10 +73,12 @@ export function EditFormPage({
         />
         <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
           <FormActionBar
+            formAccessSettings={formAccessSettings}
             isSettingsOpen={isSettingsOpen}
             mode="edit"
             onMove={onMove}
             onToggleSettings={() => setIsSettingsOpen((open) => !open)}
+            onUpdateFormAccessSettings={onUpdateFormAccessSettings}
             saveStatus={saveStatus}
           />
         </div>
@@ -93,7 +98,11 @@ export function EditFormPage({
             initialTitle="CS Focus Group Feedback 2026"
           />
           {isSettingsOpen ? (
-            <FormSettingsPanel onClose={() => setIsSettingsOpen(false)} />
+            <FormSettingsPanel
+              onClose={() => setIsSettingsOpen(false)}
+              onUpdateSettings={onUpdateFormAccessSettings}
+              settings={formAccessSettings}
+            />
           ) : null}
         </div>
       </div>

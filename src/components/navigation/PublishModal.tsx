@@ -3,6 +3,9 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { Checkbox as RadixCheckbox, Popover, RadioGroup, Switch } from 'radix-ui'
 
+import { SpecificPeopleField } from '../forms/SpecificPeopleField'
+import type { FormAccessSettings, WhoCanFillValue } from '../../hooks/useFormAccessSettings'
+
 const shareUrl = 'https://opengnp.com/cs-focus-group-2026-feedback'
 
 function ToggleSwitch({ defaultChecked }: { defaultChecked?: boolean }) {
@@ -54,16 +57,19 @@ function ModalRadioOption({
 
 function ModalCheckboxField({
   label,
-  defaultChecked = false,
+  checked,
+  onCheckedChange,
 }: {
   label: string
-  defaultChecked?: boolean
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
 }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-[13px] leading-5 tracking-[0.13px] text-black">
       <RadixCheckbox.Root
+        checked={checked}
         className="inline-flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[#b0b1b3] bg-white text-white outline-none data-[state=checked]:border-[#1e55c5] data-[state=checked]:bg-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30"
-        defaultChecked={defaultChecked}
+        onCheckedChange={(value) => onCheckedChange(value === true)}
       >
         <RadixCheckbox.Indicator>
           <Check size={12} strokeWidth={3} />
@@ -77,9 +83,16 @@ function ModalCheckboxField({
 export type PublishModalProps = {
   isPublished: boolean
   onPublish: () => void
+  settings: FormAccessSettings
+  onUpdateSettings: (partial: Partial<FormAccessSettings>) => void
 }
 
-export function PublishModal({ isPublished, onPublish }: PublishModalProps) {
+export function PublishModal({
+  isPublished,
+  onPublish,
+  settings,
+  onUpdateSettings,
+}: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
 
   const handleCopyLink = async () => {
@@ -122,26 +135,84 @@ export function PublishModal({ isPublished, onPublish }: PublishModalProps) {
 
             <RadioGroup.Root
               className="flex flex-col gap-3 px-0.5"
-              defaultValue="organization"
+              onValueChange={(value) =>
+                onUpdateSettings({ whoCanFill: value as WhoCanFillValue })
+              }
+              value={settings.whoCanFill}
               aria-label="Who can fill this form"
             >
-              <ModalRadioOption title="Anyone can respond" value="anyone" />
+              <ModalRadioOption title="Anyone can respond" value="anyone">
+                {settings.whoCanFill === 'anyone' ? (
+                  <div className="mt-2 flex flex-col gap-2">
+                    <ModalCheckboxField
+                      checked={settings.anyoneOneResponsePerPerson}
+                      label="One response per person"
+                      onCheckedChange={(checked) =>
+                        onUpdateSettings({ anyoneOneResponsePerPerson: checked })
+                      }
+                    />
+                  </div>
+                ) : null}
+              </ModalRadioOption>
 
               <ModalRadioOption
                 description="Sign-in required to validate access with organization"
                 title="Only people in my organization can respond"
                 value="organization"
               >
-                <div className="mt-2 flex flex-col gap-2 pl-7">
-                  <ModalCheckboxField defaultChecked label="Record name" />
-                  <ModalCheckboxField label="One response per person" />
-                </div>
+                {settings.whoCanFill === 'organization' ? (
+                  <div className="mt-2 flex flex-col gap-2 pl-7">
+                    <ModalCheckboxField
+                      checked={settings.organizationRecordName}
+                      label="Record name"
+                      onCheckedChange={(checked) =>
+                        onUpdateSettings({ organizationRecordName: checked })
+                      }
+                    />
+                    <ModalCheckboxField
+                      checked={settings.organizationOneResponsePerPerson}
+                      label="One response per person"
+                      onCheckedChange={(checked) =>
+                        onUpdateSettings({
+                          organizationOneResponsePerPerson: checked,
+                        })
+                      }
+                    />
+                  </div>
+                ) : null}
               </ModalRadioOption>
 
               <ModalRadioOption
                 title="Specific people in my organization can respond"
                 value="specific"
-              />
+              >
+                {settings.whoCanFill === 'specific' ? (
+                  <div className="mt-2 flex flex-col gap-2 pl-7">
+                    <ModalCheckboxField
+                      checked={settings.specificRecordName}
+                      label="Record name"
+                      onCheckedChange={(checked) =>
+                        onUpdateSettings({ specificRecordName: checked })
+                      }
+                    />
+                    <ModalCheckboxField
+                      checked={settings.specificOneResponsePerPerson}
+                      label="One response per person"
+                      onCheckedChange={(checked) =>
+                        onUpdateSettings({
+                          specificOneResponsePerPerson: checked,
+                        })
+                      }
+                    />
+                    <SpecificPeopleField
+                      emails={settings.specificEmails}
+                      onChange={(emails) =>
+                        onUpdateSettings({ specificEmails: emails })
+                      }
+                    />
+                  </div>
+                ) : null}
+              </ModalRadioOption>
             </RadioGroup.Root>
           </div>
         </div>

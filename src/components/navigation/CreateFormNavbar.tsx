@@ -1,5 +1,6 @@
 import { Home } from 'lucide-react'
 
+import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
 import { FormActionBar } from './FormActionBar'
 import { SidebarToggleButton } from './SidebarToggleButton'
 
@@ -10,6 +11,8 @@ export type CreateFormNavbarProps = {
   onSaveDraft?: () => void
   onToggleSettings: () => void
   onToggleSidebar?: () => void
+  formAccessSettings: FormAccessSettings
+  onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
 }
 
 const iconButtonClass =
@@ -22,6 +25,8 @@ export function CreateFormNavbar({
   onSaveDraft,
   onToggleSettings,
   onToggleSidebar,
+  formAccessSettings,
+  onUpdateFormAccessSettings,
 }: CreateFormNavbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-[63px] items-center justify-between gap-4 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] text-black max-[900px]:border-l-2 max-[720px]:px-4">
@@ -43,9 +48,11 @@ export function CreateFormNavbar({
       </div>
 
       <FormActionBar
+        formAccessSettings={formAccessSettings}
         isSettingsOpen={isSettingsOpen}
         onSaveDraft={onSaveDraft}
         onToggleSettings={onToggleSettings}
+        onUpdateFormAccessSettings={onUpdateFormAccessSettings}
       />
     </header>
   )

@@ -12,6 +12,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { forwardRef, useState } from 'react'
 import { Popover } from 'radix-ui'
 
+import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
 import { cn } from '../../lib/utils'
 import { PublishModal } from './PublishModal'
 
@@ -25,6 +26,8 @@ export type FormActionBarProps = {
   onSaveDraft?: () => void
   onMove?: () => void
   saveStatus?: SaveStatus
+  formAccessSettings: FormAccessSettings
+  onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
 }
 
 const iconButtonClass =
@@ -58,6 +61,8 @@ export function FormActionBar({
   onSaveDraft,
   onMove,
   saveStatus = 'saved',
+  formAccessSettings,
+  onUpdateFormAccessSettings,
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
 
@@ -109,6 +114,8 @@ export function FormActionBar({
             <PublishModal
               isPublished={isPublished}
               onPublish={() => setIsPublished(true)}
+              onUpdateSettings={onUpdateFormAccessSettings}
+              settings={formAccessSettings}
             />
           </Popover.Content>
         </Popover.Portal>

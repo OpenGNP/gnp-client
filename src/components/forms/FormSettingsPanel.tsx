@@ -3,11 +3,14 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Checkbox as RadixCheckbox, RadioGroup } from "radix-ui";
 
+import type { FormAccessSettings, WhoCanFillValue } from "../../hooks/useFormAccessSettings";
 import { cn } from "../../lib/utils";
+import { SpecificPeopleField } from "./SpecificPeopleField";
 
 type CheckboxFieldProps = {
   label: string;
-  defaultChecked?: boolean;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
 };
 
@@ -25,6 +28,8 @@ type SettingsSectionProps = {
 };
 
 export type FormSettingsPanelProps = {
+  settings: FormAccessSettings;
+  onUpdateSettings: (partial: Partial<FormAccessSettings>) => void;
   onClose: () => void;
 };
 
@@ -79,15 +84,17 @@ function RadioOption({
 
 function CheckboxField({
   label,
-  defaultChecked = false,
+  checked,
+  onCheckedChange,
   disabled = false,
 }: CheckboxFieldProps) {
   return (
     <label className="flex cursor-pointer items-center gap-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045] data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-60">
       <RadixCheckbox.Root
+        checked={checked}
         className="inline-flex size-5 shrink-0 items-center justify-center rounded-[3px] border border-[#b0b1b3] bg-white text-white outline-none data-[state=checked]:border-[#1e55c5] data-[state=checked]:bg-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30"
-        defaultChecked={defaultChecked}
         disabled={disabled}
+        onCheckedChange={(value) => onCheckedChange(value === true)}
       >
         <RadixCheckbox.Indicator>
           <Check size={14} strokeWidth={3} />
@@ -129,99 +136,11 @@ function DateCheckboxField({ label }: { label: string }) {
   );
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function SpecificPeopleField() {
-  const [emails, setEmails] = useState<string[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [error, setError] = useState("");
-
-  const addEmail = () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) {
-      return;
-    }
-    if (!EMAIL_PATTERN.test(trimmed)) {
-      setError("Enter a valid email address");
-      return;
-    }
-    if (emails.includes(trimmed)) {
-      setError("This person has already been added");
-      return;
-    }
-    setEmails((previous) => [...previous, trimmed]);
-    setInputValue("");
-    setError("");
-  };
-
-  const removeEmail = (email: string) => {
-    setEmails((previous) => previous.filter((existing) => existing !== email));
-  };
-
-  return (
-    <div className="mt-3 flex flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        <input
-          className="h-9.5 min-w-0 flex-1 rounded-[5px] border border-[#e8eaf1] bg-[#f8f9fc] px-3 text-[14px] text-[#3f4045] outline-none placeholder:text-[#b0b1b3] focus:border-[#1e55c5]"
-          onChange={(event) => {
-            setInputValue(event.target.value);
-            if (error) {
-              setError("");
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === ",") {
-              event.preventDefault();
-              addEmail();
-            }
-          }}
-          placeholder="Enter email"
-          type="email"
-          value={inputValue}
-        />
-        <button
-          className="inline-flex h-9.5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border border-[#1e55c5] px-3.5 text-[14px] font-medium text-[#1e55c5] transition-colors hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!inputValue.trim()}
-          onClick={addEmail}
-          type="button"
-        >
-          Add
-        </button>
-      </div>
-
-      {error ? <span className="text-[12px] text-[#e0507a]">{error}</span> : null}
-
-      {emails.length > 0 ? (
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {emails.map((email) => (
-            <li
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#eef3ff] py-1 pr-1.5 pl-3 text-[12px] font-medium text-[#1e55c5]"
-              key={email}
-            >
-              <span className="max-w-[220px] truncate">{email}</span>
-              <button
-                className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#1e55c5] hover:bg-[#d9e6fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
-                aria-label={`Remove ${email}`}
-                onClick={() => removeEmail(email)}
-                type="button"
-              >
-                <X size={12} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <span className="text-[12px] text-[#8b8e98]">
-          No one added yet — enter an email and select Add.
-        </span>
-      )}
-    </div>
-  );
-}
-
-export function FormSettingsPanel({ onClose }: FormSettingsPanelProps) {
-  const [whoCanFill, setWhoCanFill] = useState("organization");
-
+export function FormSettingsPanel({
+  settings,
+  onUpdateSettings,
+  onClose,
+}: FormSettingsPanelProps) {
   return (
     <aside
       className="min-h-[822px] w-full max-w-[380px] rounded-[10px] bg-white px-7.5 pt-7.5 pb-9 max-[1200px]:max-w-[978px] max-[760px]:min-h-0 max-[560px]:px-5"
@@ -249,14 +168,22 @@ export function FormSettingsPanel({ onClose }: FormSettingsPanelProps) {
       >
         <RadioGroup.Root
           className="flex flex-col gap-5"
-          onValueChange={setWhoCanFill}
-          value={whoCanFill}
+          onValueChange={(value) =>
+            onUpdateSettings({ whoCanFill: value as WhoCanFillValue })
+          }
+          value={settings.whoCanFill}
           aria-label="Who can fill this form"
         >
           <RadioOption value="anyone" title="Anyone can respond">
-            {whoCanFill === "anyone" ? (
+            {settings.whoCanFill === "anyone" ? (
               <div className="mt-3 flex flex-col gap-3">
-                <CheckboxField label="One response per person" />
+                <CheckboxField
+                  checked={settings.anyoneOneResponsePerPerson}
+                  label="One response per person"
+                  onCheckedChange={(checked) =>
+                    onUpdateSettings({ anyoneOneResponsePerPerson: checked })
+                  }
+                />
               </div>
             ) : null}
           </RadioOption>
@@ -266,10 +193,24 @@ export function FormSettingsPanel({ onClose }: FormSettingsPanelProps) {
             title="Only people in my organization can respond"
             description="Sign-in required to validate access with organization"
           >
-            {whoCanFill === "organization" ? (
+            {settings.whoCanFill === "organization" ? (
               <div className="mt-3 flex flex-col gap-3">
-                <CheckboxField label="Record name" defaultChecked />
-                <CheckboxField label="One response per person" />
+                <CheckboxField
+                  checked={settings.organizationRecordName}
+                  label="Record name"
+                  onCheckedChange={(checked) =>
+                    onUpdateSettings({ organizationRecordName: checked })
+                  }
+                />
+                <CheckboxField
+                  checked={settings.organizationOneResponsePerPerson}
+                  label="One response per person"
+                  onCheckedChange={(checked) =>
+                    onUpdateSettings({
+                      organizationOneResponsePerPerson: checked,
+                    })
+                  }
+                />
               </div>
             ) : null}
           </RadioOption>
@@ -278,11 +219,30 @@ export function FormSettingsPanel({ onClose }: FormSettingsPanelProps) {
             value="specific"
             title="Specific people in my organization can respond"
           >
-            {whoCanFill === "specific" ? (
+            {settings.whoCanFill === "specific" ? (
               <div className="mt-3 flex flex-col gap-3">
-                <CheckboxField label="Record name" defaultChecked />
-                <CheckboxField label="One response per person" />
-                <SpecificPeopleField />
+                <CheckboxField
+                  checked={settings.specificRecordName}
+                  label="Record name"
+                  onCheckedChange={(checked) =>
+                    onUpdateSettings({ specificRecordName: checked })
+                  }
+                />
+                <CheckboxField
+                  checked={settings.specificOneResponsePerPerson}
+                  label="One response per person"
+                  onCheckedChange={(checked) =>
+                    onUpdateSettings({
+                      specificOneResponsePerPerson: checked,
+                    })
+                  }
+                />
+                <SpecificPeopleField
+                  emails={settings.specificEmails}
+                  onChange={(emails) =>
+                    onUpdateSettings({ specificEmails: emails })
+                  }
+                />
               </div>
             ) : null}
           </RadioOption>
