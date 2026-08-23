@@ -10,6 +10,7 @@ import { useFormAccessSettings } from './hooks/useFormAccessSettings'
 import { useProjectTree } from './hooks/useProjectTree'
 import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
+import { FormDashboardPage } from './pages/FormDashboardPage'
 import { HomePage } from './pages/HomePage'
 import { getSelectedProjectId } from './utils/projectTree'
 
@@ -138,6 +139,15 @@ function App() {
             element={
               <EditFormPage
                 onMove={handleOpenMove}
+                onToggleSidebar={() => setIsSidebarCollapsed(false)}
+                showSidebarToggle={isSidebarCollapsed}
+              />
+            }
+          />
+          <Route
+            path="/forms/:projectId/dashboard"
+            element={
+              <FormDashboardPage
                 onToggleSidebar={() => setIsSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />

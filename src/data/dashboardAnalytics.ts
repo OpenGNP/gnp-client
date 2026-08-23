@@ -1,0 +1,211 @@
+export type TopicSentiment = {
+  id: string
+  label: string
+  negative: number
+  neutral: number
+  positive: number
+  percentOfTotal: number
+  isHighIntensity?: boolean
+}
+
+export type FormDashboardAnalytics = {
+  formId: string
+  status: 'Active' | 'Closed'
+  openDateRangeLabel: string
+  lastUpdatedLabel: string
+  title: string
+  totalResponders: number
+  responderDeltaLabel: string
+  sentiment: {
+    score: number
+    outOf: number
+    negative: number
+    neutral: number
+    positive: number
+  }
+  highIntenseTopics: TopicSentiment[]
+  aiDiscoveredTopics: TopicSentiment[]
+}
+
+const csFocusGroupAnalytics: FormDashboardAnalytics = {
+  formId: 'cs-feedback-architecture',
+  status: 'Active',
+  openDateRangeLabel: 'May 1 - May 31, 2026',
+  lastUpdatedLabel: '2 hours ago',
+  title: 'Discovered Themes of CS Focus Group Feedback 2026',
+  totalResponders: 324,
+  responderDeltaLabel: '+12 this week',
+  sentiment: {
+    score: 3.6,
+    outOf: 5,
+    negative: 40,
+    neutral: 15,
+    positive: 45,
+  },
+  highIntenseTopics: [
+    {
+      id: 'verbal-harassment',
+      label: 'Verbal harassment',
+      negative: 8,
+      neutral: 3,
+      positive: 0,
+      percentOfTotal: 4.2,
+      isHighIntensity: true,
+    },
+    {
+      id: 'exam-cheating',
+      label: 'Exam cheating',
+      negative: 3,
+      neutral: 4,
+      positive: 0,
+      percentOfTotal: 2.1,
+      isHighIntensity: true,
+    },
+    {
+      id: 'peer-abusing',
+      label: 'Peer abusing',
+      negative: 3,
+      neutral: 2,
+      positive: 0,
+      percentOfTotal: 1.6,
+      isHighIntensity: true,
+    },
+  ],
+  aiDiscoveredTopics: [
+    {
+      id: 'wifi-connectivity',
+      label: 'Wifi connectivity',
+      negative: 20,
+      neutral: 6,
+      positive: 16,
+      percentOfTotal: 12.2,
+    },
+    {
+      id: 'lab-computer-performance',
+      label: 'Lab computer performance',
+      negative: 12,
+      neutral: 9,
+      positive: 18,
+      percentOfTotal: 10.1,
+    },
+    {
+      id: 'course-registration-system',
+      label: 'Course registration system',
+      negative: 14,
+      neutral: 6,
+      positive: 13,
+      percentOfTotal: 9.5,
+    },
+    {
+      id: 'internship-process',
+      label: 'Internship process',
+      negative: 13,
+      neutral: 9,
+      positive: 7,
+      percentOfTotal: 8.2,
+    },
+    {
+      id: 'csc101-difficulty',
+      label: 'CSC101 difficulty',
+      negative: 13,
+      neutral: 6,
+      positive: 6,
+      percentOfTotal: 7.8,
+    },
+    {
+      id: 'lab1-ador',
+      label: 'Lab1 ador',
+      negative: 17,
+      neutral: 4,
+      positive: 0,
+      percentOfTotal: 6.3,
+    },
+    {
+      id: 'group-project',
+      label: 'Group project',
+      negative: 6,
+      neutral: 2,
+      positive: 7,
+      percentOfTotal: 5.9,
+    },
+    {
+      id: 'verbal-harassment-ai',
+      label: 'Verbal harassment',
+      negative: 8,
+      neutral: 3,
+      positive: 0,
+      percentOfTotal: 4.2,
+      isHighIntensity: true,
+    },
+    {
+      id: 'cafeteria-food-quality',
+      label: 'Cafeteria food quality',
+      negative: 7,
+      neutral: 8,
+      positive: 5,
+      percentOfTotal: 3.8,
+    },
+    {
+      id: 'library-resources',
+      label: 'Library resources',
+      negative: 4,
+      neutral: 6,
+      positive: 10,
+      percentOfTotal: 3.5,
+    },
+    {
+      id: 'parking-availability',
+      label: 'Parking availability',
+      negative: 9,
+      neutral: 4,
+      positive: 2,
+      percentOfTotal: 3.1,
+    },
+    {
+      id: 'online-exam-system',
+      label: 'Online exam system',
+      negative: 8,
+      neutral: 5,
+      positive: 3,
+      percentOfTotal: 2.9,
+    },
+    {
+      id: 'dormitory-conditions',
+      label: 'Dormitory conditions',
+      negative: 5,
+      neutral: 6,
+      positive: 4,
+      percentOfTotal: 2.5,
+    },
+    {
+      id: 'academic-advising',
+      label: 'Academic advising',
+      negative: 2,
+      neutral: 5,
+      positive: 8,
+      percentOfTotal: 2.0,
+    },
+    {
+      id: 'career-services',
+      label: 'Career services',
+      negative: 1,
+      neutral: 3,
+      positive: 9,
+      percentOfTotal: 1.4,
+    },
+  ],
+}
+
+const dashboardAnalyticsByFormId: Record<string, FormDashboardAnalytics> = {
+  'cs-feedback-architecture': csFocusGroupAnalytics,
+  'cs-focus-group': csFocusGroupAnalytics,
+}
+
+export function getDashboardAnalytics(
+  formId: string | undefined,
+): FormDashboardAnalytics | null {
+  if (!formId) {
+    return null
+  }
+  return dashboardAnalyticsByFormId[formId] ?? null
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 import formArchitecture from '../assets/form-architecture.png'
 import { CreateFormCard } from '../components/forms/CreateFormCard'
@@ -6,6 +7,7 @@ import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import type { Question } from '../components/forms/question-types'
 import { FormActionBar } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
+import { getDashboardAnalytics } from '../data/dashboardAnalytics'
 import { useAutoSaveStatus } from '../hooks/useAutoSaveStatus'
 import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
 import { cn } from '../lib/utils'
@@ -59,15 +61,18 @@ export function EditFormPage({
   onToggleSidebar,
   onMove,
 }: EditFormPageProps) {
+  const { projectId } = useParams()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const saveStatus = useAutoSaveStatus()
   const { settings: formAccessSettings, updateSettings: onUpdateFormAccessSettings } =
     useFormAccessSettings()
+  const hasDashboardData = Boolean(getDashboardAnalytics(projectId))
 
   return (
     <div>
       <div className="sticky top-0 z-30 bg-[#f5f9ff]">
         <FormDetailTabs
+          hasDashboardData={hasDashboardData}
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />

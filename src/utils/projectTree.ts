@@ -23,7 +23,8 @@ export function getSelectedProjectId(pathname: string) {
     return ''
   }
 
-  return decodeURIComponent(pathname.replace('/forms/', ''))
+  const [projectId] = pathname.replace('/forms/', '').split('/')
+  return decodeURIComponent(projectId ?? '')
 }
 
 export function removeProjectById(
