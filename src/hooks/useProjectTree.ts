@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { ProjectTreeItem } from '../data/dashboard'
 import {
   addProjectToFolder,
+  addProjectToRoot,
   getDefaultOpenFolderIds,
   removeProjectById,
 } from '../utils/projectTree'
@@ -27,7 +28,7 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     })
   }
 
-  function moveProject(projectId: string, folderId: string) {
+  function moveProject(projectId: string, folderId: string | null) {
     setProjects((currentProjects) => {
       const result = removeProjectById(currentProjects, projectId)
 
@@ -35,19 +36,40 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
         return currentProjects
       }
 
-      return addProjectToFolder(result.projects, folderId, result.removedProject)
+      return folderId
+        ? addProjectToFolder(result.projects, folderId, result.removedProject)
+        : addProjectToRoot(result.projects, result.removedProject)
     })
 
-    setOpenFolderIds((currentFolderIds) => {
-      const nextFolderIds = new Set(currentFolderIds)
-      nextFolderIds.add(folderId)
-      return nextFolderIds
-    })
+    if (folderId) {
+      setOpenFolderIds((currentFolderIds) => {
+        const nextFolderIds = new Set(currentFolderIds)
+        nextFolderIds.add(folderId)
+        return nextFolderIds
+      })
+    }
+  }
+
+  function addProject(folderId: string | null, projectToAdd: ProjectTreeItem) {
+    setProjects((currentProjects) =>
+      folderId
+        ? addProjectToFolder(currentProjects, folderId, projectToAdd)
+        : addProjectToRoot(currentProjects, projectToAdd),
+    )
+
+    if (folderId) {
+      setOpenFolderIds((currentFolderIds) => {
+        const nextFolderIds = new Set(currentFolderIds)
+        nextFolderIds.add(folderId)
+        return nextFolderIds
+      })
+    }
   }
 
   return {
     projects,
     openFolderIds,
+    addProject,
     moveProject,
     toggleFolder,
   }

@@ -1,4 +1,13 @@
-import { Save, Send, Settings, SlidersHorizontal } from 'lucide-react'
+import {
+  CloudCheck,
+  CloudOff,
+  FolderInput,
+  RefreshCw,
+  Save,
+  Send,
+  Settings,
+  SlidersHorizontal,
+} from 'lucide-react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { forwardRef, useState } from 'react'
 import { Popover } from 'radix-ui'
@@ -6,10 +15,16 @@ import { Popover } from 'radix-ui'
 import { cn } from '../../lib/utils'
 import { PublishModal } from './PublishModal'
 
+export type SaveStatus = 'saving' | 'saved' | 'error'
+
 export type FormActionBarProps = {
   isSettingsOpen: boolean
   onToggleSettings: () => void
   defaultPublished?: boolean
+  mode?: 'create' | 'edit'
+  onSaveDraft?: () => void
+  onMove?: () => void
+  saveStatus?: SaveStatus
 }
 
 const iconButtonClass =
@@ -39,11 +54,37 @@ export function FormActionBar({
   isSettingsOpen,
   onToggleSettings,
   defaultPublished = false,
+  mode = 'create',
+  onSaveDraft,
+  onMove,
+  saveStatus = 'saved',
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
 
   return (
     <div className="flex shrink-0 items-center gap-2.5">
+      {mode === 'edit' ? (
+        <span
+          className={cn(
+            'inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[0.13px] max-[560px]:hidden',
+            saveStatus === 'error' ? 'text-[#e0507a]' : 'text-[#726f6f]',
+          )}
+        >
+          {saveStatus === 'saving' ? (
+            <RefreshCw className="animate-spin" size={16} />
+          ) : saveStatus === 'error' ? (
+            <CloudOff size={16} />
+          ) : (
+            <CloudCheck size={16} />
+          )}
+          {saveStatus === 'saving'
+            ? 'Saving…'
+            : saveStatus === 'error'
+              ? 'Save failed'
+              : 'Saved'}
+        </span>
+      ) : null}
+
       <Popover.Root>
         <Popover.Trigger asChild>
           <FormActionButton
@@ -72,12 +113,25 @@ export function FormActionBar({
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
-      <FormActionButton
-        className="bg-[#1e55c5] hover:bg-[#1a49aa]"
-        icon={<Save size={18} strokeWidth={2.4} />}
-      >
-        Save draft
-      </FormActionButton>
+
+      {mode === 'edit' ? (
+        <FormActionButton
+          className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+          icon={<FolderInput size={18} strokeWidth={2.2} />}
+          onClick={onMove}
+        >
+          Move
+        </FormActionButton>
+      ) : (
+        <FormActionButton
+          className="bg-[#1e55c5] hover:bg-[#1a49aa]"
+          icon={<Save size={18} strokeWidth={2.4} />}
+          onClick={onSaveDraft}
+        >
+          Save draft
+        </FormActionButton>
+      )}
+
       <button
         className={cn(
           iconButtonClass,

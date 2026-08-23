@@ -6,6 +6,7 @@ import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import type { Question } from '../components/forms/question-types'
 import { FormActionBar } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
+import { useAutoSaveStatus } from '../hooks/useAutoSaveStatus'
 import { cn } from '../lib/utils'
 
 const demographicSeedQuestions: Question[] = [
@@ -49,13 +50,16 @@ const feedbackSeedQuestions: Question[] = [
 export type EditFormPageProps = {
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
+  onMove?: () => void
 }
 
 export function EditFormPage({
   showSidebarToggle = false,
   onToggleSidebar,
+  onMove,
 }: EditFormPageProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const saveStatus = useAutoSaveStatus()
 
   return (
     <div>
@@ -66,9 +70,11 @@ export function EditFormPage({
         />
         <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
           <FormActionBar
-            defaultPublished
             isSettingsOpen={isSettingsOpen}
+            mode="edit"
+            onMove={onMove}
             onToggleSettings={() => setIsSettingsOpen((open) => !open)}
+            saveStatus={saveStatus}
           />
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
+import { SaveDraftModal } from './components/navigation/SaveDraftModal'
 import { Sidebar } from './components/navigation/Sidebar'
 import { brand, projectTree, user, type ProjectTreeItem } from './data/dashboard'
 import { useProjectTree } from './hooks/useProjectTree'
@@ -14,12 +15,15 @@ import { getSelectedProjectId } from './utils/projectTree'
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { projects, openFolderIds, moveProject, toggleFolder } =
+  const { projects, openFolderIds, addProject, moveProject, toggleFolder } =
     useProjectTree(projectTree)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isCreateFormSettingsOpen, setIsCreateFormSettingsOpen] =
     useState(false)
+  const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
+  const [saveDraftMode, setSaveDraftMode] = useState<'save' | 'move'>('save')
+  const [saveDraftOpenCount, setSaveDraftOpenCount] = useState(0)
   const selectedProjectId = getSelectedProjectId(location.pathname)
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
@@ -37,6 +41,37 @@ function App() {
   function handleSelectProject(project: ProjectTreeItem) {
     setIsCreateFormSettingsOpen(false)
     navigate(`/forms/${encodeURIComponent(project.id)}`)
+  }
+
+  function handleOpenSaveDraft() {
+    setSaveDraftMode('save')
+    setSaveDraftOpenCount((currentValue) => currentValue + 1)
+    setIsSaveDraftModalOpen(true)
+  }
+
+  function handleOpenMove() {
+    setSaveDraftMode('move')
+    setSaveDraftOpenCount((currentValue) => currentValue + 1)
+    setIsSaveDraftModalOpen(true)
+  }
+
+  function handleConfirmSaveOrMove(folderId: string | null) {
+    if (saveDraftMode === 'move') {
+      moveProject(selectedProjectId, folderId)
+      return
+    }
+
+    const newFormId = crypto.randomUUID()
+
+    addProject(folderId, {
+      id: newFormId,
+      label: 'Untitled form',
+      type: 'document',
+      formId: newFormId,
+    })
+
+    setIsCreateFormSettingsOpen(false)
+    navigate(`/forms/${encodeURIComponent(newFormId)}`)
   }
 
   return (
@@ -66,6 +101,7 @@ function App() {
           <CreateFormNavbar
             isSettingsOpen={isCreateFormSettingsOpen}
             onGoHome={handleGoHome}
+            onSaveDraft={handleOpenSaveDraft}
             onToggleSettings={() =>
               setIsCreateFormSettingsOpen((currentValue) => !currentValue)
             }
@@ -92,13 +128,22 @@ function App() {
             path="/forms/:projectId"
             element={
               <EditFormPage
-                showSidebarToggle={isSidebarCollapsed}
+                onMove={handleOpenMove}
                 onToggleSidebar={() => setIsSidebarCollapsed(false)}
+                showSidebarToggle={isSidebarCollapsed}
               />
             }
           />
         </Routes>
       </main>
+      <SaveDraftModal
+        key={saveDraftOpenCount}
+        mode={saveDraftMode}
+        onConfirm={handleConfirmSaveOrMove}
+        onOpenChange={setIsSaveDraftModalOpen}
+        open={isSaveDraftModalOpen}
+        projects={projects}
+      />
     </div>
   )
 }

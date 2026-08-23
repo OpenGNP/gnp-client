@@ -33,7 +33,7 @@ export function removeProjectById(
   let removedProject: ProjectTreeItem | null = null
 
   const nextProjects = projects.reduce<ProjectTreeItem[]>((items, project) => {
-    if (project.id === id) {
+    if (project.id === id || project.formId === id) {
       removedProject = project
       return items
     }
@@ -57,6 +57,33 @@ export function removeProjectById(
   }, [])
 
   return { projects: nextProjects, removedProject }
+}
+
+export function findFolderById(
+  projects: ProjectTreeItem[],
+  id: string,
+): ProjectTreeItem | null {
+  for (const project of projects) {
+    if (project.id === id && project.type === 'folder') {
+      return project
+    }
+
+    if (project.children) {
+      const found = findFolderById(project.children, id)
+      if (found) {
+        return found
+      }
+    }
+  }
+
+  return null
+}
+
+export function addProjectToRoot(
+  projects: ProjectTreeItem[],
+  projectToAdd: ProjectTreeItem,
+): ProjectTreeItem[] {
+  return [...projects, projectToAdd]
 }
 
 export function addProjectToFolder(

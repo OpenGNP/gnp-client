@@ -7,6 +7,7 @@ export type CreateFormNavbarProps = {
   isSettingsOpen: boolean
   showSidebarToggle?: boolean
   onGoHome: () => void
+  onSaveDraft?: () => void
   onToggleSettings: () => void
   onToggleSidebar?: () => void
 }
@@ -18,6 +19,7 @@ export function CreateFormNavbar({
   isSettingsOpen,
   showSidebarToggle = false,
   onGoHome,
+  onSaveDraft,
   onToggleSettings,
   onToggleSidebar,
 }: CreateFormNavbarProps) {
@@ -40,7 +42,11 @@ export function CreateFormNavbar({
         </span>
       </div>
 
-      <FormActionBar isSettingsOpen={isSettingsOpen} onToggleSettings={onToggleSettings} />
+      <FormActionBar
+        isSettingsOpen={isSettingsOpen}
+        onSaveDraft={onSaveDraft}
+        onToggleSettings={onToggleSettings}
+      />
     </header>
   )
 }
