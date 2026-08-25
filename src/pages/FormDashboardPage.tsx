@@ -244,6 +244,11 @@ export function FormDashboardPage({
                 breakdowns={analytics.demographics}
                 title="Demographic Overview"
               />
+
+              <DemographicOverviewSection
+                breakdowns={analytics.feedbackResponses}
+                title="Feedback Overview"
+              />
             </>
           ) : null}
         </div>

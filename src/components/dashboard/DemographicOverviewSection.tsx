@@ -1,9 +1,22 @@
 import type { DemographicBreakdown } from '../../data/dashboardAnalytics'
 import { DemographicPieCard } from './DemographicPieCard'
+import { MultiChoiceBarCard } from './MultiChoiceBarCard'
+import { TextResponseListCard } from './TextResponseListCard'
 
 export type DemographicOverviewSectionProps = {
   title: string
   breakdowns: DemographicBreakdown[]
+}
+
+function BreakdownCard({ breakdown }: { breakdown: DemographicBreakdown }) {
+  switch (breakdown.kind) {
+    case 'single-choice':
+      return <DemographicPieCard breakdown={breakdown} />
+    case 'multi-choice':
+      return <MultiChoiceBarCard breakdown={breakdown} />
+    case 'text':
+      return <TextResponseListCard breakdown={breakdown} />
+  }
 }
 
 export function DemographicOverviewSection({
@@ -25,7 +38,7 @@ export function DemographicOverviewSection({
           </h2>
         </div>
         <div className="rounded-b-[15px] border border-[#e9eaed] bg-white">
-          <DemographicPieCard breakdown={firstBreakdown} />
+          <BreakdownCard breakdown={firstBreakdown} />
         </div>
       </div>
 
@@ -34,7 +47,7 @@ export function DemographicOverviewSection({
           className="w-full rounded-[15px] border border-[#e9eaed] bg-white"
           key={breakdown.id}
         >
-          <DemographicPieCard breakdown={breakdown} />
+          <BreakdownCard breakdown={breakdown} />
         </div>
       ))}
     </section>

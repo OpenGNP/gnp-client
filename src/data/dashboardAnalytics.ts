@@ -14,11 +14,32 @@ export type DemographicOption = {
   value: number
 }
 
-export type DemographicBreakdown = {
+export type SingleChoiceBreakdown = {
+  kind: 'single-choice'
   id: string
   title: string
   options: DemographicOption[]
 }
+
+export type MultiChoiceBreakdown = {
+  kind: 'multi-choice'
+  id: string
+  title: string
+  totalRespondents: number
+  options: DemographicOption[]
+}
+
+export type TextResponseBreakdown = {
+  kind: 'text'
+  id: string
+  title: string
+  responses: string[]
+}
+
+export type DemographicBreakdown =
+  | SingleChoiceBreakdown
+  | MultiChoiceBreakdown
+  | TextResponseBreakdown
 
 export type FormDashboardAnalytics = {
   formId: string
@@ -38,6 +59,7 @@ export type FormDashboardAnalytics = {
   highIntenseTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]
   demographics: DemographicBreakdown[]
+  feedbackResponses: DemographicBreakdown[]
 }
 
 const csFocusGroupAnalytics: FormDashboardAnalytics = {
@@ -209,6 +231,7 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
   ],
   demographics: [
     {
+      kind: 'single-choice',
       id: 'year-of-study',
       title: 'Year of Study',
       options: [
@@ -219,11 +242,40 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       ],
     },
     {
+      kind: 'multi-choice',
       id: 'gender',
       title: 'Gender',
+      totalRespondents: 81,
       options: [
-        { id: 'male', label: 'Male', value: 60 },
-        { id: 'female', label: 'Female', value: 21 },
+        { id: 'male', label: 'Male', value: 55 },
+        { id: 'female', label: 'Female', value: 30 },
+      ],
+    },
+  ],
+  feedbackResponses: [
+    {
+      kind: 'text',
+      id: 'curriculum-feedback',
+      title: 'What do you think about current curriculum?',
+      responses: [
+        'The core courses feel outdated compared to what the industry actually uses right now.',
+        'I like the balance between theory and hands-on labs, but the pace in year 2 is too fast.',
+        'More electives around AI and data engineering would help a lot.',
+        'Group projects are great, but grading feels inconsistent between sections.',
+        'Would love more feedback loops during the semester instead of just at the end.',
+        'The capstone project structure is solid and prepared me well for internships.',
+      ],
+    },
+    {
+      kind: 'text',
+      id: 'facility-feedback',
+      title: 'What would you like to share about facility?',
+      responses: [
+        'Lab computers in building 3 are slow and could use an upgrade.',
+        'Wifi drops constantly in the south wing during peak hours.',
+        'Study rooms are great, but there are never enough of them before exams.',
+        'Cafeteria food options have improved a lot this semester.',
+        'Air conditioning in the main lecture hall is way too cold.',
       ],
     },
   ],
