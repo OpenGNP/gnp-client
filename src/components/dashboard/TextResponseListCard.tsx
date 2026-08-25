@@ -2,9 +2,41 @@ import { useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
 
 import type { TextResponseBreakdown } from '../../data/dashboardAnalytics'
+import { cn } from '../../lib/utils'
 import { Pagination } from './Pagination'
 
 const PAGE_SIZE = 4
+const LONG_RESPONSE_THRESHOLD = 220
+
+function ResponseCard({ response }: { response: string }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const isLong = response.length > LONG_RESPONSE_THRESHOLD
+
+  return (
+    <div className="flex items-start gap-2.5 rounded-[8px] border border-[#e8eaf1] bg-[#f7f8fb] px-4 py-3">
+      <MessageSquareText className="mt-0.5 shrink-0 text-[#929292]" size={16} />
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            'm-0 text-[14px] leading-5.5 wrap-break-word text-[#3f4045]',
+            isLong && !isExpanded && 'line-clamp-3',
+          )}
+        >
+          {response}
+        </p>
+        {isLong ? (
+          <button
+            className="mt-1 cursor-pointer border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+            onClick={() => setIsExpanded((value) => !value)}
+            type="button"
+          >
+            {isExpanded ? 'Show less' : 'Show more'}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 export type TextResponseListCardProps = {
   breakdown: TextResponseBreakdown
@@ -30,13 +62,7 @@ export function TextResponseListCard({ breakdown }: TextResponseListCardProps) {
 
       <div className="flex flex-col gap-3 px-10 max-[560px]:px-4">
         {visibleResponses.map((response, index) => (
-          <div
-            className="flex items-start gap-2.5 rounded-[8px] border border-[#e8eaf1] bg-[#f7f8fb] px-4 py-3"
-            key={(page - 1) * PAGE_SIZE + index}
-          >
-            <MessageSquareText className="mt-0.5 shrink-0 text-[#929292]" size={16} />
-            <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{response}</p>
-          </div>
+          <ResponseCard key={(page - 1) * PAGE_SIZE + index} response={response} />
         ))}
       </div>
 

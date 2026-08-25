@@ -258,7 +258,7 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       id: 'curriculum-feedback',
       title: 'What do you think about current curriculum?',
       responses: [
-        'The core courses feel outdated compared to what the industry actually uses right now.',
+        'The core courses feel outdated compared to what the industry actually uses right now. Honestly, I think the department needs to sit down with recent alumni working in the field and rebuild the syllabus from the ground up, because a lot of what we spend weeks on in class gets replaced by a single afternoon of onboarding at an actual job, while the things that would genuinely help — like working with real production codebases, dealing with legacy systems, or writing tests for someone else\'s code — barely get any attention at all across the whole four years.',
         'I like the balance between theory and hands-on labs, but the pace in year 2 is too fast.',
         'More electives around AI and data engineering would help a lot.',
         'Group projects are great, but grading feels inconsistent between sections.',
