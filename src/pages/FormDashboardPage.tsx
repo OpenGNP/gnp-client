@@ -1,7 +1,6 @@
 import {
   ArrowUp,
   Calendar,
-  Filter,
   RefreshCw,
   Tag,
   TrendingUp,
@@ -11,6 +10,7 @@ import {
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { DemographicOverviewSection } from '../components/dashboard/DemographicOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
@@ -199,18 +199,7 @@ export function FormDashboardPage({
                 />
               </div>
 
-              <div className="flex flex-col items-start gap-2">
-                <span className="text-[9.5px] font-medium text-black">Show reports for:</span>
-                <button
-                  className="inline-flex h-11.25 w-33.75 cursor-not-allowed items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white text-[12px] font-semibold text-[#1e55c5] opacity-80"
-                  disabled
-                  title="More date ranges coming soon"
-                  type="button"
-                >
-                  <Filter size={16} />
-                  Last 30 days
-                </button>
-              </div>
+              <DateRangeFilter />
 
               <TopicSentimentCard
                 title="High Intense Topic"
