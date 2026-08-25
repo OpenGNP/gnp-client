@@ -1,5 +1,13 @@
 import { Clock3, FolderOpen, MoreVertical, Trash2 } from 'lucide-react'
-import { DropdownMenu } from 'radix-ui'
+
+import { Button } from '../ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 export type FormCardProps = {
   title: string
@@ -9,9 +17,6 @@ export type FormCardProps = {
   onOpen?: () => void
   onDelete?: () => void
 }
-
-const menuItemClass =
-  'flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] font-medium tracking-[0.13px] text-[#3f4045] outline-none data-highlighted:bg-[#f7f8fb]'
 
 export function FormCard({
   image,
@@ -45,37 +50,29 @@ export function FormCard({
         </div>
       </button>
 
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <button
-            className="absolute right-2.25 bottom-2.25 inline-flex size-5 cursor-pointer items-center justify-center rounded border-0 bg-transparent text-black hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="absolute right-2.25 bottom-2.25 size-5 rounded text-black hover:bg-black/5"
             aria-label={`More options for ${title}`}
-            type="button"
+            size="icon"
+            variant="ghost"
           >
-            <MoreVertical size={18} />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            align="end"
-            className="z-40 min-w-37.5 overflow-hidden rounded-[8px] border border-[#e8eaf1] bg-white py-1 shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
-            sideOffset={4}
-          >
-            <DropdownMenu.Item className={menuItemClass} onSelect={onOpen}>
-              <FolderOpen size={14} />
-              Open
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator className="my-1 h-px bg-[#e8eaf1]" />
-            <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] font-medium tracking-[0.13px] text-[#e0507a] outline-none data-highlighted:bg-[#fdeef2]"
-              onSelect={onDelete}
-            >
-              <Trash2 size={14} />
-              Delete
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+            <MoreVertical className="size-4.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onSelect={onOpen}>
+            <FolderOpen size={14} />
+            Open
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onDelete} variant="destructive">
+            <Trash2 size={14} />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </article>
   )
 }

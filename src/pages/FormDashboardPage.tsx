@@ -4,12 +4,14 @@ import {
   Filter,
   RefreshCw,
   Tag,
+  TrendingUp,
   TriangleAlert,
   Users,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { DemographicOverviewSection } from '../components/dashboard/DemographicOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
@@ -129,92 +131,121 @@ export function FormDashboardPage({
               status={analytics.status}
             />
             <div className="flex items-center gap-2.5 py-2.5">
-              <Tag className="shrink-0 text-[#1e55c5]" size={24} />
+              {activeView === 'response' ? (
+                <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
+              ) : (
+                <Tag className="shrink-0 text-[#1e55c5]" size={24} />
+              )}
               <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                {analytics.title}
+                {activeView === 'response' ? 'Response Overview' : analytics.title}
               </h1>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <StatCard
-              deltaClassName="text-[#0b842d]"
-              deltaLabel={analytics.responderDeltaLabel}
-              icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
-              iconBgClassName="bg-[#edf2fd]"
-              label="Total Responder"
-              value={analytics.totalResponders}
-            />
-
-            <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center gap-1.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
-              <p className="m-0 text-[12px] font-medium text-[#929292]">
-                Overall Sentiment
-              </p>
-              <div className="flex items-center gap-4.5">
-                <SentimentGauge
-                  negative={analytics.sentiment.negative}
-                  neutral={analytics.sentiment.neutral}
-                  outOf={analytics.sentiment.outOf}
-                  positive={analytics.sentiment.positive}
-                  score={analytics.sentiment.score}
+          {activeView === 'themes' ? (
+            <>
+              <div className="flex flex-wrap items-center gap-4">
+                <StatCard
+                  deltaClassName="text-[#0b842d]"
+                  deltaLabel={analytics.responderDeltaLabel}
+                  icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
+                  iconBgClassName="bg-[#edf2fd]"
+                  label="Total Responder"
+                  value={analytics.totalResponders}
                 />
-                <div className="flex flex-col gap-2 text-[12px]">
-                  <span className="flex items-center gap-2">
-                    <span className="size-1.75 shrink-0 rounded-full bg-[rgba(236,102,131,0.8)]" />
-                    <span className="text-[#929292]">
-                      Negative: <span className="text-[#14181f]">{analytics.sentiment.negative}%</span>
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="size-1.75 shrink-0 rounded-full bg-[rgba(253,210,118,0.8)]" />
-                    <span className="text-[#929292]">
-                      Neutral: <span className="text-[#14181f]">{analytics.sentiment.neutral}%</span>
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="size-1.75 shrink-0 rounded-full bg-[rgba(156,221,153,0.8)]" />
-                    <span className="text-[#929292]">
-                      Positive: <span className="text-[#14181f]">{analytics.sentiment.positive}%</span>
-                    </span>
-                  </span>
+
+                <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center gap-1.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
+                  <p className="m-0 text-[12px] font-medium text-[#929292]">
+                    Overall Sentiment
+                  </p>
+                  <div className="flex items-center gap-4.5">
+                    <SentimentGauge
+                      negative={analytics.sentiment.negative}
+                      neutral={analytics.sentiment.neutral}
+                      outOf={analytics.sentiment.outOf}
+                      positive={analytics.sentiment.positive}
+                      score={analytics.sentiment.score}
+                    />
+                    <div className="flex flex-col gap-2 text-[12px]">
+                      <span className="flex items-center gap-2">
+                        <span className="size-1.75 shrink-0 rounded-full bg-[rgba(236,102,131,0.8)]" />
+                        <span className="text-[#929292]">
+                          Negative: <span className="text-[#14181f]">{analytics.sentiment.negative}%</span>
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="size-1.75 shrink-0 rounded-full bg-[rgba(253,210,118,0.8)]" />
+                        <span className="text-[#929292]">
+                          Neutral: <span className="text-[#14181f]">{analytics.sentiment.neutral}%</span>
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="size-1.75 shrink-0 rounded-full bg-[rgba(156,221,153,0.8)]" />
+                        <span className="text-[#929292]">
+                          Positive: <span className="text-[#14181f]">{analytics.sentiment.positive}%</span>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <StatCard
+                  deltaClassName="text-[#881921]"
+                  deltaLabel="needs attention"
+                  icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
+                  iconBgClassName="bg-[#ffeaeb]"
+                  label="High Intense Topic"
+                  value={analytics.highIntenseTopics.length}
+                />
+              </div>
+
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-[9.5px] font-medium text-black">Show reports for:</span>
+                <button
+                  className="inline-flex h-11.25 w-33.75 cursor-not-allowed items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white text-[12px] font-semibold text-[#1e55c5] opacity-80"
+                  disabled
+                  title="More date ranges coming soon"
+                  type="button"
+                >
+                  <Filter size={16} />
+                  Last 30 days
+                </button>
+              </div>
+
+              <TopicSentimentCard
+                title="High Intense Topic"
+                topics={analytics.highIntenseTopics}
+              />
+
+              <TopicSentimentCard
+                pageSize={8}
+                sortable
+                title={`AI discovered topic (${analytics.aiDiscoveredTopics.length})`}
+                topics={analytics.aiDiscoveredTopics}
+              />
+            </>
+          ) : null}
+
+          {activeView === 'response' ? (
+            <>
+              <div className="flex h-27 w-full shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
+                <div className="flex size-15.25 shrink-0 items-center justify-center rounded-[6px] bg-[#edf2fd]">
+                  <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  <p className="m-0 text-[12px] font-medium text-[#929292]">Total Response</p>
+                  <p className="m-0 text-[20px] font-bold text-[#14181f]">
+                    {analytics.totalResponders}
+                  </p>
                 </div>
               </div>
-            </div>
 
-            <StatCard
-              deltaClassName="text-[#881921]"
-              deltaLabel="needs attention"
-              icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
-              iconBgClassName="bg-[#ffeaeb]"
-              label="High Intense Topic"
-              value={analytics.highIntenseTopics.length}
-            />
-          </div>
-
-          <div className="flex flex-col items-start gap-2">
-            <span className="text-[9.5px] font-medium text-black">Show reports for:</span>
-            <button
-              className="inline-flex h-11.25 w-33.75 cursor-not-allowed items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white text-[12px] font-semibold text-[#1e55c5] opacity-80"
-              disabled
-              title="More date ranges coming soon"
-              type="button"
-            >
-              <Filter size={16} />
-              Last 30 days
-            </button>
-          </div>
-
-          <TopicSentimentCard
-            title="High Intense Topic"
-            topics={analytics.highIntenseTopics}
-          />
-
-          <TopicSentimentCard
-            pageSize={8}
-            sortable
-            title={`AI discovered topic (${analytics.aiDiscoveredTopics.length})`}
-            topics={analytics.aiDiscoveredTopics}
-          />
+              <DemographicOverviewSection
+                breakdowns={analytics.demographics}
+                title="Demographic Overview"
+              />
+            </>
+          ) : null}
         </div>
       </div>
     </div>

@@ -10,10 +10,11 @@ import {
 } from 'lucide-react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { forwardRef, useState } from 'react'
-import { Popover } from 'radix-ui'
 
 import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
 import { cn } from '../../lib/utils'
+import { Button } from '../ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { PublishModal } from './PublishModal'
 
 export type SaveStatus = 'saving' | 'saved' | 'error'
@@ -29,9 +30,6 @@ export type FormActionBarProps = {
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
 }
-
-const iconButtonClass =
-  'inline-flex size-9 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none'
 
 export const FormActionButton = forwardRef<
   HTMLButtonElement,
@@ -90,8 +88,8 @@ export function FormActionBar({
         </span>
       ) : null}
 
-      <Popover.Root>
-        <Popover.Trigger asChild>
+      <Popover>
+        <PopoverTrigger asChild>
           <FormActionButton
             className={
               isPublished
@@ -108,18 +106,16 @@ export function FormActionBar({
           >
             {isPublished ? 'Published' : 'Publish'}
           </FormActionButton>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content align="end" className="z-40" sideOffset={8} side="bottom">
-            <PublishModal
-              isPublished={isPublished}
-              onPublish={() => setIsPublished(true)}
-              onUpdateSettings={onUpdateFormAccessSettings}
-              settings={formAccessSettings}
-            />
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="z-40" sideOffset={8} side="bottom">
+          <PublishModal
+            isPublished={isPublished}
+            onPublish={() => setIsPublished(true)}
+            onUpdateSettings={onUpdateFormAccessSettings}
+            settings={formAccessSettings}
+          />
+        </PopoverContent>
+      </Popover>
 
       {mode === 'edit' ? (
         <FormActionButton
@@ -139,19 +135,19 @@ export function FormActionBar({
         </FormActionButton>
       )}
 
-      <button
+      <Button
         className={cn(
-          iconButtonClass,
-          'size-9.5 rounded-[5px]',
+          'size-9.5 rounded-[5px] text-[#3f4045]',
           isSettingsOpen && 'bg-[#f0f4ff] text-[#1e55c5]',
         )}
         aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
         aria-pressed={isSettingsOpen}
         onClick={onToggleSettings}
-        type="button"
+        size="icon"
+        variant="ghost"
       >
-        <Settings size={24} strokeWidth={2.2} />
-      </button>
+        <Settings className="size-6" strokeWidth={2.2} />
+      </Button>
     </div>
   )
 }

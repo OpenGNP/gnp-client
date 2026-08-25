@@ -10,10 +10,11 @@ import {
   Smile,
 } from 'lucide-react'
 import type { DragEvent } from 'react'
-import { Collapsible } from 'radix-ui'
 
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
+import { Button } from '../ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 
 type SidebarUser = {
   name: string
@@ -52,9 +53,6 @@ type ProjectItemProps = {
   onMoveProject: (projectId: string, folderId: string) => void
   onToggleFolder: (id: string) => void
 }
-
-const iconButtonClass =
-  'inline-flex size-10 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none'
 
 const navButtonClass =
   'flex h-[46px] w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent text-left text-[16px] font-bold tracking-[0.16px] text-[#3f4045]'
@@ -109,14 +107,15 @@ function SidebarHeader({
         alt={brand.name}
         className="h-9.5 w-18.25 object-cover object-center"
       />
-      <button
-        className={iconButtonClass}
+      <Button
+        className="size-10 text-[#3f4045]"
         aria-label="Collapse sidebar"
         onClick={onToggleCollapse}
-        type="button"
+        size="icon"
+        variant="ghost"
       >
-        <ChevronLeft size={26} strokeWidth={2.4} />
-      </button>
+        <ChevronLeft className="size-6.5" strokeWidth={2.4} />
+      </Button>
     </div>
   )
 }
@@ -220,13 +219,13 @@ function ProjectItem({
 
   if (isFolder) {
     return (
-      <Collapsible.Root
+      <Collapsible
         open={Boolean(isOpen)}
         onOpenChange={() => onToggleFolder(item.id)}
       >
-        <Collapsible.Trigger asChild>{itemButton}</Collapsible.Trigger>
+        <CollapsibleTrigger asChild>{itemButton}</CollapsibleTrigger>
         {item.children && item.children.length > 0 ? (
-          <Collapsible.Content className="ml-8 w-[calc(100%_-_32px)]">
+          <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
             {item.children.map((child) => (
               <ProjectItem
                 item={child}
@@ -240,9 +239,9 @@ function ProjectItem({
                 onToggleFolder={onToggleFolder}
               />
             ))}
-          </Collapsible.Content>
+          </CollapsibleContent>
         ) : null}
-      </Collapsible.Root>
+      </Collapsible>
     )
   }
 
@@ -334,9 +333,14 @@ function UserProfile({ user }: { user: SidebarUser }) {
           {user.email}
         </span>
       </div>
-      <button className={iconButtonClass} aria-label="Profile options">
-        <MoreHorizontal size={24} />
-      </button>
+      <Button
+        className="size-10 text-[#3f4045]"
+        aria-label="Profile options"
+        size="icon"
+        variant="ghost"
+      >
+        <MoreHorizontal className="size-6" />
+      </Button>
     </div>
   )
 }

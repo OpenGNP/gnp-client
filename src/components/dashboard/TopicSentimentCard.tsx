@@ -1,8 +1,14 @@
 import { ArrowUpDown, ChevronDown, TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { DropdownMenu } from 'radix-ui'
 
 import type { TopicSentiment } from '../../data/dashboardAnalytics'
+import { Button } from '../ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 import { Pagination } from './Pagination'
 import { SentimentBar } from './SentimentBar'
 
@@ -83,49 +89,41 @@ export function TopicSentimentCard({
       <div className="flex items-center justify-between px-7.5">
         <h3 className="m-0 text-[14px] font-medium text-black">{title}</h3>
         {sortable ? (
-          <DropdownMenu.Root>
+          <DropdownMenu>
             <div className="flex items-center gap-2.5">
               <span className="flex items-center gap-2.5 text-[12px] font-medium text-[#929292]">
                 <ArrowUpDown size={16} />
                 Sort by
               </span>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  className="inline-flex h-8.75 cursor-pointer items-center gap-1.75 rounded-[10px] border border-[#e6e7eb] bg-white px-2.5 text-[12px] text-black hover:bg-[#f7f8fb]"
-                  type="button"
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="h-8.75 gap-1.75 rounded-[10px] border-[#e6e7eb] px-2.5 text-[12px] text-black"
+                  variant="outline"
                 >
                   Priority: {sortDirection === 'desc' ? 'High → Low' : 'Low → High'}
                   <ChevronDown size={16} />
-                </button>
-              </DropdownMenu.Trigger>
+                </Button>
+              </DropdownMenuTrigger>
             </div>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                className="z-40 min-w-45 overflow-hidden rounded-[8px] border border-[#e8eaf1] bg-white py-1 shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
-                sideOffset={4}
+            <DropdownMenuContent className="min-w-45">
+              <DropdownMenuItem
+                onSelect={() => {
+                  setSortDirection('desc')
+                  setPage(1)
+                }}
               >
-                <DropdownMenu.Item
-                  className="cursor-pointer px-3 py-2 text-[13px] font-medium text-[#3f4045] outline-none data-highlighted:bg-[#f7f8fb]"
-                  onSelect={() => {
-                    setSortDirection('desc')
-                    setPage(1)
-                  }}
-                >
-                  Priority: High → Low
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  className="cursor-pointer px-3 py-2 text-[13px] font-medium text-[#3f4045] outline-none data-highlighted:bg-[#f7f8fb]"
-                  onSelect={() => {
-                    setSortDirection('asc')
-                    setPage(1)
-                  }}
-                >
-                  Priority: Low → High
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+                Priority: High → Low
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setSortDirection('asc')
+                  setPage(1)
+                }}
+              >
+                Priority: Low → High
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </div>
 

@@ -1,10 +1,12 @@
-import { Check, Circle, Eye, FormInput, X } from "lucide-react";
+import { Eye, FormInput, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Checkbox as RadixCheckbox, RadioGroup } from "radix-ui";
 
 import type { FormAccessSettings, WhoCanFillValue } from "../../hooks/useFormAccessSettings";
 import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { SpecificPeopleField } from "./SpecificPeopleField";
 
 type CheckboxFieldProps = {
@@ -58,14 +60,7 @@ function RadioOption({
   return (
     <label className="block cursor-pointer">
       <div className="flex items-start gap-2.5">
-        <RadioGroup.Item
-          className="mt-0.75 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-[#b0b1b3] bg-white text-[#1e55c5] outline-none data-[state=checked]:border-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30"
-          value={value}
-        >
-          <RadioGroup.Indicator>
-            <Circle className="fill-current" size={10} strokeWidth={0} />
-          </RadioGroup.Indicator>
-        </RadioGroup.Item>
+        <RadioGroupItem value={value} />
         <div className="min-w-0 flex-1">
           <span className="block text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045]">
             {title}
@@ -90,16 +85,11 @@ function CheckboxField({
 }: CheckboxFieldProps) {
   return (
     <label className="flex cursor-pointer items-center gap-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045] data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-60">
-      <RadixCheckbox.Root
+      <Checkbox
         checked={checked}
-        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[3px] border border-[#b0b1b3] bg-white text-white outline-none data-[state=checked]:border-[#1e55c5] data-[state=checked]:bg-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30"
         disabled={disabled}
         onCheckedChange={(value) => onCheckedChange(value === true)}
-      >
-        <RadixCheckbox.Indicator>
-          <Check size={14} strokeWidth={3} />
-        </RadixCheckbox.Indicator>
-      </RadixCheckbox.Root>
+      />
       <span>{label}</span>
     </label>
   );
@@ -112,15 +102,7 @@ function DateCheckboxField({ label }: { label: string }) {
   return (
     <div className="flex flex-col gap-2">
       <label className="flex cursor-pointer items-center gap-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045]">
-        <RadixCheckbox.Root
-          checked={checked}
-          className="inline-flex size-5 shrink-0 items-center justify-center rounded-[3px] border border-[#b0b1b3] bg-white text-white outline-none data-[state=checked]:border-[#1e55c5] data-[state=checked]:bg-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30"
-          onCheckedChange={(value) => setChecked(value === true)}
-        >
-          <RadixCheckbox.Indicator>
-            <Check size={14} strokeWidth={3} />
-          </RadixCheckbox.Indicator>
-        </RadixCheckbox.Root>
+        <Checkbox checked={checked} onCheckedChange={(value) => setChecked(value === true)} />
         <span>{label}</span>
       </label>
       {checked ? (
@@ -150,14 +132,15 @@ export function FormSettingsPanel({
         <h2 className="m-0 text-[24px] leading-8 font-semibold tracking-[0.24px] text-[#050608]">
           Setting
         </h2>
-        <button
-          className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#3f4045] hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+        <Button
+          className="text-[#3f4045]"
           aria-label="Close settings"
           onClick={onClose}
-          type="button"
+          size="icon"
+          variant="ghost"
         >
-          <X size={22} />
-        </button>
+          <X className="size-5.5" />
+        </Button>
       </div>
 
       <div className={dividerClass} />
@@ -166,8 +149,7 @@ export function FormSettingsPanel({
         icon={<Eye size={24} strokeWidth={2.2} />}
         title="Who can fill this form"
       >
-        <RadioGroup.Root
-          className="flex flex-col gap-5"
+        <RadioGroup
           onValueChange={(value) =>
             onUpdateSettings({ whoCanFill: value as WhoCanFillValue })
           }
@@ -246,7 +228,7 @@ export function FormSettingsPanel({
               </div>
             ) : null}
           </RadioOption>
-        </RadioGroup.Root>
+        </RadioGroup>
       </SettingsSection>
 
       <div className={cn(dividerClass, "my-7")} />

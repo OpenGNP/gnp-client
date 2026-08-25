@@ -8,6 +8,18 @@ export type TopicSentiment = {
   isHighIntensity?: boolean
 }
 
+export type DemographicOption = {
+  id: string
+  label: string
+  value: number
+}
+
+export type DemographicBreakdown = {
+  id: string
+  title: string
+  options: DemographicOption[]
+}
+
 export type FormDashboardAnalytics = {
   formId: string
   status: 'Active' | 'Closed'
@@ -25,6 +37,7 @@ export type FormDashboardAnalytics = {
   }
   highIntenseTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]
+  demographics: DemographicBreakdown[]
 }
 
 const csFocusGroupAnalytics: FormDashboardAnalytics = {
@@ -192,6 +205,26 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 3,
       positive: 9,
       percentOfTotal: 1.4,
+    },
+  ],
+  demographics: [
+    {
+      id: 'year-of-study',
+      title: 'Year of Study',
+      options: [
+        { id: 'year-1', label: 'Year 1', value: 45 },
+        { id: 'year-2', label: 'Year 2', value: 5 },
+        { id: 'year-3', label: 'Year 3', value: 11 },
+        { id: 'year-4', label: 'Year 4', value: 20 },
+      ],
+    },
+    {
+      id: 'gender',
+      title: 'Gender',
+      options: [
+        { id: 'male', label: 'Male', value: 60 },
+        { id: 'female', label: 'Female', value: 21 },
+      ],
     },
   ],
 }

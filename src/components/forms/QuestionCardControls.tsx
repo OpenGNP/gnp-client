@@ -1,9 +1,10 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 import { GripHorizontal, Sparkles, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Switch } from 'radix-ui'
 
 import { cn } from '../../lib/utils'
+import { Button } from '../ui/button'
+import { Switch } from '../ui/switch'
 
 export function QuestionCardShell({ children }: { children: ReactNode }) {
   return (
@@ -32,14 +33,14 @@ export function QuestionTitleField({
         placeholder={placeholder}
         value={value}
       />
-      <button
-        className="inline-flex h-6.5 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-[#fcf3f6] text-[#e0507a] hover:bg-[#f8dde6] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+      <Button
+        className="h-6.5 w-7 shrink-0 rounded-[4px] bg-[#fcf3f6] text-[#e0507a] hover:bg-[#f8dde6]"
         aria-label="Delete question"
         onClick={onDelete}
-        type="button"
+        variant="destructive"
       >
         <Trash2 size={16} />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -79,13 +80,7 @@ export function LabeledToggle({
           {label}
         </span>
       </span>
-      <Switch.Root
-        checked={checked}
-        className="relative inline-flex h-[17.5px] w-[35px] shrink-0 cursor-pointer items-center rounded-full bg-[#d2d8e5] outline-none transition-colors data-[state=checked]:bg-[#1e55c5]"
-        onCheckedChange={onCheckedChange}
-      >
-        <Switch.Thumb className="block size-[13.5px] translate-x-0.5 rounded-full bg-white shadow-sm transition-transform data-[state=checked]:translate-x-[19px]" />
-      </Switch.Root>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   )
 }

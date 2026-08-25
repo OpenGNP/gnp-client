@@ -1,6 +1,7 @@
 import { Home } from 'lucide-react'
 
 import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
+import { Button } from '../ui/button'
 import { FormActionBar } from './FormActionBar'
 import { SidebarToggleButton } from './SidebarToggleButton'
 
@@ -14,9 +15,6 @@ export type CreateFormNavbarProps = {
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
 }
-
-const iconButtonClass =
-  'inline-flex size-9 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none'
 
 export function CreateFormNavbar({
   isSettingsOpen,
@@ -34,14 +32,15 @@ export function CreateFormNavbar({
         {showSidebarToggle ? (
           <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
         ) : null}
-        <button
-          className={iconButtonClass}
+        <Button
+          className="size-9 text-[#3f4045]"
           aria-label="Go home"
           onClick={onGoHome}
-          type="button"
+          size="icon"
+          variant="ghost"
         >
-          <Home size={24} strokeWidth={2.2} />
-        </button>
+          <Home className="size-6" strokeWidth={2.2} />
+        </Button>
         <span className="min-w-0 truncate text-[16px] font-normal tracking-[0.16px]">
           Untitled form
         </span>
