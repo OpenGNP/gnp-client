@@ -1,3 +1,8 @@
+export type TopicKeyword = {
+  text: string
+  weight: 1 | 2 | 3
+}
+
 export type TopicSentiment = {
   id: string
   label: string
@@ -6,6 +11,8 @@ export type TopicSentiment = {
   positive: number
   percentOfTotal: number
   isHighIntensity?: boolean
+  aiSummary: string
+  keywords: TopicKeyword[]
 }
 
 export type DemographicOption = {
@@ -86,6 +93,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       positive: 0,
       percentOfTotal: 4.2,
       isHighIntensity: true,
+      aiSummary:
+        'Multiple respondents describe experiencing or witnessing verbal harassment, with several noting it went unaddressed by staff. Concern is high given the small but consistent volume of reports.',
+      keywords: [
+        { text: 'harassment', weight: 3 },
+        { text: 'reported', weight: 2 },
+        { text: 'staff response', weight: 2 },
+        { text: 'unsafe', weight: 2 },
+        { text: 'repeated', weight: 1 },
+        { text: 'ignored', weight: 1 },
+      ],
     },
     {
       id: 'exam-cheating',
@@ -95,6 +112,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       positive: 0,
       percentOfTotal: 2.1,
       isHighIntensity: true,
+      aiSummary:
+        'Respondents flag instances of cheating during exams and call for stricter proctoring. Sentiment is mixed between frustration and calls for fairer enforcement.',
+      keywords: [
+        { text: 'cheating', weight: 3 },
+        { text: 'proctoring', weight: 2 },
+        { text: 'unfair', weight: 2 },
+        { text: 'enforcement', weight: 2 },
+        { text: 'exam hall', weight: 1 },
+        { text: 'integrity', weight: 1 },
+      ],
     },
     {
       id: 'peer-abusing',
@@ -104,6 +131,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       positive: 0,
       percentOfTotal: 1.6,
       isHighIntensity: true,
+      aiSummary:
+        'A small number of respondents report abusive behavior from peers, mostly in group settings. Feedback suggests better reporting channels are needed.',
+      keywords: [
+        { text: 'peer conflict', weight: 3 },
+        { text: 'group work', weight: 2 },
+        { text: 'bullying', weight: 2 },
+        { text: 'reporting', weight: 1 },
+        { text: 'support', weight: 1 },
+      ],
     },
   ],
   aiDiscoveredTopics: [
@@ -114,6 +150,20 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 6,
       positive: 16,
       percentOfTotal: 12.2,
+      aiSummary:
+        'Students report mixed experiences with the university Wi-Fi. While campus-wide access is appreciated, many experience slow speeds, unstable connections, and weak coverage that disrupt online learning and assignment submissions. Students want faster and more reliable internet access.',
+      keywords: [
+        { text: 'Disconnect', weight: 3 },
+        { text: 'online class', weight: 2 },
+        { text: 'slow', weight: 2 },
+        { text: 'stable', weight: 2 },
+        { text: 'website', weight: 2 },
+        { text: 'freeze', weight: 1 },
+        { text: 'fast', weight: 1 },
+        { text: 'computer', weight: 1 },
+        { text: 'classes', weight: 1 },
+        { text: 'communicate', weight: 1 },
+      ],
     },
     {
       id: 'lab-computer-performance',
@@ -122,6 +172,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 9,
       positive: 18,
       percentOfTotal: 10.1,
+      aiSummary:
+        'Lab computers are frequently described as slow or outdated, especially during peak lab hours. Students ask for hardware upgrades and more available machines.',
+      keywords: [
+        { text: 'slow computers', weight: 3 },
+        { text: 'outdated', weight: 2 },
+        { text: 'lab hours', weight: 2 },
+        { text: 'upgrade', weight: 2 },
+        { text: 'crashes', weight: 1 },
+        { text: 'availability', weight: 1 },
+      ],
     },
     {
       id: 'course-registration-system',
@@ -130,6 +190,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 6,
       positive: 13,
       percentOfTotal: 9.5,
+      aiSummary:
+        'Feedback centers on the registration system being difficult to use during peak enrollment, with frequent timeouts and confusing error messages.',
+      keywords: [
+        { text: 'registration', weight: 3 },
+        { text: 'timeout', weight: 2 },
+        { text: 'confusing', weight: 2 },
+        { text: 'errors', weight: 2 },
+        { text: 'peak load', weight: 1 },
+        { text: 'slow', weight: 1 },
+      ],
     },
     {
       id: 'internship-process',
@@ -138,6 +208,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 9,
       positive: 7,
       percentOfTotal: 8.2,
+      aiSummary:
+        'Respondents describe the internship application and approval process as slow and unclear, with limited communication on status updates.',
+      keywords: [
+        { text: 'slow process', weight: 3 },
+        { text: 'unclear steps', weight: 2 },
+        { text: 'approval', weight: 2 },
+        { text: 'communication', weight: 2 },
+        { text: 'paperwork', weight: 1 },
+        { text: 'delays', weight: 1 },
+      ],
     },
     {
       id: 'csc101-difficulty',
@@ -146,6 +226,16 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 6,
       positive: 6,
       percentOfTotal: 7.8,
+      aiSummary:
+        'Students find CSC101 challenging, citing a fast pace and limited hands-on practice relative to the material covered.',
+      keywords: [
+        { text: 'difficult', weight: 3 },
+        { text: 'fast pace', weight: 2 },
+        { text: 'workload', weight: 2 },
+        { text: 'practice', weight: 2 },
+        { text: 'support', weight: 1 },
+        { text: 'concepts', weight: 1 },
+      ],
     },
     {
       id: 'lab1-ador',
@@ -154,6 +244,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 4,
       positive: 0,
       percentOfTotal: 6.3,
+      aiSummary:
+        'Respondents mention persistent odor issues in Lab 1 that make extended sessions uncomfortable.',
+      keywords: [
+        { text: 'odor', weight: 3 },
+        { text: 'ventilation', weight: 2 },
+        { text: 'uncomfortable', weight: 2 },
+        { text: 'lab 1', weight: 2 },
+        { text: 'maintenance', weight: 1 },
+      ],
     },
     {
       id: 'group-project',
@@ -162,6 +261,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 2,
       positive: 7,
       percentOfTotal: 5.9,
+      aiSummary:
+        'Group project feedback is mixed — collaboration is valued, but grading consistency and uneven workload distribution are common concerns.',
+      keywords: [
+        { text: 'uneven workload', weight: 3 },
+        { text: 'teamwork', weight: 2 },
+        { text: 'grading', weight: 2 },
+        { text: 'free riders', weight: 2 },
+        { text: 'collaboration', weight: 1 },
+      ],
     },
     {
       id: 'verbal-harassment-ai',
@@ -171,6 +279,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       positive: 0,
       percentOfTotal: 4.2,
       isHighIntensity: true,
+      aiSummary:
+        'AI-clustered reports again surface verbal harassment concerns, consistent with directly flagged cases elsewhere in the data.',
+      keywords: [
+        { text: 'harassment', weight: 3 },
+        { text: 'repeated', weight: 2 },
+        { text: 'unsafe', weight: 2 },
+        { text: 'staff response', weight: 1 },
+        { text: 'reported', weight: 1 },
+      ],
     },
     {
       id: 'cafeteria-food-quality',
@@ -179,6 +296,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 8,
       positive: 5,
       percentOfTotal: 3.8,
+      aiSummary:
+        'Opinions on cafeteria food are split — several respondents praise recent menu improvements while others cite inconsistent quality.',
+      keywords: [
+        { text: 'inconsistent', weight: 3 },
+        { text: 'menu', weight: 2 },
+        { text: 'improved', weight: 2 },
+        { text: 'pricing', weight: 1 },
+        { text: 'variety', weight: 1 },
+      ],
     },
     {
       id: 'library-resources',
@@ -187,6 +313,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 6,
       positive: 10,
       percentOfTotal: 3.5,
+      aiSummary:
+        'Respondents generally view library resources positively, highlighting availability of study rooms and digital materials.',
+      keywords: [
+        { text: 'study rooms', weight: 3 },
+        { text: 'digital access', weight: 2 },
+        { text: 'quiet space', weight: 2 },
+        { text: 'helpful staff', weight: 1 },
+        { text: 'resources', weight: 1 },
+      ],
     },
     {
       id: 'parking-availability',
@@ -195,6 +330,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 4,
       positive: 2,
       percentOfTotal: 3.1,
+      aiSummary:
+        'Parking availability is a recurring frustration, especially during morning arrival times near main buildings.',
+      keywords: [
+        { text: 'limited spots', weight: 3 },
+        { text: 'morning rush', weight: 2 },
+        { text: 'far lots', weight: 2 },
+        { text: 'permits', weight: 1 },
+        { text: 'crowded', weight: 1 },
+      ],
     },
     {
       id: 'online-exam-system',
@@ -203,6 +347,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 5,
       positive: 3,
       percentOfTotal: 2.9,
+      aiSummary:
+        'The online exam system draws mixed feedback, with some technical hiccups reported around submission and timing.',
+      keywords: [
+        { text: 'timing issues', weight: 3 },
+        { text: 'submission', weight: 2 },
+        { text: 'technical', weight: 2 },
+        { text: 'reliability', weight: 1 },
+        { text: 'instructions', weight: 1 },
+      ],
     },
     {
       id: 'dormitory-conditions',
@@ -211,6 +364,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 6,
       positive: 4,
       percentOfTotal: 2.5,
+      aiSummary:
+        'Dormitory feedback is mixed, with comments on maintenance response times and shared facility upkeep.',
+      keywords: [
+        { text: 'maintenance', weight: 3 },
+        { text: 'shared facilities', weight: 2 },
+        { text: 'response time', weight: 2 },
+        { text: 'cleanliness', weight: 1 },
+        { text: 'noise', weight: 1 },
+      ],
     },
     {
       id: 'academic-advising',
@@ -219,6 +381,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 5,
       positive: 8,
       percentOfTotal: 2.0,
+      aiSummary:
+        'Academic advising feedback leans positive, with respondents appreciating availability and clarity of guidance from advisors.',
+      keywords: [
+        { text: 'helpful advisors', weight: 3 },
+        { text: 'availability', weight: 2 },
+        { text: 'clear guidance', weight: 2 },
+        { text: 'scheduling', weight: 1 },
+        { text: 'planning', weight: 1 },
+      ],
     },
     {
       id: 'career-services',
@@ -227,6 +398,15 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       neutral: 3,
       positive: 9,
       percentOfTotal: 1.4,
+      aiSummary:
+        'Career services received largely positive feedback, particularly around resume support and employer connections.',
+      keywords: [
+        { text: 'resume help', weight: 3 },
+        { text: 'employer events', weight: 2 },
+        { text: 'job search', weight: 2 },
+        { text: 'supportive', weight: 1 },
+        { text: 'guidance', weight: 1 },
+      ],
     },
   ],
   demographics: [

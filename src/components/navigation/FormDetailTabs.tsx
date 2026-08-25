@@ -32,7 +32,7 @@ export function FormDetailTabs({
 
   return (
     <div
-      className="flex h-12.5 items-center gap-3 border-2 border-l-0 border-b-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] max-[900px]:border-l-2 max-[560px]:px-4"
+      className="relative z-100 flex h-12.5 items-center gap-3 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] max-[900px]:border-l-2 max-[560px]:px-4"
     >
       {showSidebarToggle ? (
         <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
