@@ -32,7 +32,7 @@ function DemographicTooltip({
       />
       <span className="font-medium text-[#14181f]">{option.label}</span>
       <span className="text-[#929292]">
-        {option.value} · {percent}%
+        {option.value} ({percent}%)
       </span>
     </div>
   )
