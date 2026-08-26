@@ -3,6 +3,19 @@ export type TopicKeyword = {
   weight: 1 | 2 | 3
 }
 
+export type FeedbackSentiment = 'negative' | 'neutral' | 'positive'
+
+export type FeedbackPoint = {
+  id: string
+  sentiment: FeedbackSentiment
+  quote: string
+  originalFeedback: string
+  submittedAt: string
+  department: string
+  year: string
+  gender: string
+}
+
 export type TopicSentiment = {
   id: string
   label: string
@@ -13,6 +26,7 @@ export type TopicSentiment = {
   isHighIntensity?: boolean
   aiSummary: string
   keywords: TopicKeyword[]
+  feedbackSegment: FeedbackPoint[]
 }
 
 export type DemographicOption = {
@@ -103,6 +117,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'repeated', weight: 1 },
         { text: 'ignored', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'verbal-harassment-fp-1',
+          sentiment: 'negative',
+          quote: 'I witnessed a classmate being verbally harassed and nothing was done about it.',
+          originalFeedback:
+            'It happened during a group project session in the second week. I reported it to the TA afterward but never heard back about any follow-up action being taken.',
+          submittedAt: '2026-05-06',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Female',
+        },
+        {
+          id: 'verbal-harassment-fp-2',
+          sentiment: 'negative',
+          quote: 'The harassment happened during a group project and the staff wasn’t informed in time.',
+          originalFeedback:
+            'By the time we escalated it, the semester was almost over, so nothing meaningful could be done. A faster reporting channel would help a lot.',
+          submittedAt: '2026-05-14',
+          department: 'Information Technology',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'verbal-harassment-fp-3',
+          sentiment: 'neutral',
+          quote: 'There should be a clearer process for reporting this kind of behavior.',
+          originalFeedback:
+            'Right now it’s unclear who to contact or what happens after a report is filed. A visible, well-communicated process would make people more likely to speak up.',
+          submittedAt: '2026-05-20',
+          department: 'Digital Media',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'exam-cheating',
@@ -122,6 +171,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'exam hall', weight: 1 },
         { text: 'integrity', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'exam-cheating-fp-1',
+          sentiment: 'negative',
+          quote: 'Cheating during the midterm was obvious but the proctor didn’t intervene.',
+          originalFeedback:
+            'Several students around me were clearly using notes on their phones. The proctor was at the front of the hall the whole time and didn’t walk around to check.',
+          submittedAt: '2026-05-08',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'exam-cheating-fp-2',
+          sentiment: 'neutral',
+          quote: 'Stricter seating arrangements during exams would help reduce this.',
+          originalFeedback:
+            'Spacing desks further apart and mixing sections would make it much harder for anyone to see a neighbor’s answers.',
+          submittedAt: '2026-05-15',
+          department: 'Mechanical Engineering',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'exam-cheating-fp-3',
+          sentiment: 'negative',
+          quote: 'Some students used phones during the exam without consequence.',
+          originalFeedback:
+            'It’s discouraging to study hard for an exam knowing others are getting away with using their phones under the desk.',
+          submittedAt: '2026-05-22',
+          department: 'Business Administration',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'peer-abusing',
@@ -139,6 +223,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'bullying', weight: 2 },
         { text: 'reporting', weight: 1 },
         { text: 'support', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'peer-abusing-fp-1',
+          sentiment: 'negative',
+          quote: 'A group member was constantly belittled during our project meetings.',
+          originalFeedback:
+            'Every time she suggested an idea, one of the other members would dismiss it in a dismissive or mocking tone. It made meetings really uncomfortable for everyone.',
+          submittedAt: '2026-05-05',
+          department: 'Digital Media',
+          year: '2nd year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'peer-abusing-fp-2',
+          sentiment: 'neutral',
+          quote: 'Peer conflict resolution support would be helpful for group assignments.',
+          originalFeedback:
+            'A short mediation session with a TA present could resolve a lot of these issues before they escalate into something worse.',
+          submittedAt: '2026-05-12',
+          department: 'Computer Science',
+          year: '3rd year',
+          gender: 'Female',
+        },
+        {
+          id: 'peer-abusing-fp-3',
+          sentiment: 'negative',
+          quote: 'Bullying in group chats went unaddressed by the course staff.',
+          originalFeedback:
+            'Screenshots of the messages were shared with the instructor, but no action seemed to follow, which discouraged others from reporting similar issues.',
+          submittedAt: '2026-05-19',
+          department: 'Information Technology',
+          year: '1st year',
+          gender: 'Male',
+        },
       ],
     },
   ],
@@ -164,6 +283,43 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'classes', weight: 1 },
         { text: 'communicate', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'wifi-connectivity-fp-1',
+          sentiment: 'negative',
+          quote:
+            'The Wi-Fi signal is often unstable and disconnects frequently, especially during online classes and meetings.',
+          originalFeedback:
+            'The Wi-Fi signal in the area has been quite unstable and disconnects frequently throughout the day. This issue is especially noticeable during online classes and virtual meetings, where the connection suddenly drops or becomes extremely slow without warning. As a result, video and audio often freeze, calls get interrupted, and it becomes difficult to communicate or follow discussions properly.',
+          submittedAt: '2026-05-14',
+          department: 'Computer Science',
+          year: '3rd year',
+          gender: 'Female',
+        },
+        {
+          id: 'wifi-connectivity-fp-2',
+          sentiment: 'negative',
+          quote:
+            'Frequent Wi-Fi interruptions and weak signal quality are affecting online learning and daily internet usage.',
+          originalFeedback:
+            'It’s not just during classes — even browsing course websites or submitting assignments takes much longer than it should because the connection keeps cutting in and out.',
+          submittedAt: '2026-05-09',
+          department: 'Information Technology',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'wifi-connectivity-fp-3',
+          sentiment: 'positive',
+          quote: 'Campus-wide Wi-Fi access is convenient when it’s working properly.',
+          originalFeedback:
+            'On the days the network is stable, having access everywhere on campus really does make studying between classes much easier.',
+          submittedAt: '2026-05-21',
+          department: 'Digital Media',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'lab-computer-performance',
@@ -181,6 +337,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'upgrade', weight: 2 },
         { text: 'crashes', weight: 1 },
         { text: 'availability', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'lab-computer-performance-fp-1',
+          sentiment: 'negative',
+          quote: 'Lab computers freeze constantly during peak hours, wasting valuable class time.',
+          originalFeedback:
+            'During the busiest lab sessions, at least two or three machines in the room freeze up completely and need a restart, which eats into time we should be spending on the assignment.',
+          submittedAt: '2026-05-07',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'lab-computer-performance-fp-2',
+          sentiment: 'positive',
+          quote: 'The new machines in Lab 3 run much faster than before.',
+          originalFeedback:
+            'Whoever upgraded Lab 3 recently did a great job — compile times and IDE loading are noticeably faster compared to the other labs.',
+          submittedAt: '2026-05-16',
+          department: 'Information Technology',
+          year: '4th year',
+          gender: 'Male',
+        },
+        {
+          id: 'lab-computer-performance-fp-3',
+          sentiment: 'neutral',
+          quote: 'More lab hours would help since availability is limited.',
+          originalFeedback:
+            'The good machines get booked quickly near deadlines, so extending the lab’s open hours would give everyone a fairer chance to use them.',
+          submittedAt: '2026-05-23',
+          department: 'Mechanical Engineering',
+          year: '1st year',
+          gender: 'Female',
+        },
       ],
     },
     {
@@ -200,6 +391,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'peak load', weight: 1 },
         { text: 'slow', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'course-registration-system-fp-1',
+          sentiment: 'negative',
+          quote: 'The registration portal times out constantly during peak enrollment.',
+          originalFeedback:
+            'Right when registration opens, the system slows to a crawl and often times out before I can finish selecting my courses, forcing me to start over.',
+          submittedAt: '2026-05-04',
+          department: 'Business Administration',
+          year: '2nd year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'course-registration-system-fp-2',
+          sentiment: 'negative',
+          quote: 'Error messages during registration don’t explain what went wrong.',
+          originalFeedback:
+            'I kept getting a generic error code with no explanation, so I had no idea whether the course was full, a prerequisite was missing, or something else entirely.',
+          submittedAt: '2026-05-11',
+          department: 'Computer Science',
+          year: '1st year',
+          gender: 'Female',
+        },
+        {
+          id: 'course-registration-system-fp-3',
+          sentiment: 'positive',
+          quote: 'Registration was smooth this time compared to last semester.',
+          originalFeedback:
+            'I noticed the page loaded much faster this round and I was able to register for all my courses within a few minutes.',
+          submittedAt: '2026-05-18',
+          department: 'Information Technology',
+          year: '3rd year',
+          gender: 'Male',
+        },
+      ],
     },
     {
       id: 'internship-process',
@@ -217,6 +443,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'communication', weight: 2 },
         { text: 'paperwork', weight: 1 },
         { text: 'delays', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'internship-process-fp-1',
+          sentiment: 'negative',
+          quote: 'I never received updates on my internship application status.',
+          originalFeedback:
+            'After submitting my paperwork, I heard nothing for over a month and had to keep emailing the office just to check whether it was still being processed.',
+          submittedAt: '2026-05-06',
+          department: 'Business Administration',
+          year: '3rd year',
+          gender: 'Female',
+        },
+        {
+          id: 'internship-process-fp-2',
+          sentiment: 'neutral',
+          quote: 'The approval process could be faster with clearer milestones.',
+          originalFeedback:
+            'A simple checklist or status tracker showing which stage the application is at would remove a lot of the uncertainty.',
+          submittedAt: '2026-05-13',
+          department: 'Computer Science',
+          year: '4th year',
+          gender: 'Male',
+        },
+        {
+          id: 'internship-process-fp-3',
+          sentiment: 'positive',
+          quote: 'My advisor was very responsive throughout the internship process.',
+          originalFeedback:
+            'Every time I emailed with a question, my advisor replied within a day or two, which made the whole process much less stressful.',
+          submittedAt: '2026-05-24',
+          department: 'Information Technology',
+          year: '3rd year',
+          gender: 'Female',
+        },
       ],
     },
     {
@@ -236,6 +497,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'support', weight: 1 },
         { text: 'concepts', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'csc101-difficulty-fp-1',
+          sentiment: 'negative',
+          quote: 'The pace of CSC101 is too fast for beginners with no prior coding experience.',
+          originalFeedback:
+            'We covered loops and functions in the same week, and for someone who had never written code before, it was very hard to keep up without extra practice.',
+          submittedAt: '2026-05-05',
+          department: 'Computer Science',
+          year: '1st year',
+          gender: 'Male',
+        },
+        {
+          id: 'csc101-difficulty-fp-2',
+          sentiment: 'neutral',
+          quote: 'More practice sessions would help reinforce the concepts.',
+          originalFeedback:
+            'An extra optional lab hour each week focused purely on practice problems would help a lot of us solidify what’s taught in lecture.',
+          submittedAt: '2026-05-12',
+          department: 'Computer Science',
+          year: '1st year',
+          gender: 'Male',
+        },
+        {
+          id: 'csc101-difficulty-fp-3',
+          sentiment: 'positive',
+          quote: 'The TA office hours really helped me catch up.',
+          originalFeedback:
+            'I was falling behind after missing a week of class, but the TA walked me through the material one-on-one and I was able to catch up before the midterm.',
+          submittedAt: '2026-05-20',
+          department: 'Information Technology',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'lab1-ador',
@@ -253,6 +549,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'lab 1', weight: 2 },
         { text: 'maintenance', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'lab1-ador-fp-1',
+          sentiment: 'negative',
+          quote: 'Lab 1 has a persistent odor that makes long sessions uncomfortable.',
+          originalFeedback:
+            'It’s hard to focus on the assignment when the smell is noticeable the moment you walk in, especially during the longer three-hour sessions.',
+          submittedAt: '2026-05-08',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'lab1-ador-fp-2',
+          sentiment: 'negative',
+          quote: 'The ventilation in Lab 1 needs to be checked, the smell is noticeable.',
+          originalFeedback:
+            'I’m not sure if it’s the air conditioning or something else, but the room could really use better airflow.',
+          submittedAt: '2026-05-15',
+          department: 'Mechanical Engineering',
+          year: '3rd year',
+          gender: 'Female',
+        },
+        {
+          id: 'lab1-ador-fp-3',
+          sentiment: 'neutral',
+          quote: 'Maybe rotating which lab is used could help while this gets fixed.',
+          originalFeedback:
+            'Until maintenance resolves it, alternating classes between Lab 1 and Lab 2 would at least reduce how often people are exposed to it.',
+          submittedAt: '2026-05-21',
+          department: 'Information Technology',
+          year: '2nd year',
+          gender: 'Male',
+        },
+      ],
     },
     {
       id: 'group-project',
@@ -269,6 +600,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'grading', weight: 2 },
         { text: 'free riders', weight: 2 },
         { text: 'collaboration', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'group-project-fp-1',
+          sentiment: 'neutral',
+          quote: 'Group work is valuable but grading should account for individual contribution.',
+          originalFeedback:
+            'A peer-evaluation component built into the grading rubric would make the final marks feel a lot fairer to everyone involved.',
+          submittedAt: '2026-05-06',
+          department: 'Business Administration',
+          year: '2nd year',
+          gender: 'Female',
+        },
+        {
+          id: 'group-project-fp-2',
+          sentiment: 'negative',
+          quote: 'One member did none of the work but received the same grade.',
+          originalFeedback:
+            'We reached out to the instructor about it partway through, but by the time anything was addressed the project was already submitted.',
+          submittedAt: '2026-05-14',
+          department: 'Computer Science',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'group-project-fp-3',
+          sentiment: 'positive',
+          quote: 'Our group collaborated well and split tasks fairly.',
+          originalFeedback:
+            'We set up a shared task board in the first week and checked in twice weekly, which kept everyone accountable and made the workload feel balanced.',
+          submittedAt: '2026-05-22',
+          department: 'Digital Media',
+          year: '2nd year',
+          gender: 'Female',
+        },
       ],
     },
     {
@@ -288,6 +654,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'staff response', weight: 1 },
         { text: 'reported', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'verbal-harassment-ai-fp-1',
+          sentiment: 'negative',
+          quote: 'Reports of harassment keep surfacing in group settings without follow-up.',
+          originalFeedback:
+            'This is the second time I’ve heard a similar story from a different group of students, which makes me think it’s more widespread than the school realizes.',
+          submittedAt: '2026-05-09',
+          department: 'Digital Media',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'verbal-harassment-ai-fp-2',
+          sentiment: 'neutral',
+          quote: 'A clearer escalation path for harassment reports is needed.',
+          originalFeedback:
+            'It shouldn’t take multiple emails to figure out who is actually responsible for handling these complaints.',
+          submittedAt: '2026-05-16',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'verbal-harassment-ai-fp-3',
+          sentiment: 'negative',
+          quote: 'Some comments in class discussions crossed the line and weren’t addressed.',
+          originalFeedback:
+            'The instructor was present when it happened but moved on without saying anything, which made it feel like it was acceptable.',
+          submittedAt: '2026-05-23',
+          department: 'Information Technology',
+          year: '4th year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'cafeteria-food-quality',
@@ -304,6 +705,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'improved', weight: 2 },
         { text: 'pricing', weight: 1 },
         { text: 'variety', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'cafeteria-food-quality-fp-1',
+          sentiment: 'positive',
+          quote: 'The new menu additions this semester are a big improvement.',
+          originalFeedback:
+            'The new stir-fry counter and the wider variety of vegetarian options have made lunch a lot more enjoyable this semester.',
+          submittedAt: '2026-05-07',
+          department: 'Business Administration',
+          year: '1st year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'cafeteria-food-quality-fp-2',
+          sentiment: 'negative',
+          quote: 'Food quality is inconsistent between different cafeteria counters.',
+          originalFeedback:
+            'Some days the food from a certain counter is great and other days it’s clearly reheated or overcooked. It really depends on who’s working that shift.',
+          submittedAt: '2026-05-15',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Female',
+        },
+        {
+          id: 'cafeteria-food-quality-fp-3',
+          sentiment: 'neutral',
+          quote: 'Pricing is reasonable but variety could be better.',
+          originalFeedback:
+            'Prices are fair for a student budget, but the rotating menu repeats fairly often, so more variety across the week would be welcome.',
+          submittedAt: '2026-05-22',
+          department: 'Digital Media',
+          year: '3rd year',
+          gender: 'Male',
+        },
       ],
     },
     {
@@ -322,6 +758,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'helpful staff', weight: 1 },
         { text: 'resources', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'library-resources-fp-1',
+          sentiment: 'positive',
+          quote: 'Study rooms are quiet and easy to book online.',
+          originalFeedback:
+            'The booking system is straightforward and I’ve never had trouble finding a quiet room to study in, even close to exam periods.',
+          submittedAt: '2026-05-05',
+          department: 'Information Technology',
+          year: '2nd year',
+          gender: 'Female',
+        },
+        {
+          id: 'library-resources-fp-2',
+          sentiment: 'positive',
+          quote: 'The digital library catalog makes finding resources simple.',
+          originalFeedback:
+            'Being able to search and access e-books remotely has saved me a lot of trips to campus just to grab a reference book.',
+          submittedAt: '2026-05-13',
+          department: 'Computer Science',
+          year: '4th year',
+          gender: 'Male',
+        },
+        {
+          id: 'library-resources-fp-3',
+          sentiment: 'neutral',
+          quote: 'More outlets near the study desks would be helpful.',
+          originalFeedback:
+            'A lot of the desks on the second floor don’t have nearby power outlets, which is inconvenient for longer study sessions.',
+          submittedAt: '2026-05-20',
+          department: 'Digital Media',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'parking-availability',
@@ -338,6 +809,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'far lots', weight: 2 },
         { text: 'permits', weight: 1 },
         { text: 'crowded', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'parking-availability-fp-1',
+          sentiment: 'negative',
+          quote: 'Parking is nearly impossible to find during the morning rush.',
+          originalFeedback:
+            'I’ve had to circle the lot for over fifteen minutes some mornings just to find a spot, which makes me late for my first class.',
+          submittedAt: '2026-05-06',
+          department: 'Mechanical Engineering',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'parking-availability-fp-2',
+          sentiment: 'negative',
+          quote: 'The lots closest to campus fill up before 8am.',
+          originalFeedback:
+            'Anyone arriving after 8 has to park in the overflow lot, which is a fifteen-minute walk from the main buildings.',
+          submittedAt: '2026-05-14',
+          department: 'Business Administration',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'parking-availability-fp-3',
+          sentiment: 'neutral',
+          quote: 'A shuttle from the overflow lot would ease the congestion.',
+          originalFeedback:
+            'Even a shuttle running every fifteen minutes during peak hours would make parking further away much more bearable.',
+          submittedAt: '2026-05-21',
+          department: 'Computer Science',
+          year: '1st year',
+          gender: 'Female',
+        },
       ],
     },
     {
@@ -356,6 +862,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'reliability', weight: 1 },
         { text: 'instructions', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'online-exam-system-fp-1',
+          sentiment: 'negative',
+          quote: 'The exam system logged me out mid-submission and I lost my answers.',
+          originalFeedback:
+            'I was on the last question when the session timed out unexpectedly, and when I logged back in my earlier answers hadn’t been saved.',
+          submittedAt: '2026-05-08',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'online-exam-system-fp-2',
+          sentiment: 'neutral',
+          quote: 'Clearer instructions before the exam starts would reduce confusion.',
+          originalFeedback:
+            'A short walkthrough of how submission and time limits work, shown right before the exam begins, would help first-time users a lot.',
+          submittedAt: '2026-05-16',
+          department: 'Information Technology',
+          year: '1st year',
+          gender: 'Female',
+        },
+        {
+          id: 'online-exam-system-fp-3',
+          sentiment: 'positive',
+          quote: 'The practice exam mode helped me get familiar with the interface.',
+          originalFeedback:
+            'Being able to try a mock exam beforehand meant I wasn’t figuring out the interface for the first time during the real exam.',
+          submittedAt: '2026-05-23',
+          department: 'Business Administration',
+          year: '3rd year',
+          gender: 'Male',
+        },
+      ],
     },
     {
       id: 'dormitory-conditions',
@@ -372,6 +913,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'response time', weight: 2 },
         { text: 'cleanliness', weight: 1 },
         { text: 'noise', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'dormitory-conditions-fp-1',
+          sentiment: 'neutral',
+          quote: 'Maintenance requests take a while to get resolved.',
+          originalFeedback:
+            'I submitted a request about a leaking faucet almost two weeks ago and it still hasn’t been fixed, though I did get a confirmation email.',
+          submittedAt: '2026-05-06',
+          department: 'Business Administration',
+          year: '1st year',
+          gender: 'Female',
+        },
+        {
+          id: 'dormitory-conditions-fp-2',
+          sentiment: 'positive',
+          quote: 'The common areas in the dorm are kept clean.',
+          originalFeedback:
+            'The cleaning staff do a great job keeping the shared kitchen and lounge tidy, even during busier weeks.',
+          submittedAt: '2026-05-14',
+          department: 'Digital Media',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'dormitory-conditions-fp-3',
+          sentiment: 'negative',
+          quote: 'Noise complaints after quiet hours aren’t enforced consistently.',
+          originalFeedback:
+            'Quiet hours are supposed to start at 11pm, but some floors are still loud well past midnight with no consequences.',
+          submittedAt: '2026-05-21',
+          department: 'Computer Science',
+          year: '2nd year',
+          gender: 'Female',
+        },
       ],
     },
     {
@@ -390,6 +966,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'scheduling', weight: 1 },
         { text: 'planning', weight: 1 },
       ],
+      feedbackSegment: [
+        {
+          id: 'academic-advising-fp-1',
+          sentiment: 'positive',
+          quote: 'My advisor helped me plan my course schedule really well.',
+          originalFeedback:
+            'I met with my advisor at the start of the semester and they walked me through prerequisite chains I hadn’t noticed, which saved me from a scheduling conflict next year.',
+          submittedAt: '2026-04-18',
+          department: 'Business Administration',
+          year: '2nd year',
+          gender: 'Male',
+        },
+        {
+          id: 'academic-advising-fp-2',
+          sentiment: 'positive',
+          quote: 'Advising appointments are easy to book and always helpful.',
+          originalFeedback:
+            'The online booking system for advising slots is straightforward, and every session I’ve had has left me with clear next steps.',
+          submittedAt: '2026-05-02',
+          department: 'Digital Media',
+          year: '3rd year',
+          gender: 'Male',
+        },
+        {
+          id: 'academic-advising-fp-3',
+          sentiment: 'neutral',
+          quote: 'More advisors would reduce the wait time during peak registration.',
+          originalFeedback:
+            'During registration week the advising office gets very busy, and it can take a few days to get a slot even though each session itself is well run.',
+          submittedAt: '2026-05-19',
+          department: 'Computer Science',
+          year: '1st year',
+          gender: 'Female',
+        },
+      ],
     },
     {
       id: 'career-services',
@@ -406,6 +1017,41 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
         { text: 'job search', weight: 2 },
         { text: 'supportive', weight: 1 },
         { text: 'guidance', weight: 1 },
+      ],
+      feedbackSegment: [
+        {
+          id: 'career-services-fp-1',
+          sentiment: 'positive',
+          quote: 'The resume workshop was extremely helpful before my internship search.',
+          originalFeedback:
+            'I attended the resume workshop right before applying to internships and the feedback I got on formatting and wording made a noticeable difference in my callback rate.',
+          submittedAt: '2026-04-25',
+          department: 'Computer Science',
+          year: '3rd year',
+          gender: 'Non-binary',
+        },
+        {
+          id: 'career-services-fp-2',
+          sentiment: 'positive',
+          quote: 'Career fair connections led directly to my current internship.',
+          originalFeedback:
+            'I spoke with a recruiter at the spring career fair and that conversation turned into an interview and eventually the internship offer I have now.',
+          submittedAt: '2026-05-08',
+          department: 'Business Administration',
+          year: '4th year',
+          gender: 'Female',
+        },
+        {
+          id: 'career-services-fp-3',
+          sentiment: 'neutral',
+          quote: 'More employer variety at career events would be great.',
+          originalFeedback:
+            'The career fairs are well organized, but most of the companies attending are in the same couple of industries — it would help to see more variety.',
+          submittedAt: '2026-05-16',
+          department: 'Digital Media',
+          year: '2nd year',
+          gender: 'Male',
+        },
       ],
     },
   ],

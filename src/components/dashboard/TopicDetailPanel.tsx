@@ -4,6 +4,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } fro
 
 import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
+import { FeedbackSegmentSection } from './FeedbackSegmentSection'
 import { SentimentGauge } from './SentimentGauge'
 import { SENTIMENT_COLORS } from './sentimentColors'
 
@@ -224,6 +225,8 @@ export function TopicDetailPanel({ topic, onClose, width }: TopicDetailPanelProp
           </ResponsiveContainer>
         </div>
       </div>
+
+      <FeedbackSegmentSection feedbackSegment={topic.feedbackSegment} />
     </aside>
   )
 }
