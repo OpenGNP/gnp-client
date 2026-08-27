@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Filter } from 'lucide-react'
+import { Calendar as CalendarIcon, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
@@ -161,7 +161,7 @@ export function DateRangeFilter() {
             className="inline-flex h-11.25 min-w-33.75 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]"
             type="button"
           >
-            <Filter size={16} />
+            <SlidersHorizontal size={16} />
             {triggerLabel(appliedPreset, appliedRange)}
           </button>
         </PopoverTrigger>

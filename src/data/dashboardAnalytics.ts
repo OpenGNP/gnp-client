@@ -62,6 +62,44 @@ export type DemographicBreakdown =
   | MultiChoiceBreakdown
   | TextResponseBreakdown
 
+export type TrendTopicSeries = {
+  id: string
+  label: string
+}
+
+export type TopicMovement = {
+  id: string
+  label: string
+  volumeChange: number
+  positiveChange: number
+  negativeChange: number
+}
+
+export type EmergingIssue = {
+  id: string
+  title: string
+  description: string
+  riskLabel: string
+}
+
+export type TrendTimelineEvent = {
+  id: string
+  date: string
+  description: string
+  change: number
+  metricLabel: string
+}
+
+export type FormTrendAnalytics = {
+  rangeLabel: string
+  comparisonLabel: string
+  topicVolumeSeries: TrendTopicSeries[]
+  risingTopics: TopicMovement[]
+  decliningTopics: TopicMovement[]
+  emergingIssues: EmergingIssue[]
+  timelineEvents: TrendTimelineEvent[]
+}
+
 export type FormDashboardAnalytics = {
   formId: string
   status: 'Active' | 'Closed'
@@ -81,6 +119,7 @@ export type FormDashboardAnalytics = {
   aiDiscoveredTopics: TopicSentiment[]
   demographics: DemographicBreakdown[]
   feedbackResponses: DemographicBreakdown[]
+  trend: FormTrendAnalytics
 }
 
 const csFocusGroupAnalytics: FormDashboardAnalytics = {
@@ -1105,6 +1144,128 @@ const csFocusGroupAnalytics: FormDashboardAnalytics = {
       ],
     },
   ],
+  trend: {
+    rangeLabel: 'Last 30 days',
+    comparisonLabel: 'vs Jan 1-Jan 31',
+    topicVolumeSeries: [
+      { id: 'wifi-connectivity', label: 'Wi-Fi connectivity' },
+      { id: 'lab-computer-performance', label: 'Lab computer performance' },
+      { id: 'course-registration-system', label: 'Course registration system' },
+      { id: 'internship-process', label: 'Internship process' },
+      { id: 'group-project', label: 'Group project' },
+    ],
+    risingTopics: [
+      {
+        id: 'wifi-connectivity',
+        label: 'Wi-Fi connectivity',
+        volumeChange: 42,
+        positiveChange: 12,
+        negativeChange: -21,
+      },
+      {
+        id: 'internship-process',
+        label: 'Internship process',
+        volumeChange: 31,
+        positiveChange: -23,
+        negativeChange: 35,
+      },
+      {
+        id: 'verbal-harassment',
+        label: 'Verbal harassment',
+        volumeChange: 28,
+        positiveChange: 16,
+        negativeChange: -15,
+      },
+      {
+        id: 'workload-assignments',
+        label: 'Workload / assignments',
+        volumeChange: 16,
+        positiveChange: -11,
+        negativeChange: 12,
+      },
+      {
+        id: 'exam-stress',
+        label: 'Exam stress',
+        volumeChange: 14,
+        positiveChange: -2,
+        negativeChange: 4,
+      },
+    ],
+    decliningTopics: [
+      {
+        id: 'classroom-cleanliness',
+        label: 'Classroom cleanliness',
+        volumeChange: -40,
+        positiveChange: 12,
+        negativeChange: -21,
+      },
+      {
+        id: 'lab-equipment',
+        label: 'Lab equipment',
+        volumeChange: -38,
+        positiveChange: -23,
+        negativeChange: 35,
+      },
+      {
+        id: 'quick-tests',
+        label: 'Quick tests',
+        volumeChange: -22,
+        positiveChange: 16,
+        negativeChange: -15,
+      },
+      {
+        id: 'vm-setup-process',
+        label: 'VM setup process',
+        volumeChange: -15,
+        positiveChange: -11,
+        negativeChange: 12,
+      },
+      {
+        id: 'learning-materials',
+        label: 'Learning materials',
+        volumeChange: -9,
+        positiveChange: -2,
+        negativeChange: 4,
+      },
+    ],
+    emergingIssues: [
+      {
+        id: 'mentions-spike',
+        title: 'Rapid rise in negative mentions',
+        description: 'Mentions increased by 18% in the last 7 days.',
+        riskLabel: 'High risk',
+      },
+      {
+        id: 'wifi-exam-week',
+        title: 'Wi-Fi complaints during exam week',
+        description: 'Significant spike detected between Jan 1 - Jan 19.',
+        riskLabel: 'High risk',
+      },
+    ],
+    timelineEvents: [
+      {
+        id: 'jan-18-network',
+        date: '2026-01-18',
+        description: 'Network instability reported in multiple departments.',
+        change: 240,
+        metricLabel: 'Wi-Fi complaints',
+      },
+      {
+        id: 'jan-17-integrity',
+        date: '2026-01-17',
+        description: 'Exam integrity concern raised in CSC119.',
+        change: 168,
+        metricLabel: 'Exam cheating',
+      },
+      {
+        id: 'jan-16-network',
+        date: '2026-01-16',
+        description: 'Network instability reported in multiple departments.',
+        change: 112,
+        metricLabel: 'Wi-Fi complaints',
+      },
+    ],
+  },
 }
 
 const dashboardAnalyticsByFormId: Record<string, FormDashboardAnalytics> = {

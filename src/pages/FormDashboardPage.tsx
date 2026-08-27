@@ -15,11 +15,13 @@ import { DemographicOverviewSection } from '../components/dashboard/DemographicO
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
+import { TrendView } from '../components/dashboard/TrendView'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { getDashboardAnalytics } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
+import { cn } from '../lib/utils'
 
 function StatusRow({
   status,
@@ -142,22 +144,36 @@ export function FormDashboardPage({
               : undefined
           }
         >
-          <div className="mx-auto flex w-full min-w-150 max-w-182 flex-col gap-5">
+          <div
+            className={cn(
+              'mx-auto flex w-full flex-col gap-5',
+              activeView === 'trend' ? 'max-w-366.5' : 'min-w-150 max-w-182',
+            )}
+          >
             <div className="flex flex-col gap-1.25">
               <StatusRow
                 lastUpdatedLabel={analytics.lastUpdatedLabel}
                 openDateRangeLabel={analytics.openDateRangeLabel}
                 status={analytics.status}
               />
-              <div className="flex items-center gap-2.5 py-2.5">
-                {activeView === 'response' ? (
-                  <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
-                ) : (
-                  <Tag className="shrink-0 text-[#1e55c5]" size={24} />
-                )}
-                <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                  {activeView === 'response' ? 'Response Overview' : analytics.title}
-                </h1>
+              <div className="flex items-start justify-between gap-2.5 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  {activeView === 'themes' ? (
+                    <Tag className="shrink-0 text-[#1e55c5]" size={24} />
+                  ) : (
+                    <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
+                  )}
+                  <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
+                    {activeView === 'themes'
+                      ? analytics.title
+                      : activeView === 'trend'
+                        ? 'Trend Overview'
+                        : 'Response Overview'}
+                  </h1>
+                </div>
+                {activeView === 'trend' ? (
+                  <DateRangeFilter />
+                ) : null}
               </div>
             </div>
 
@@ -263,6 +279,8 @@ export function FormDashboardPage({
                 />
               </>
             ) : null}
+
+            {activeView === 'trend' ? <TrendView trend={analytics.trend} /> : null}
           </div>
         </div>
       </div>
