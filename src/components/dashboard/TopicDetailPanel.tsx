@@ -132,7 +132,7 @@ export function TopicDetailPanel({ topic, onClose, width }: TopicDetailPanelProp
       <div className="flex flex-wrap gap-4">
         <div className="flex min-w-45 flex-1 flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
           <p className="m-0 text-[12px] font-medium text-[#929292]">Sentiment analysis</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center justify-center gap-3">
             <SentimentGauge
               negative={topic.negative}
               neutral={topic.neutral}
@@ -140,7 +140,7 @@ export function TopicDetailPanel({ topic, onClose, width }: TopicDetailPanelProp
               positive={topic.positive}
               score={sentimentScore}
             />
-            <div className="flex flex-col gap-1.5 text-[11px]">
+            <div className="flex flex-col gap-1.5 text-[12px]">
               <span className="flex items-center gap-1.5">
                 <span
                   className="size-1.75 shrink-0 rounded-full"
