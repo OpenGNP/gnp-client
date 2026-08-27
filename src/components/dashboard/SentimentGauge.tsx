@@ -27,41 +27,43 @@ export function SentimentGauge({
 
   return (
     <div
-      className="relative h-16 w-28"
+      className="h-12 w-[84px]"
       aria-label={`Overall sentiment score ${score} out of ${outOf}`}
       role="img"
     >
-      <PieChart height={64} width={112}>
-        <Pie
-          cx={56}
-          cy={58}
-          data={data}
-          dataKey="value"
-          endAngle={0}
-          innerRadius={32}
-          isAnimationActive={false}
-          outerRadius={52}
-          paddingAngle={2}
-          startAngle={180}
-          stroke="none"
-        >
-          {data.map((entry) => (
-            <Cell fill={entry.color} key={entry.name} />
-          ))}
-        </Pie>
-      </PieChart>
-      <div
-        className="absolute bottom-1.5 left-14 h-[1.5px] w-6 origin-left rounded-full bg-[#14181f]"
-        style={{ transform: `rotate(${needleAngle}deg)` }}
-      />
-      <div className="absolute bottom-0.75 left-14 size-1.75 -translate-x-1/2 rounded-full bg-[#14181f]" />
-      <span className="absolute bottom-2.5 left-0.75 text-[7px] text-[#929292]">0</span>
-      <span className="absolute right-0.75 bottom-2.5 text-[7px] text-[#929292]">
-        {outOf}
-      </span>
-      <span className="absolute top-4.5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-black">
-        {score}
-      </span>
+      <div className="relative h-16 w-28 origin-top-left scale-75">
+        <PieChart height={64} width={112}>
+          <Pie
+            cx={52}
+            cy={56}
+            data={data}
+            dataKey="value"
+            endAngle={0}
+            innerRadius={34}
+            isAnimationActive={false}
+            outerRadius={54}
+            paddingAngle={2}
+            startAngle={180}
+            stroke="none"
+          >
+            {data.map((entry) => (
+              <Cell fill={entry.color} key={entry.name} />
+            ))}
+          </Pie>
+        </PieChart>
+        <div
+          className="absolute bottom-1.5 left-14 h-[1.5px] w-6 origin-left rounded-full bg-[#14181f]"
+          style={{ transform: `rotate(${needleAngle}deg)` }}
+        />
+        <div className="absolute bottom-0.75 left-14 size-1.75 -translate-x-1/2 rounded-full bg-[#14181f]" />
+        <span className="absolute bottom-2.5 left-0.75 text-[7px] text-[#929292]">0</span>
+        <span className="absolute right-0.75 bottom-2.5 text-[7px] text-[#929292]">
+          {outOf}
+        </span>
+        <span className="absolute top-4.5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-black">
+          {score}
+        </span>
+      </div>
     </div>
   )
 }

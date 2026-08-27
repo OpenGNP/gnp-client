@@ -173,11 +173,11 @@ export function FormDashboardPage({
                     value={analytics.totalResponders}
                   />
 
-                  <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center gap-1.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
+                  <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
                     <p className="m-0 text-[12px] font-medium text-[#929292]">
                       Overall Sentiment
                     </p>
-                    <div className="flex items-center gap-4.5">
+                    <div className="flex items-center gap-3">
                       <SentimentGauge
                         negative={analytics.sentiment.negative}
                         neutral={analytics.sentiment.neutral}
