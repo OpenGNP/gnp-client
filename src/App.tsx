@@ -10,6 +10,7 @@ import { useFormAccessSettings } from './hooks/useFormAccessSettings'
 import { useProjectTree } from './hooks/useProjectTree'
 import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
+import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
 import { HomePage } from './pages/HomePage'
 import { getSelectedProjectId } from './utils/projectTree'
@@ -17,7 +18,7 @@ import { getSelectedProjectId } from './utils/projectTree'
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { projects, openFolderIds, addProject, moveProject, toggleFolder } =
+  const { projects, openFolderIds, addProject, addFolder, moveProject, toggleFolder } =
     useProjectTree(projectTree)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -33,10 +34,16 @@ function App() {
   const selectedProjectId = getSelectedProjectId(location.pathname)
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
+  const isFilesRoute = location.pathname.startsWith('/files')
 
   function handleGoHome() {
     setIsCreateFormSettingsOpen(false)
     navigate('/')
+  }
+
+  function handleGoFiles() {
+    setIsCreateFormSettingsOpen(false)
+    navigate('/files')
   }
 
   function handleCreateForm() {
@@ -91,7 +98,9 @@ function App() {
           searchTerm={searchTerm}
           selectedProjectId={selectedProjectId}
           user={user}
+          onCreateFolder={addFolder}
           onCreateForm={handleCreateForm}
+          onGoFiles={handleGoFiles}
           onGoHome={handleGoHome}
           onMoveProject={moveProject}
           onSearchChange={setSearchTerm}
@@ -116,13 +125,18 @@ function App() {
           />
         ) : isFormDetailRoute ? null : (
           <Navbar
-            title="Overview"
+            title={isFilesRoute ? 'Files' : 'Overview'}
             showSidebarToggle={isSidebarCollapsed}
             onToggleSidebar={() => setIsSidebarCollapsed(false)}
           />
         )}
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/files" element={<FilesPage projects={projects} />} />
+          <Route
+            path="/files/:folderId"
+            element={<FilesPage projects={projects} />}
+          />
           <Route
             path="/create-form"
             element={

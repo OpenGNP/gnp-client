@@ -60,6 +60,60 @@ export function removeProjectById(
   return { projects: nextProjects, removedProject }
 }
 
+export function findProjectById(
+  projects: ProjectTreeItem[],
+  id: string,
+): ProjectTreeItem | null {
+  for (const project of projects) {
+    if (project.id === id || project.formId === id) {
+      return project
+    }
+
+    if (project.children) {
+      const found = findProjectById(project.children, id)
+      if (found) {
+        return found
+      }
+    }
+  }
+
+  return null
+}
+
+export function isIdWithinItem(item: ProjectTreeItem, id: string): boolean {
+  if (item.id === id) {
+    return true
+  }
+
+  return (item.children ?? []).some((child) => isIdWithinItem(child, id))
+}
+
+// The chain of folders from the root down to `folderId` (inclusive).
+// Empty when the id doesn't resolve to a folder — callers treat that as "root".
+export function getFolderPath(
+  projects: ProjectTreeItem[],
+  folderId: string,
+): ProjectTreeItem[] {
+  for (const project of projects) {
+    if (project.type !== 'folder') {
+      continue
+    }
+
+    if (project.id === folderId) {
+      return [project]
+    }
+
+    if (project.children) {
+      const childPath = getFolderPath(project.children, folderId)
+      if (childPath.length > 0) {
+        return [project, ...childPath]
+      }
+    }
+  }
+
+  return []
+}
+
 export function findFolderById(
   projects: ProjectTreeItem[],
   id: string,

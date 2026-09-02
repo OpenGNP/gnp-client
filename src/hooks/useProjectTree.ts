@@ -4,7 +4,9 @@ import type { ProjectTreeItem } from '../data/dashboard'
 import {
   addProjectToFolder,
   addProjectToRoot,
+  findProjectById,
   getDefaultOpenFolderIds,
+  isIdWithinItem,
   removeProjectById,
 } from '../utils/projectTree'
 
@@ -30,9 +32,20 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
 
   function moveProject(projectId: string, folderId: string | null) {
     setProjects((currentProjects) => {
+      const moved = findProjectById(currentProjects, projectId)
+
+      if (!moved) {
+        return currentProjects
+      }
+
+      // A folder can't be dropped into itself or one of its own descendants.
+      if (moved.type === 'folder' && folderId && isIdWithinItem(moved, folderId)) {
+        return currentProjects
+      }
+
       const result = removeProjectById(currentProjects, projectId)
 
-      if (!result.removedProject || result.removedProject.type === 'folder') {
+      if (!result.removedProject) {
         return currentProjects
       }
 
@@ -66,10 +79,39 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     }
   }
 
+  function addFolder(name: string, parentFolderId: string | null = null) {
+    const label = name.trim()
+
+    if (!label) {
+      return
+    }
+
+    const newFolder: ProjectTreeItem = {
+      id: crypto.randomUUID(),
+      label,
+      type: 'folder',
+    }
+
+    setProjects((currentProjects) =>
+      parentFolderId
+        ? addProjectToFolder(currentProjects, parentFolderId, newFolder)
+        : [newFolder, ...currentProjects],
+    )
+
+    if (parentFolderId) {
+      setOpenFolderIds((currentFolderIds) => {
+        const nextFolderIds = new Set(currentFolderIds)
+        nextFolderIds.add(parentFolderId)
+        return nextFolderIds
+      })
+    }
+  }
+
   return {
     projects,
     openFolderIds,
     addProject,
+    addFolder,
     moveProject,
     toggleFolder,
   }

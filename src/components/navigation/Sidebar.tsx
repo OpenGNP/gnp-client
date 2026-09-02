@@ -1,20 +1,30 @@
 import {
+  ChevronDown,
   ChevronLeft,
+  FilePlus,
   FileText,
   Folder,
   FolderOpen,
+  FolderPlus,
+  HardDrive,
   Home,
   MoreHorizontal,
   PlusCircle,
   Search,
   Smile,
 } from 'lucide-react'
-import type { DragEvent } from 'react'
+import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 type SidebarUser = {
   name: string
@@ -34,7 +44,9 @@ export type SidebarProps = {
   openFolderIds: Set<string>
   searchTerm: string
   selectedProjectId: string
+  onCreateFolder: (name: string) => void
   onCreateForm: () => void
+  onGoFiles: () => void
   onGoHome: () => void
   onMoveProject: (projectId: string, folderId: string) => void
   onSearchChange: (value: string) => void
@@ -122,23 +134,31 @@ function SidebarHeader({
 
 function HomeNav({
   isCollapsed,
+  onGoFiles,
   onGoHome,
 }: {
   isCollapsed: boolean
+  onGoFiles: () => void
   onGoHome: () => void
 }) {
+  const itemClass = cn(
+    navButtonClass,
+    'px-6.5 py-0',
+    isCollapsed && 'justify-center px-0',
+  )
+
   return (
     <nav
       className={cn('border-y border-[#e8eaf1] py-2', isCollapsed && 'px-3')}
       aria-label="Main"
     >
-      <button
-        className={cn(navButtonClass, 'px-6.5 py-0', isCollapsed && 'justify-center px-0')}
-        onClick={onGoHome}
-        type="button"
-      >
+      <button className={itemClass} onClick={onGoHome} type="button">
         <Home size={26} strokeWidth={2.1} />
         {!isCollapsed ? <span>Home</span> : null}
+      </button>
+      <button className={itemClass} onClick={onGoFiles} type="button">
+        <HardDrive size={26} strokeWidth={2.1} />
+        {!isCollapsed ? <span>Files</span> : null}
       </button>
     </nav>
   )
@@ -205,10 +225,10 @@ function ProjectItem({
       )}
       type="button"
       aria-pressed={!isFolder ? isSelected : undefined}
-      draggable={!isFolder}
+      draggable
       title={isCollapsed ? item.label : undefined}
       onDragOver={handleDragOver}
-      onDragStart={!isFolder ? handleDragStart : undefined}
+      onDragStart={handleDragStart}
       onDrop={handleDrop}
       onClick={isFolder ? undefined : handleSelect}
     >
@@ -248,11 +268,85 @@ function ProjectItem({
   return itemButton
 }
 
+function NewFolderRow({
+  onCommit,
+  onCancel,
+}: {
+  onCommit: (name: string) => void
+  onCancel: () => void
+}) {
+  const [value, setValue] = useState('')
+  const isDoneRef = useRef(false)
+  const hasFocusedRef = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus()
+    focus()
+    // Re-focus after a frame in case something (e.g. the dropdown closing) steals it.
+    const frame = requestAnimationFrame(focus)
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  function commit() {
+    if (isDoneRef.current) {
+      return
+    }
+    isDoneRef.current = true
+
+    const trimmed = value.trim()
+    if (trimmed) {
+      onCommit(trimmed)
+    } else {
+      onCancel()
+    }
+  }
+
+  function handleBlur() {
+    // Ignore a blur that happens before the user ever focused the field — it's the
+    // dropdown handing focus back to its trigger as it closes, not the user leaving.
+    if (hasFocusedRef.current) {
+      commit()
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      commit()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      isDoneRef.current = true
+      onCancel()
+    }
+  }
+
+  return (
+    <div className={cn(treeButtonClass, treeTextClass)}>
+      <FolderOpen size={24} className="text-[#1e55c5]" />
+      <input
+        aria-label="Folder name"
+        className="min-w-0 flex-1 border-0 bg-transparent text-[16px] leading-5.5 font-bold tracking-[0.16px] text-[#3f4045] outline-0 placeholder:font-medium placeholder:text-[#8a8d97]"
+        onBlur={handleBlur}
+        onChange={(event) => setValue(event.target.value)}
+        onFocus={() => {
+          hasFocusedRef.current = true
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder="Folder name"
+        ref={inputRef}
+        value={value}
+      />
+    </div>
+  )
+}
+
 function ProjectNavigation({
   projects,
   openFolderIds,
   searchTerm,
   selectedProjectId,
+  onCreateFolder,
   onCreateForm,
   onSearchChange,
   onSelectProject,
@@ -260,8 +354,9 @@ function ProjectNavigation({
   onToggleFolder,
 }: Omit<
   SidebarProps,
-  'brand' | 'user' | 'isCollapsed' | 'onGoHome' | 'onToggleCollapse'
+  'brand' | 'user' | 'isCollapsed' | 'onGoFiles' | 'onGoHome' | 'onToggleCollapse'
 >) {
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const visibleProjects = filterProjects(projects, searchTerm)
 
   return (
@@ -275,14 +370,40 @@ function ProjectNavigation({
       >
         Your Project
       </h2>
-      <button
-        className="flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white"
-        onClick={onCreateForm}
-        type="button"
-      >
-        <PlusCircle size={21} />
-        <span>Create Form</span>
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="group/create flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white"
+            type="button"
+          >
+            <PlusCircle size={21} />
+            <span>Create</span>
+            <ChevronDown
+              className="transition-transform group-data-[state=open]/create:rotate-180"
+              size={18}
+            />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="w-(--radix-dropdown-menu-trigger-width)"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
+          <DropdownMenuItem onSelect={onCreateForm}>
+            <FilePlus size={16} />
+            Create form
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => {
+              onSearchChange('')
+              setIsCreatingFolder(true)
+            }}
+          >
+            <FolderPlus size={16} />
+            Create folder
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <label className="mt-4 mb-5.25 flex h-10.5 items-center justify-between rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180]">
         <span className="sr-only">Search forms</span>
         <input
@@ -296,6 +417,15 @@ function ProjectNavigation({
       </label>
 
       <div className="flex flex-col items-stretch">
+        {isCreatingFolder ? (
+          <NewFolderRow
+            onCancel={() => setIsCreatingFolder(false)}
+            onCommit={(name) => {
+              onCreateFolder(name)
+              setIsCreatingFolder(false)
+            }}
+          />
+        ) : null}
         {visibleProjects.length > 0 ? (
           visibleProjects.map((project) => (
             <ProjectItem
@@ -309,7 +439,7 @@ function ProjectNavigation({
               onToggleFolder={onToggleFolder}
             />
           ))
-        ) : (
+        ) : isCreatingFolder ? null : (
           <p className="m-0 p-2.5 text-[14px] font-medium tracking-[0.14px] text-[#6e7180]">
             No forms found
           </p>
@@ -353,7 +483,9 @@ export function Sidebar({
   searchTerm,
   selectedProjectId,
   user,
+  onCreateFolder,
   onCreateForm,
+  onGoFiles,
   onGoHome,
   onMoveProject,
   onSearchChange,
@@ -378,7 +510,11 @@ export function Sidebar({
         brand={brand}
         onToggleCollapse={onToggleCollapse}
       />
-      <HomeNav isCollapsed={isCollapsed} onGoHome={onGoHome} />
+      <HomeNav
+        isCollapsed={isCollapsed}
+        onGoFiles={onGoFiles}
+        onGoHome={onGoHome}
+      />
       {!isCollapsed ? (
         <>
           <ProjectNavigation
@@ -386,6 +522,7 @@ export function Sidebar({
             openFolderIds={openFolderIds}
             searchTerm={searchTerm}
             selectedProjectId={selectedProjectId}
+            onCreateFolder={onCreateFolder}
             onCreateForm={onCreateForm}
             onMoveProject={onMoveProject}
             onSearchChange={onSearchChange}
