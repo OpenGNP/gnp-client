@@ -63,6 +63,10 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     }
   }
 
+  function removeProject(projectId: string) {
+    setProjects((currentProjects) => removeProjectById(currentProjects, projectId).projects)
+  }
+
   function addProject(folderId: string | null, projectToAdd: ProjectTreeItem) {
     setProjects((currentProjects) =>
       folderId
@@ -113,6 +117,7 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     addProject,
     addFolder,
     moveProject,
+    removeProject,
     toggleFolder,
   }
 }

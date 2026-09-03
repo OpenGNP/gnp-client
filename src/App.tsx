@@ -18,8 +18,15 @@ import { getSelectedProjectId } from './utils/projectTree'
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { projects, openFolderIds, addProject, addFolder, moveProject, toggleFolder } =
-    useProjectTree(projectTree)
+  const {
+    projects,
+    openFolderIds,
+    addProject,
+    addFolder,
+    moveProject,
+    removeProject,
+    toggleFolder,
+  } = useProjectTree(projectTree)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isCreateFormSettingsOpen, setIsCreateFormSettingsOpen] =
@@ -49,6 +56,20 @@ function App() {
   function handleCreateForm() {
     setIsCreateFormSettingsOpen(false)
     navigate('/create-form')
+  }
+
+  function handleCreateFormInFolder(folderId: string | null) {
+    const newFormId = crypto.randomUUID()
+
+    addProject(folderId, {
+      id: newFormId,
+      label: 'Untitled form',
+      type: 'document',
+      formId: newFormId,
+    })
+
+    setIsCreateFormSettingsOpen(false)
+    navigate(`/forms/${encodeURIComponent(newFormId)}`)
   }
 
   function handleSelectProject(project: ProjectTreeItem) {
@@ -132,10 +153,27 @@ function App() {
         )}
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/files" element={<FilesPage projects={projects} />} />
+          <Route
+            path="/files"
+            element={
+              <FilesPage
+                onCreateFolder={addFolder}
+                onCreateForm={handleCreateFormInFolder}
+                onDeleteItem={removeProject}
+                projects={projects}
+              />
+            }
+          />
           <Route
             path="/files/:folderId"
-            element={<FilesPage projects={projects} />}
+            element={
+              <FilesPage
+                onCreateFolder={addFolder}
+                onCreateForm={handleCreateFormInFolder}
+                onDeleteItem={removeProject}
+                projects={projects}
+              />
+            }
           />
           <Route
             path="/create-form"

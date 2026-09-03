@@ -66,11 +66,15 @@ export function FormCard({
             <FolderOpen size={14} />
             Open
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onDelete} variant="destructive">
-            <Trash2 size={14} />
-            Delete
-          </DropdownMenuItem>
+          {onDelete ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onDelete} variant="destructive">
+                <Trash2 size={14} />
+                Delete
+              </DropdownMenuItem>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </article>
