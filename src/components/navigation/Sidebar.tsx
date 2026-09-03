@@ -67,7 +67,7 @@ type ProjectItemProps = {
 }
 
 const navButtonClass =
-  'flex h-[46px] w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent text-left text-[16px] font-bold tracking-[0.16px] text-[#3f4045]'
+  'flex h-[46px] w-full cursor-pointer items-center gap-2.5 rounded-[5px] border-0 bg-transparent text-left text-[16px] font-bold tracking-[0.16px] text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
 
 const treeButtonClass =
   'flex h-[46px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-[5px] border-0 bg-transparent p-2.5 text-left text-[#3f4045]'
@@ -184,12 +184,12 @@ function ProjectItem({
     onSelectProject(item)
   }
 
-  function handleDragStart(event: DragEvent<HTMLButtonElement>) {
+  function handleDragStart(event: DragEvent<HTMLElement>) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', item.id)
   }
 
-  function handleDragOver(event: DragEvent<HTMLButtonElement>) {
+  function handleDragOver(event: DragEvent<HTMLElement>) {
     if (!isFolder) {
       return
     }
@@ -198,7 +198,7 @@ function ProjectItem({
     event.dataTransfer.dropEffect = 'move'
   }
 
-  function handleDrop(event: DragEvent<HTMLButtonElement>) {
+  function handleDrop(event: DragEvent<HTMLElement>) {
     if (!isFolder) {
       return
     }
@@ -213,37 +213,44 @@ function ProjectItem({
     onMoveProject(draggedProjectId, item.id)
   }
 
-  const itemButton = (
-    <button
-      className={cn(
-        treeButtonClass,
-        treeTextClass,
-        isOpen && 'text-[#1e55c5]',
-        isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
-        isFolder && 'data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-[#1e55c5]/30',
-        !isFolder && 'cursor-grab active:cursor-grabbing',
-      )}
-      type="button"
-      aria-pressed={!isFolder ? isSelected : undefined}
-      draggable
-      title={isCollapsed ? item.label : undefined}
-      onDragOver={handleDragOver}
-      onDragStart={handleDragStart}
-      onDrop={handleDrop}
-      onClick={isFolder ? undefined : handleSelect}
-    >
-      <Icon size={isFolder ? 24 : 22} />
-      <span>{item.label}</span>
-    </button>
-  )
-
   if (isFolder) {
     return (
       <Collapsible
         open={Boolean(isOpen)}
         onOpenChange={() => onToggleFolder(item.id)}
       >
-        <CollapsibleTrigger asChild>{itemButton}</CollapsibleTrigger>
+        <div
+          className={cn(
+            treeButtonClass,
+            treeTextClass,
+            'transition-colors hover:bg-[#f7f8fb]',
+            isOpen && 'text-[#1e55c5]',
+            isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
+            'data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-[#1e55c5]/30',
+          )}
+          draggable
+          title={isCollapsed ? item.label : undefined}
+          onDragOver={handleDragOver}
+          onDragStart={handleDragStart}
+          onDrop={handleDrop}
+        >
+          <CollapsibleTrigger asChild>
+            <button
+              aria-label={isOpen ? `Collapse ${item.label}` : `Expand ${item.label}`}
+              className="-m-0.5 flex shrink-0 cursor-pointer items-center rounded p-0.5 transition-colors hover:bg-black/10"
+              type="button"
+            >
+              <Icon size={24} />
+            </button>
+          </CollapsibleTrigger>
+          <button
+            className="flex min-w-0 flex-1 cursor-pointer items-center text-left"
+            onClick={handleSelect}
+            type="button"
+          >
+            <span>{item.label}</span>
+          </button>
+        </div>
         {item.children && item.children.length > 0 ? (
           <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
             {item.children.map((child) => (
@@ -265,7 +272,27 @@ function ProjectItem({
     )
   }
 
-  return itemButton
+  return (
+    <button
+      className={cn(
+        treeButtonClass,
+        treeTextClass,
+        'cursor-grab transition-colors hover:bg-[#f7f8fb] active:cursor-grabbing',
+        isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
+      )}
+      type="button"
+      aria-pressed={isSelected}
+      draggable
+      title={isCollapsed ? item.label : undefined}
+      onClick={handleSelect}
+      onDragOver={handleDragOver}
+      onDragStart={handleDragStart}
+      onDrop={handleDrop}
+    >
+      <Icon size={22} />
+      <span>{item.label}</span>
+    </button>
+  )
 }
 
 function NewFolderRow({
@@ -373,7 +400,7 @@ function ProjectNavigation({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="group/create flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white"
+            className="group/create flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white transition-colors hover:bg-[#1a49aa]"
             type="button"
           >
             <PlusCircle size={21} />

@@ -75,7 +75,11 @@ function App() {
 
   function handleSelectProject(project: ProjectTreeItem) {
     setIsCreateFormSettingsOpen(false)
-    navigate(`/forms/${encodeURIComponent(project.id)}`)
+    const path =
+      project.type === 'folder'
+        ? `/files/${encodeURIComponent(project.id)}`
+        : `/forms/${encodeURIComponent(project.id)}`
+    navigate(path)
   }
 
   function handleOpenSaveDraft() {

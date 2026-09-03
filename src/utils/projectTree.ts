@@ -19,12 +19,15 @@ export function getDefaultOpenFolderIds(projects: ProjectTreeItem[]) {
 }
 
 export function getSelectedProjectId(pathname: string) {
-  if (!pathname.startsWith('/forms/')) {
-    return ''
+  // A form route selects the form; a folder route selects that folder.
+  for (const prefix of ['/forms/', '/files/']) {
+    if (pathname.startsWith(prefix)) {
+      const [projectId] = pathname.slice(prefix.length).split('/')
+      return decodeURIComponent(projectId ?? '')
+    }
   }
 
-  const [projectId] = pathname.replace('/forms/', '').split('/')
-  return decodeURIComponent(projectId ?? '')
+  return ''
 }
 
 export function removeProjectById(
