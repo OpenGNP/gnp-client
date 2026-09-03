@@ -25,6 +25,7 @@ function App() {
     addFolder,
     moveProject,
     removeProject,
+    renameProject,
     toggleFolder,
   } = useProjectTree(projectTree)
   const [searchTerm, setSearchTerm] = useState('')
@@ -160,6 +161,7 @@ function App() {
                 onCreateFolder={addFolder}
                 onCreateForm={handleCreateFormInFolder}
                 onDeleteItem={removeProject}
+                onRenameItem={renameProject}
                 projects={projects}
               />
             }
@@ -171,6 +173,7 @@ function App() {
                 onCreateFolder={addFolder}
                 onCreateForm={handleCreateFormInFolder}
                 onDeleteItem={removeProject}
+                onRenameItem={renameProject}
                 projects={projects}
               />
             }

@@ -12,7 +12,7 @@ type BreadcrumbEntry = {
   label: string
 }
 
-const ROOT_ENTRY: BreadcrumbEntry = { id: null, label: 'Your Project' }
+const ROOT_ENTRY: BreadcrumbEntry = { id: null, label: 'My Project' }
 
 export type SaveDraftModalProps = {
   open: boolean

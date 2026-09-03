@@ -1,12 +1,8 @@
-import { ChevronRight, FilePlus, Folder, FolderOpen, FolderPlus } from 'lucide-react'
-import {
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { ChevronRight, FilePlus, FolderPlus } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { FolderCard, NewFolderCard } from '../components/files/FolderCard'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
 import {
@@ -25,106 +21,16 @@ export type FilesPageProps = {
   onCreateFolder: (name: string, parentFolderId: string | null) => void
   onCreateForm: (parentFolderId: string | null) => void
   onDeleteItem: (id: string) => void
+  onRenameItem: (id: string, label: string) => void
 }
 
 const recentFormsById = new Map(recentForms.map((form) => [form.id, form]))
 const FALLBACK_IMAGE = recentForms[recentForms.length - 1].image
 
-const cardBaseClass =
-  'flex items-center gap-3 rounded-[10px] border border-[#e9eaed] bg-[#f7f8fb] px-4 py-3.5'
-
+// A right-click on a card should fall through to the browser, not open the page's
+// "new file / new folder" menu — that belongs to genuine white space only.
 function stopContextMenu(event: { stopPropagation: () => void }) {
-  // Keep the page's "new file / new folder" menu to genuine white space only.
   event.stopPropagation()
-}
-
-function FolderCard({
-  folder,
-  onOpen,
-}: {
-  folder: ProjectTreeItem
-  onOpen: () => void
-}) {
-  return (
-    <button
-      className={cn(cardBaseClass, 'cursor-pointer text-left transition-colors hover:bg-[#eef1f7]')}
-      onClick={onOpen}
-      onContextMenu={stopContextMenu}
-      type="button"
-    >
-      <Folder className="shrink-0 text-[#5f6368]" size={22} />
-      <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#3c4043]">
-        {folder.label}
-      </span>
-    </button>
-  )
-}
-
-function NewFolderCard({
-  onCommit,
-  onCancel,
-}: {
-  onCommit: (name: string) => void
-  onCancel: () => void
-}) {
-  const [value, setValue] = useState('')
-  const isDoneRef = useRef(false)
-  const hasFocusedRef = useRef(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    const focus = () => inputRef.current?.focus()
-    focus()
-    const frame = requestAnimationFrame(focus)
-    return () => cancelAnimationFrame(frame)
-  }, [])
-
-  function commit() {
-    if (isDoneRef.current) {
-      return
-    }
-    isDoneRef.current = true
-
-    const trimmed = value.trim()
-    if (trimmed) {
-      onCommit(trimmed)
-    } else {
-      onCancel()
-    }
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      commit()
-    } else if (event.key === 'Escape') {
-      event.preventDefault()
-      isDoneRef.current = true
-      onCancel()
-    }
-  }
-
-  return (
-    <div className={cardBaseClass} onContextMenu={stopContextMenu}>
-      <FolderOpen className="shrink-0 text-[#1e55c5]" size={22} />
-      <input
-        aria-label="Folder name"
-        className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3c4043] outline-0 placeholder:text-[#8a8d97]"
-        onBlur={() => {
-          if (hasFocusedRef.current) {
-            commit()
-          }
-        }}
-        onChange={(event) => setValue(event.target.value)}
-        onFocus={() => {
-          hasFocusedRef.current = true
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Folder name"
-        ref={inputRef}
-      />
-    </div>
-  )
 }
 
 export function FilesPage({
@@ -132,6 +38,7 @@ export function FilesPage({
   onCreateFolder,
   onCreateForm,
   onDeleteItem,
+  onRenameItem,
 }: FilesPageProps) {
   const navigate = useNavigate()
   const { folderId } = useParams()
@@ -155,9 +62,9 @@ export function FilesPage({
     navigate(`/forms/${encodeURIComponent(id)}`)
   }
 
-  function deleteFile(file: ProjectTreeItem) {
-    if (window.confirm(`Delete "${file.label}"? This can't be undone.`)) {
-      onDeleteItem(file.id)
+  function deleteItem(item: ProjectTreeItem) {
+    if (window.confirm(`Delete "${item.label}"? This can't be undone.`)) {
+      onDeleteItem(item.id)
     }
   }
 
@@ -223,7 +130,9 @@ export function FilesPage({
                       <FolderCard
                         folder={folder}
                         key={folder.id}
+                        onDelete={() => deleteItem(folder)}
                         onOpen={() => openFolder(folder.id)}
+                        onRename={(name) => onRenameItem(folder.id, name)}
                       />
                     ))}
                   </div>
@@ -246,8 +155,9 @@ export function FilesPage({
                         <div key={file.id} onContextMenu={stopContextMenu}>
                           <FormCard
                             image={recentForm?.image ?? FALLBACK_IMAGE}
-                            onDelete={() => deleteFile(file)}
+                            onDelete={() => deleteItem(file)}
                             onOpen={() => openForm(file.id)}
+                            onRename={(name) => onRenameItem(file.id, name)}
                             title={file.label}
                             updatedAt={recentForm?.updatedAt ?? '—'}
                           />

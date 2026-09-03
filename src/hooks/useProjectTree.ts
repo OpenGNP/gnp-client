@@ -8,6 +8,7 @@ import {
   getDefaultOpenFolderIds,
   isIdWithinItem,
   removeProjectById,
+  renameProjectById,
 } from '../utils/projectTree'
 
 export function useProjectTree(initialProjects: ProjectTreeItem[]) {
@@ -67,6 +68,18 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     setProjects((currentProjects) => removeProjectById(currentProjects, projectId).projects)
   }
 
+  function renameProject(projectId: string, label: string) {
+    const trimmed = label.trim()
+
+    if (!trimmed) {
+      return
+    }
+
+    setProjects((currentProjects) =>
+      renameProjectById(currentProjects, projectId, trimmed),
+    )
+  }
+
   function addProject(folderId: string | null, projectToAdd: ProjectTreeItem) {
     setProjects((currentProjects) =>
       folderId
@@ -118,6 +131,7 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     addFolder,
     moveProject,
     removeProject,
+    renameProject,
     toggleFolder,
   }
 }

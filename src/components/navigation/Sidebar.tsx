@@ -368,7 +368,7 @@ function ProjectNavigation({
         className="mt-0 mr-0 mb-3.25 ml-0.75 text-[14px] leading-5.5 font-medium tracking-[0.14px] text-black"
         id="project-nav-title"
       >
-        Your Project
+        My Project
       </h2>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

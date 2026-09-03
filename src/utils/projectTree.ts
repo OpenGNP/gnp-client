@@ -141,6 +141,27 @@ export function addProjectToRoot(
   return [...projects, projectToAdd]
 }
 
+export function renameProjectById(
+  projects: ProjectTreeItem[],
+  id: string,
+  label: string,
+): ProjectTreeItem[] {
+  return projects.map((project) => {
+    if (project.id === id) {
+      return { ...project, label }
+    }
+
+    if (project.children) {
+      return {
+        ...project,
+        children: renameProjectById(project.children, id, label),
+      }
+    }
+
+    return project
+  })
+}
+
 export function addProjectToFolder(
   projects: ProjectTreeItem[],
   folderId: string,
