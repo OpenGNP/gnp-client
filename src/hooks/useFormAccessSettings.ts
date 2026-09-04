@@ -12,7 +12,7 @@ export type FormAccessSettings = {
   specificEmails: string[]
 }
 
-const defaultFormAccessSettings: FormAccessSettings = {
+export const defaultFormAccessSettings: FormAccessSettings = {
   whoCanFill: 'organization',
   anyoneOneResponsePerPerson: false,
   organizationRecordName: true,
@@ -22,14 +22,12 @@ const defaultFormAccessSettings: FormAccessSettings = {
   specificEmails: [],
 }
 
-export function useFormAccessSettings() {
-  const [settings, setSettings] = useState<FormAccessSettings>(
-    defaultFormAccessSettings,
-  )
+export function useFormAccessSettings(initial: FormAccessSettings = defaultFormAccessSettings) {
+  const [settings, setSettings] = useState<FormAccessSettings>(initial)
 
   function updateSettings(partial: Partial<FormAccessSettings>) {
     setSettings((previous) => ({ ...previous, ...partial }))
   }
 
-  return { settings, updateSettings }
+  return { settings, updateSettings, setSettings }
 }

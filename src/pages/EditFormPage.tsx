@@ -1,54 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import formArchitecture from '../assets/form-architecture.png'
+import { getForm, updateForm } from '../api/forms'
 import { CreateFormCard } from '../components/forms/CreateFormCard'
 import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
-import type { Question } from '../components/forms/question-types'
-import { FormActionBar } from '../components/navigation/FormActionBar'
+import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { getDashboardAnalytics } from '../data/dashboardAnalytics'
-import { useAutoSaveStatus } from '../hooks/useAutoSaveStatus'
 import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
+import { useFormEditorModel } from '../hooks/useFormEditorModel'
+import { ApiError } from '../lib/api'
+import {
+  accessSettingsFromForm,
+  buildFieldPayloads,
+  buildUpdateFormPayload,
+  formDetailToModel,
+} from '../lib/formMapping'
 import { cn } from '../lib/utils'
 
-const demographicSeedQuestions: Question[] = [
-  {
-    id: 'seed-year-of-study',
-    type: 'choice',
-    question: 'Year of Study',
-    options: ['1st', '2nd', '3rd', '4th'],
-    allowMultiple: false,
-    hasOther: false,
-    required: false,
-  },
-  {
-    id: 'seed-gender',
-    type: 'choice',
-    question: 'Gender',
-    options: ['Male', 'Female'],
-    allowMultiple: true,
-    hasOther: false,
-    required: false,
-  },
-]
-
-const feedbackSeedQuestions: Question[] = [
-  {
-    id: 'seed-curriculum',
-    type: 'text',
-    question: 'What do you think about current curriculum?',
-    answerLength: 'long',
-    required: false,
-  },
-  {
-    id: 'seed-facility',
-    type: 'text',
-    question: 'What would you like to share about facility?',
-    answerLength: 'long',
-    required: false,
-  },
-]
+type LoadStatus = 'loading' | 'ready' | 'error'
 
 export type EditFormPageProps = {
   showSidebarToggle?: boolean
@@ -62,11 +32,94 @@ export function EditFormPage({
   onMove,
 }: EditFormPageProps) {
   const { projectId } = useParams()
+  const formId = Number(projectId)
+  const hasValidId = Number.isInteger(formId) && formId > 0
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const saveStatus = useAutoSaveStatus()
-  const { settings: formAccessSettings, updateSettings: onUpdateFormAccessSettings } =
-    useFormAccessSettings()
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>(hasValidId ? 'loading' : 'error')
+  const [loadError, setLoadError] = useState(
+    hasValidId ? '' : "This form hasn't been saved yet, so there's nothing to edit.",
+  )
+  const [reloadKey, setReloadKey] = useState(0)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [isPublished, setIsPublished] = useState(false)
+
+  const { model, update, setModel } = useFormEditorModel()
+  const { settings, updateSettings, setSettings } = useFormAccessSettings()
+
+  // Snapshot of the fields as loaded — lets a settings-only save skip sending
+  // `fields` (which the server refuses once a form has responses).
+  const loadedFieldsRef = useRef('')
+
   const hasDashboardData = Boolean(getDashboardAnalytics(projectId))
+
+  useEffect(() => {
+    if (!hasValidId) {
+      return
+    }
+
+    let cancelled = false
+
+    getForm(formId)
+      .then((detail) => {
+        if (cancelled) return
+        const nextModel = formDetailToModel(detail)
+        setModel(nextModel)
+        setSettings(accessSettingsFromForm(detail))
+        setIsPublished(detail.status === 'active')
+        loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
+        setLoadStatus('ready')
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        setLoadError(
+          error instanceof ApiError ? error.message : 'Something went wrong loading this form.',
+        )
+        setLoadStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [formId, hasValidId, reloadKey, setModel, setSettings])
+
+  function retryLoad() {
+    setLoadStatus('loading')
+    setLoadError('')
+    setReloadKey((key) => key + 1)
+  }
+
+  async function handleSave(publish: boolean) {
+    if (!hasValidId || saveStatus === 'saving') {
+      return
+    }
+
+    const currentFields = JSON.stringify(buildFieldPayloads(model))
+    const includeFields = currentFields !== loadedFieldsRef.current
+
+    setSaveStatus('saving')
+    try {
+      await updateForm(
+        formId,
+        buildUpdateFormPayload(model, settings, {
+          status: publish ? 'active' : undefined,
+          includeFields,
+        }),
+      )
+      if (includeFields) {
+        loadedFieldsRef.current = currentFields
+      }
+      if (publish) {
+        setIsPublished(true)
+      }
+      setSaveStatus('saved')
+    } catch (error) {
+      setSaveStatus('error')
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
+      )
+    }
+  }
 
   return (
     <div>
@@ -76,40 +129,57 @@ export function EditFormPage({
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />
-        <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
-          <FormActionBar
-            formAccessSettings={formAccessSettings}
-            isSettingsOpen={isSettingsOpen}
-            mode="edit"
-            onMove={onMove}
-            onToggleSettings={() => setIsSettingsOpen((open) => !open)}
-            onUpdateFormAccessSettings={onUpdateFormAccessSettings}
-            saveStatus={saveStatus}
-          />
-        </div>
+        {loadStatus === 'ready' ? (
+          <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
+            <FormActionBar
+              defaultPublished={isPublished}
+              formAccessSettings={settings}
+              isSettingsOpen={isSettingsOpen}
+              mode="edit"
+              onMove={onMove}
+              onPublish={() => handleSave(true)}
+              onSaveDraft={() => handleSave(false)}
+              onToggleSettings={() => setIsSettingsOpen((open) => !open)}
+              onUpdateFormAccessSettings={updateSettings}
+              saveStatus={saveStatus}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="bg-[#f5f9ff] px-14 pb-16 max-[900px]:px-6 max-[560px]:px-4">
-        <div
-          className={cn(
-            'mx-auto flex w-full items-start gap-10.25 max-[1200px]:flex-col max-[1200px]:items-center',
-            isSettingsOpen ? 'max-w-[1420px]' : 'max-w-[978px]',
-          )}
-        >
-          <CreateFormCard
-            initialCoverImageUrl={formArchitecture}
-            initialDemographicQuestions={demographicSeedQuestions}
-            initialFeedbackQuestions={feedbackSeedQuestions}
-            initialTitle="CS Focus Group Feedback 2026"
-          />
-          {isSettingsOpen ? (
-            <FormSettingsPanel
-              onClose={() => setIsSettingsOpen(false)}
-              onUpdateSettings={onUpdateFormAccessSettings}
-              settings={formAccessSettings}
-            />
-          ) : null}
-        </div>
+        {loadStatus === 'loading' ? (
+          <p className="mx-auto max-w-[978px] pt-10 text-[14px] text-[#8b8e98]">Loading this form…</p>
+        ) : loadStatus === 'error' ? (
+          <div className="mx-auto flex max-w-[978px] flex-wrap items-center gap-3 pt-10 text-[14px] text-[#e0507a]">
+            <span>{loadError}</span>
+            {hasValidId ? (
+              <button
+                className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
+                onClick={retryLoad}
+                type="button"
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'mx-auto flex w-full items-start gap-10.25 max-[1200px]:flex-col max-[1200px]:items-center',
+              isSettingsOpen ? 'max-w-[1420px]' : 'max-w-[978px]',
+            )}
+          >
+            <CreateFormCard onChange={update} value={model} />
+            {isSettingsOpen ? (
+              <FormSettingsPanel
+                onClose={() => setIsSettingsOpen(false)}
+                onUpdateSettings={updateSettings}
+                settings={settings}
+              />
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -8,8 +8,10 @@ import { SidebarToggleButton } from './SidebarToggleButton'
 export type CreateFormNavbarProps = {
   isSettingsOpen: boolean
   showSidebarToggle?: boolean
+  formTitle?: string
   onGoHome: () => void
   onSaveDraft?: () => void
+  onPublish?: () => void | Promise<void>
   onToggleSettings: () => void
   onToggleSidebar?: () => void
   formAccessSettings: FormAccessSettings
@@ -19,8 +21,10 @@ export type CreateFormNavbarProps = {
 export function CreateFormNavbar({
   isSettingsOpen,
   showSidebarToggle = false,
+  formTitle = 'Untitled form',
   onGoHome,
   onSaveDraft,
+  onPublish,
   onToggleSettings,
   onToggleSidebar,
   formAccessSettings,
@@ -42,13 +46,14 @@ export function CreateFormNavbar({
           <Home className="size-6" strokeWidth={2.2} />
         </Button>
         <span className="min-w-0 truncate text-[16px] font-normal tracking-[0.16px]">
-          Untitled form
+          {formTitle}
         </span>
       </div>
 
       <FormActionBar
         formAccessSettings={formAccessSettings}
         isSettingsOpen={isSettingsOpen}
+        onPublish={onPublish}
         onSaveDraft={onSaveDraft}
         onToggleSettings={onToggleSettings}
         onUpdateFormAccessSettings={onUpdateFormAccessSettings}

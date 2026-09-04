@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
+import { createForm } from './api/forms'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal } from './components/navigation/SaveDraftModal'
 import { Sidebar } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
+import { ApiError } from './lib/api'
 import { useAuth } from './lib/auth'
-import { useFormAccessSettings } from './hooks/useFormAccessSettings'
+import { buildCreateFormPayload } from './lib/formMapping'
+import { defaultFormAccessSettings, useFormAccessSettings } from './hooks/useFormAccessSettings'
+import { emptyFormEditorModel, useFormEditorModel } from './hooks/useFormEditorModel'
 import { useProjectTree } from './hooks/useProjectTree'
 import { useWorkspaceTree } from './hooks/useWorkspaceTree'
 import { CreateFormPage } from './pages/CreateFormPage'
@@ -46,7 +50,15 @@ function App() {
   const {
     settings: createFormAccessSettings,
     updateSettings: onUpdateCreateFormAccessSettings,
+    setSettings: setCreateFormAccessSettings,
   } = useFormAccessSettings()
+  const {
+    model: createFormModel,
+    update: updateCreateFormModel,
+    setModel: setCreateFormModel,
+  } = useFormEditorModel()
+  // Ref, not state: guards against a double-submit before the first render settles.
+  const savingNewFormRef = useRef(false)
   const selectedProjectId = getSelectedProjectId(location.pathname)
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
@@ -64,21 +76,79 @@ function App() {
 
   function handleCreateForm() {
     setIsCreateFormSettingsOpen(false)
+    setCreateFormModel(emptyFormEditorModel)
+    setCreateFormAccessSettings(defaultFormAccessSettings)
     navigate('/create-form')
   }
 
-  function handleCreateFormInFolder(folderId: string | null) {
-    const newFormId = crypto.randomUUID()
+  function parseFolderId(folderId: string | null): number | undefined {
+    // The tree holds real (numeric) folder ids from the API alongside locally
+    // created ones (uuid); only a numeric id maps to a persistable folder.
+    return folderId && /^\d+$/.test(folderId) ? Number(folderId) : undefined
+  }
 
-    addProject(folderId, {
-      id: newFormId,
-      label: 'Untitled form',
-      type: 'document',
-      formId: newFormId,
-    })
+  /** Persist the in-progress create-form draft, drop it into the tree, open its editor. */
+  async function persistNewForm(folderId: string | null, status: 'draft' | 'active') {
+    if (savingNewFormRef.current) {
+      return
+    }
+    savingNewFormRef.current = true
+    try {
+      const payload = buildCreateFormPayload(createFormModel, createFormAccessSettings, {
+        status,
+        folderId: parseFolderId(folderId),
+      })
+      const created = await createForm(payload)
+      const idStr = String(created.id)
 
-    setIsCreateFormSettingsOpen(false)
-    navigate(`/forms/${encodeURIComponent(newFormId)}`)
+      addProject(folderId, {
+        id: idStr,
+        label: payload.formTitle,
+        type: 'document',
+        formId: idStr,
+      })
+      setIsCreateFormSettingsOpen(false)
+      setCreateFormModel(emptyFormEditorModel)
+      setCreateFormAccessSettings(defaultFormAccessSettings)
+      navigate(`/forms/${idStr}`)
+    } catch (error) {
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
+      )
+    } finally {
+      savingNewFormRef.current = false
+    }
+  }
+
+  async function handleCreateFormInFolder(folderId: string | null) {
+    if (savingNewFormRef.current) {
+      return
+    }
+    savingNewFormRef.current = true
+    try {
+      const created = await createForm(
+        buildCreateFormPayload(emptyFormEditorModel, defaultFormAccessSettings, {
+          status: 'draft',
+          folderId: parseFolderId(folderId),
+        }),
+      )
+      const idStr = String(created.id)
+
+      addProject(folderId, {
+        id: idStr,
+        label: 'Untitled form',
+        type: 'document',
+        formId: idStr,
+      })
+      setIsCreateFormSettingsOpen(false)
+      navigate(`/forms/${idStr}`)
+    } catch (error) {
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not create the form. Please try again.',
+      )
+    } finally {
+      savingNewFormRef.current = false
+    }
   }
 
   function handleSelectProject(project: ProjectTreeItem) {
@@ -108,17 +178,7 @@ function App() {
       return
     }
 
-    const newFormId = crypto.randomUUID()
-
-    addProject(folderId, {
-      id: newFormId,
-      label: 'Untitled form',
-      type: 'document',
-      formId: newFormId,
-    })
-
-    setIsCreateFormSettingsOpen(false)
-    navigate(`/forms/${encodeURIComponent(newFormId)}`)
+    void persistNewForm(folderId, 'draft')
   }
 
   return (
@@ -149,8 +209,10 @@ function App() {
         {isCreateFormRoute ? (
           <CreateFormNavbar
             formAccessSettings={createFormAccessSettings}
+            formTitle={createFormModel.title.trim() || 'Untitled form'}
             isSettingsOpen={isCreateFormSettingsOpen}
             onGoHome={handleGoHome}
+            onPublish={() => persistNewForm(null, 'active')}
             onSaveDraft={handleOpenSaveDraft}
             onToggleSettings={() =>
               setIsCreateFormSettingsOpen((currentValue) => !currentValue)
@@ -195,8 +257,10 @@ function App() {
             element={
               <CreateFormPage
                 formAccessSettings={createFormAccessSettings}
+                formModel={createFormModel}
                 onCloseSettings={() => setIsCreateFormSettingsOpen(false)}
                 onUpdateFormAccessSettings={onUpdateCreateFormAccessSettings}
+                onUpdateFormModel={updateCreateFormModel}
                 showSettings={isCreateFormSettingsOpen}
               />
             }

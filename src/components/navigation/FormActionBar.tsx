@@ -17,7 +17,7 @@ import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { PublishModal } from './PublishModal'
 
-export type SaveStatus = 'saving' | 'saved' | 'error'
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export type FormActionBarProps = {
   isSettingsOpen: boolean
@@ -25,6 +25,7 @@ export type FormActionBarProps = {
   defaultPublished?: boolean
   mode?: 'create' | 'edit'
   onSaveDraft?: () => void
+  onPublish?: () => void | Promise<void>
   onMove?: () => void
   saveStatus?: SaveStatus
   formAccessSettings: FormAccessSettings
@@ -57,8 +58,9 @@ export function FormActionBar({
   defaultPublished = false,
   mode = 'create',
   onSaveDraft,
+  onPublish,
   onMove,
-  saveStatus = 'saved',
+  saveStatus = 'idle',
   formAccessSettings,
   onUpdateFormAccessSettings,
 }: FormActionBarProps) {
@@ -66,7 +68,7 @@ export function FormActionBar({
 
   return (
     <div className="flex shrink-0 items-center gap-2.5">
-      {mode === 'edit' ? (
+      {mode === 'edit' && saveStatus !== 'idle' ? (
         <span
           className={cn(
             'inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[0.13px] max-[560px]:hidden',
@@ -110,12 +112,23 @@ export function FormActionBar({
         <PopoverContent align="end" className="z-40" sideOffset={8} side="bottom">
           <PublishModal
             isPublished={isPublished}
-            onPublish={() => setIsPublished(true)}
+            onPublish={() => {
+              setIsPublished(true)
+              void onPublish?.()
+            }}
             onUpdateSettings={onUpdateFormAccessSettings}
             settings={formAccessSettings}
           />
         </PopoverContent>
       </Popover>
+
+      <FormActionButton
+        className="bg-[#1e55c5] hover:bg-[#1a49aa]"
+        icon={<Save size={18} strokeWidth={2.4} />}
+        onClick={onSaveDraft}
+      >
+        {mode === 'edit' ? 'Save' : 'Save draft'}
+      </FormActionButton>
 
       {mode === 'edit' ? (
         <FormActionButton
@@ -125,15 +138,7 @@ export function FormActionBar({
         >
           Move
         </FormActionButton>
-      ) : (
-        <FormActionButton
-          className="bg-[#1e55c5] hover:bg-[#1a49aa]"
-          icon={<Save size={18} strokeWidth={2.4} />}
-          onClick={onSaveDraft}
-        >
-          Save draft
-        </FormActionButton>
-      )}
+      ) : null}
 
       <Button
         className={cn(

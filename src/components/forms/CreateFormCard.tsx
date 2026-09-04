@@ -14,8 +14,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { Circle, Type } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
+import type { FormEditorModel } from '../../hooks/useFormEditorModel'
 import { AddQuestionButton } from './AddQuestionButton'
 import { CoverImageField } from './CoverImageField'
 import { createQuestion } from './question-types'
@@ -26,7 +27,8 @@ type FormSectionProps = {
   title: string
   questionTypes: QuestionTypeOption[]
   showAiAnalyze?: boolean
-  initialQuestions?: Question[]
+  questions: Question[]
+  onQuestionsChange: (questions: Question[]) => void
 }
 
 const dividerClass = 'h-px w-full bg-[#e8eaf1]'
@@ -41,9 +43,9 @@ const demographicQuestionTypes: QuestionTypeOption[] = [
       </span>
     ),
   },
-  { 
-    value: 'text', 
-    label: 'Text', 
+  {
+    value: 'text',
+    label: 'Text',
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-transparent text-[#1e55c5]">
         <Type size={14} strokeWidth={3} />
@@ -53,9 +55,9 @@ const demographicQuestionTypes: QuestionTypeOption[] = [
 ]
 
 const feedbackQuestionTypes: QuestionTypeOption[] = [
-  { 
-    value: 'text', 
-    label: 'Text', 
+  {
+    value: 'text',
+    label: 'Text',
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-white text-[#1e55c5]">
         <Type size={14} strokeWidth={3} />
@@ -64,56 +66,43 @@ const feedbackQuestionTypes: QuestionTypeOption[] = [
   },
 ]
 
-function useQuestionSection(initialQuestions: Question[] = []) {
-  const [questions, setQuestions] = useState<Question[]>(initialQuestions)
-
-  const addQuestion = (type: QuestionTypeValue) => {
-    setQuestions((previous) => [...previous, createQuestion(type, crypto.randomUUID())])
-  }
-
-  const updateQuestion = (updated: Question) => {
-    setQuestions((previous) =>
-      previous.map((question) => (question.id === updated.id ? updated : question)),
-    )
-  }
-
-  const removeQuestion = (id: string) => {
-    setQuestions((previous) => previous.filter((question) => question.id !== id))
-  }
-
-  const reorderQuestions = (activeId: string, overId: string) => {
-    setQuestions((previous) => {
-      const oldIndex = previous.findIndex((question) => question.id === activeId)
-      const newIndex = previous.findIndex((question) => question.id === overId)
-      if (oldIndex === -1 || newIndex === -1) {
-        return previous
-      }
-      return arrayMove(previous, oldIndex, newIndex)
-    })
-  }
-
-  return { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions }
-}
-
 function FormSection({
   title,
   questionTypes,
   showAiAnalyze = false,
-  initialQuestions,
+  questions,
+  onQuestionsChange,
 }: FormSectionProps) {
-  const { questions, addQuestion, updateQuestion, removeQuestion, reorderQuestions } =
-    useQuestionSection(initialQuestions)
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  const addQuestion = (type: QuestionTypeValue) => {
+    onQuestionsChange([...questions, createQuestion(type, crypto.randomUUID())])
+  }
+
+  const updateQuestion = (updated: Question) => {
+    onQuestionsChange(
+      questions.map((question) => (question.id === updated.id ? updated : question)),
+    )
+  }
+
+  const removeQuestion = (id: string) => {
+    onQuestionsChange(questions.filter((question) => question.id !== id))
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    if (over && active.id !== over.id) {
-      reorderQuestions(String(active.id), String(over.id))
+    if (!over || active.id === over.id) {
+      return
     }
+    const oldIndex = questions.findIndex((question) => question.id === active.id)
+    const newIndex = questions.findIndex((question) => question.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) {
+      return
+    }
+    onQuestionsChange(arrayMove(questions, oldIndex, newIndex))
   }
 
   return (
@@ -152,25 +141,17 @@ function FormSection({
 }
 
 export type CreateFormCardProps = {
-  initialTitle?: string
-  initialDescription?: string
-  initialCoverImageUrl?: string | null
-  initialDemographicQuestions?: Question[]
-  initialFeedbackQuestions?: Question[]
+  value: FormEditorModel
+  onChange: (partial: Partial<FormEditorModel>) => void
 }
 
-export function CreateFormCard({
-  initialTitle = 'Untitled form',
-  initialDescription = 'Form description',
-  initialCoverImageUrl = null,
-  initialDemographicQuestions,
-  initialFeedbackQuestions,
-}: CreateFormCardProps) {
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(initialCoverImageUrl)
+export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
+  const { coverImageUrl } = value
 
   useEffect(() => {
     return () => {
-      if (coverImageUrl) {
+      // Only object URLs we minted here need revoking; a cover loaded from the API is a real URL.
+      if (coverImageUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(coverImageUrl)
       }
     }
@@ -184,28 +165,33 @@ export function CreateFormCard({
       <div className="flex w-full flex-col gap-5">
         <CoverImageField
           imageUrl={coverImageUrl}
-          onRemoveImage={() => setCoverImageUrl(null)}
-          onSelectImage={(file) => setCoverImageUrl(URL.createObjectURL(file))}
+          onRemoveImage={() => onChange({ coverImageUrl: null })}
+          onSelectImage={(file) => onChange({ coverImageUrl: URL.createObjectURL(file) })}
         />
 
         <div className="flex flex-col gap-3">
           <input
             className="w-full border-0 bg-transparent p-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] outline-none placeholder:text-[#616161] max-[560px]:text-[28px]"
             aria-label="Form title"
-            defaultValue={initialTitle}
             id="create-form-title"
+            onChange={(event) => onChange({ title: event.target.value })}
+            placeholder="Untitled form"
+            value={value.title}
           />
           <textarea
             className="h-6 w-full resize-none border-0 bg-transparent p-0 text-[16px] leading-6 font-normal tracking-[0.16px] text-[#616161] outline-none placeholder:text-[#616161]"
             aria-label="Form description"
-            defaultValue={initialDescription}
+            onChange={(event) => onChange({ description: event.target.value })}
+            placeholder="Form description"
+            value={value.description}
           />
         </div>
 
         <div className={dividerClass} />
 
         <FormSection
-          initialQuestions={initialDemographicQuestions}
+          onQuestionsChange={(questions) => onChange({ demographic: questions })}
+          questions={value.demographic}
           questionTypes={demographicQuestionTypes}
           title="Demographic"
         />
@@ -213,7 +199,8 @@ export function CreateFormCard({
         <div className={dividerClass} />
 
         <FormSection
-          initialQuestions={initialFeedbackQuestions}
+          onQuestionsChange={(questions) => onChange({ feedback: questions })}
+          questions={value.feedback}
           questionTypes={feedbackQuestionTypes}
           showAiAnalyze
           title="Feedback"
