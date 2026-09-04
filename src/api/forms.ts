@@ -11,6 +11,7 @@ export type ApiForm = {
   startDate: string | null
   endDate: string | null
   createdAt: string | null
+  updatedAt: string | null
   submissionCount: number
 }
 

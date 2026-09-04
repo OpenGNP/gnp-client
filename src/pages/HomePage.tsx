@@ -119,7 +119,7 @@ export function HomePage() {
                 key={form.id}
                 image={placeholderImage(form.id)}
                 title={form.formTitle ?? 'Untitled form'}
-                updatedAt={formatRelativeTime(form.createdAt)}
+                updatedAt={formatRelativeTime(form.updatedAt ?? form.createdAt)}
                 onDelete={() => handleDeleteForm(form.id)}
                 onOpen={() => navigate(`/forms/${form.id}`)}
               />
