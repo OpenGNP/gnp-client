@@ -5,9 +5,11 @@ import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal } from './components/navigation/SaveDraftModal'
 import { Sidebar } from './components/navigation/Sidebar'
-import { brand, projectTree, user, type ProjectTreeItem } from './data/dashboard'
+import { brand, type ProjectTreeItem } from './data/dashboard'
+import { useAuth } from './lib/auth'
 import { useFormAccessSettings } from './hooks/useFormAccessSettings'
 import { useProjectTree } from './hooks/useProjectTree'
+import { useWorkspaceTree } from './hooks/useWorkspaceTree'
 import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
@@ -18,6 +20,8 @@ import { getSelectedProjectId } from './utils/projectTree'
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user: authUser } = useAuth()
+  const workspace = useWorkspaceTree()
   const {
     projects,
     openFolderIds,
@@ -27,7 +31,11 @@ function App() {
     removeProject,
     renameProject,
     toggleFolder,
-  } = useProjectTree(projectTree)
+  } = useProjectTree(workspace.projects)
+  const sidebarUser = {
+    name: authUser?.fullName?.trim() || authUser?.email || 'Account',
+    email: authUser?.email ?? '',
+  }
   const [searchTerm, setSearchTerm] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isCreateFormSettingsOpen, setIsCreateFormSettingsOpen] =
@@ -123,7 +131,7 @@ function App() {
           projects={projects}
           searchTerm={searchTerm}
           selectedProjectId={selectedProjectId}
-          user={user}
+          user={sidebarUser}
           onCreateFolder={addFolder}
           onCreateForm={handleCreateForm}
           onGoFiles={handleGoFiles}

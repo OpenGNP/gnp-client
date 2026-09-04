@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { ProjectTreeItem } from '../data/dashboard'
 import {
@@ -16,6 +16,19 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
   const [openFolderIds, setOpenFolderIds] = useState(() =>
     getDefaultOpenFolderIds(initialProjects),
   )
+
+  // `initialProjects` is a fixed seed today, but the workspace tree now arrives
+  // asynchronously from the API. Re-seed when that reference actually changes so the
+  // real folders/forms replace the empty placeholder once loaded.
+  const seededProjectsRef = useRef(initialProjects)
+  useEffect(() => {
+    if (seededProjectsRef.current === initialProjects) {
+      return
+    }
+    seededProjectsRef.current = initialProjects
+    setProjects(initialProjects)
+    setOpenFolderIds(getDefaultOpenFolderIds(initialProjects))
+  }, [initialProjects])
 
   function toggleFolder(id: string) {
     setOpenFolderIds((currentFolderIds) => {
