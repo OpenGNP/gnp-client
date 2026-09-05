@@ -111,43 +111,54 @@ export function buildFieldPayloads(model: FormEditorModel): FormFieldPayload[] {
 
 type AccessPayload = {
   accessType: FormAccessType
+  acceptingResponses: boolean
   recordName: boolean
   oneResponsePerPerson: boolean
   allowedEmails: string[]
 }
 
 export function accessSettingsToPayload(settings: FormAccessSettings): AccessPayload {
-  switch (settings.whoCanFill) {
-    case 'anyone':
-      return {
-        accessType: 'public',
-        recordName: false,
-        oneResponsePerPerson: settings.anyoneOneResponsePerPerson,
-        allowedEmails: [],
-      }
-    case 'specific':
-      return {
-        accessType: 'specific',
-        recordName: settings.specificRecordName,
-        oneResponsePerPerson: settings.specificOneResponsePerPerson,
-        allowedEmails: settings.specificEmails,
-      }
-    case 'organization':
-    default:
-      return {
-        accessType: 'organization',
-        recordName: settings.organizationRecordName,
-        oneResponsePerPerson: settings.organizationOneResponsePerPerson,
-        allowedEmails: [],
-      }
-  }
+  const byWhoCanFill = ((): Omit<AccessPayload, 'acceptingResponses'> => {
+    switch (settings.whoCanFill) {
+      case 'anyone':
+        return {
+          accessType: 'public',
+          recordName: false,
+          oneResponsePerPerson: settings.anyoneOneResponsePerPerson,
+          allowedEmails: [],
+        }
+      case 'specific':
+        return {
+          accessType: 'specific',
+          recordName: settings.specificRecordName,
+          oneResponsePerPerson: settings.specificOneResponsePerPerson,
+          allowedEmails: settings.specificEmails,
+        }
+      case 'organization':
+      default:
+        return {
+          accessType: 'organization',
+          recordName: settings.organizationRecordName,
+          oneResponsePerPerson: settings.organizationOneResponsePerPerson,
+          allowedEmails: [],
+        }
+    }
+  })()
+
+  return { ...byWhoCanFill, acceptingResponses: settings.acceptingResponses }
 }
 
 export function accessSettingsFromForm(form: ApiFormDetail): FormAccessSettings {
   const emails = form.formAllowedUsers.map((entry) => entry.user.email)
   const recordName = form.recordName ?? false
   const oneResponse = form.oneResponsePerPerson ?? false
-  const base: FormAccessSettings = { ...defaultFormAccessSettings, specificEmails: emails }
+  const base: FormAccessSettings = {
+    ...defaultFormAccessSettings,
+    acceptingResponses: form.acceptingResponses,
+    startDate: form.startDate,
+    endDate: form.endDate,
+    specificEmails: emails,
+  }
 
   if (form.accessType === 'public') {
     return { ...base, whoCanFill: 'anyone', anyoneOneResponsePerPerson: oneResponse }
@@ -181,6 +192,9 @@ export function buildCreateFormPayload(
     formDescription: description || undefined,
     status: options.status,
     folderId: options.folderId,
+    // Create has nothing to clear, so a null (unchecked) date is just omitted.
+    startDate: settings.startDate ?? undefined,
+    endDate: settings.endDate ?? undefined,
     ...accessSettingsToPayload(settings),
     fields: buildFieldPayloads(model),
   }
@@ -195,6 +209,9 @@ export function buildUpdateFormPayload(
   return {
     formTitle: model.title.trim() || 'Untitled form',
     formDescription: model.description.trim(),
+    // Sent as-is (string | null) so unchecking a date actually clears it server-side.
+    startDate: settings.startDate,
+    endDate: settings.endDate,
     ...(status ? { status } : {}),
     ...accessSettingsToPayload(settings),
     ...(includeFields ? { fields: buildFieldPayloads(model) } : {}),

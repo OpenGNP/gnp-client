@@ -107,7 +107,12 @@ export function PublishModal({
                 Open for answer
               </span>
             </div>
-            <Switch className="h-3.75 w-7.5" thumbClassName="size-[11.5px] data-[state=checked]:translate-x-4" />
+            <Switch
+              checked={settings.acceptingResponses}
+              className="h-3.75 w-7.5"
+              onCheckedChange={(checked) => onUpdateSettings({ acceptingResponses: checked })}
+              thumbClassName="size-[11.5px] data-[state=checked]:translate-x-4"
+            />
           </div>
 
           <div className="h-px w-full bg-[#e8eaf1]" />

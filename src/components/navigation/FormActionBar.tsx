@@ -113,7 +113,12 @@ export function FormActionBar({
           <PublishModal
             isPublished={isPublished}
             onPublish={() => {
-              setIsPublished(true)
+              // In edit mode `onPublish` saves immediately, so reflect that right away.
+              // In create mode it just opens the destination picker — nothing is
+              // published yet, so flipping this now would lie if the user cancels it.
+              if (mode === 'edit') {
+                setIsPublished(true)
+              }
               void onPublish?.()
             }}
             onUpdateSettings={onUpdateFormAccessSettings}

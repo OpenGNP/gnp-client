@@ -58,6 +58,7 @@ export type ApiFormDetail = {
   coverImageUrl: string | null
   status: string | null
   accessType: string | null
+  acceptingResponses: boolean
   recordName: boolean | null
   oneResponsePerPerson: boolean | null
   startDate: string | null
@@ -91,6 +92,7 @@ export type CreateFormPayload = {
   formDescription?: string
   status?: FormStatus
   accessType?: FormAccessType
+  acceptingResponses?: boolean
   recordName?: boolean
   oneResponsePerPerson?: boolean
   startDate?: string
@@ -105,10 +107,13 @@ export type UpdateFormPayload = {
   formDescription?: string
   status?: FormStatus
   accessType?: FormAccessType
+  acceptingResponses?: boolean
   recordName?: boolean
   oneResponsePerPerson?: boolean
-  startDate?: string
-  endDate?: string
+  // Nullable here (unlike CreateFormPayload) so a save can explicitly clear a
+  // previously-set date, not just leave it or set a new one.
+  startDate?: string | null
+  endDate?: string | null
   fields?: FormFieldPayload[]
   allowedEmails?: string[]
 }

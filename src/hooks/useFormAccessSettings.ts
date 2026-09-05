@@ -3,6 +3,13 @@ import { useState } from 'react'
 export type WhoCanFillValue = 'anyone' | 'organization' | 'specific'
 
 export type FormAccessSettings = {
+  // Not strictly "who can fill" — the Publish Setting popover's "Open for answer"
+  // toggle and the Settings panel's response window live here too, since they all
+  // round-trip through the same load/save cycle. Dates are ISO strings; `null` means
+  // no restriction (unchecked in the UI).
+  acceptingResponses: boolean
+  startDate: string | null
+  endDate: string | null
   whoCanFill: WhoCanFillValue
   anyoneOneResponsePerPerson: boolean
   organizationRecordName: boolean
@@ -13,6 +20,9 @@ export type FormAccessSettings = {
 }
 
 export const defaultFormAccessSettings: FormAccessSettings = {
+  acceptingResponses: true,
+  startDate: null,
+  endDate: null,
   whoCanFill: 'organization',
   anyoneOneResponsePerPerson: false,
   organizationRecordName: true,

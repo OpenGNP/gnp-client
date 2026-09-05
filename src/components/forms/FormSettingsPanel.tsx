@@ -1,6 +1,5 @@
 import { Eye, FormInput, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
 
 import type { FormAccessSettings, WhoCanFillValue } from "../../hooks/useFormAccessSettings";
 import { cn } from "../../lib/utils";
@@ -95,23 +94,48 @@ function CheckboxField({
   );
 }
 
-function DateCheckboxField({ label }: { label: string }) {
-  const [checked, setChecked] = useState(false);
-  const [dateValue, setDateValue] = useState("");
+/** `datetime-local` inputs read/write a floating (no-timezone) local string — convert via the Date's local getters, not `toISOString()`, or the displayed time shifts by the viewer's UTC offset. */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(value: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function DateCheckboxField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  const checked = value !== null;
 
   return (
     <div className="flex flex-col gap-2">
       <label className="flex cursor-pointer items-center gap-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045]">
-        <Checkbox checked={checked} onCheckedChange={(value) => setChecked(value === true)} />
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(next) => onChange(next === true ? new Date().toISOString() : null)}
+        />
         <span>{label}</span>
       </label>
       {checked ? (
         <input
           className="ml-7.5 h-9.5 rounded-[5px] border border-[#e8eaf1] bg-[#f8f9fc] px-3 text-[14px] text-[#3f4045] outline-none focus:border-[#1e55c5]"
           aria-label={label}
-          onChange={(event) => setDateValue(event.target.value)}
+          onChange={(event) => onChange(fromDatetimeLocalValue(event.target.value))}
           type="datetime-local"
-          value={dateValue}
+          value={toDatetimeLocalValue(value)}
         />
       ) : null}
     </div>
@@ -238,8 +262,16 @@ export function FormSettingsPanel({
         title="Option for responses"
       >
         <div className="flex flex-col gap-3">
-          <DateCheckboxField label="Start date" />
-          <DateCheckboxField label="End date" />
+          <DateCheckboxField
+            label="Start date"
+            onChange={(value) => onUpdateSettings({ startDate: value })}
+            value={settings.startDate}
+          />
+          <DateCheckboxField
+            label="End date"
+            onChange={(value) => onUpdateSettings({ endDate: value })}
+            value={settings.endDate}
+          />
         </div>
       </SettingsSection>
     </aside>

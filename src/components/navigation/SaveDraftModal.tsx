@@ -14,9 +14,35 @@ type BreadcrumbEntry = {
 
 const ROOT_ENTRY: BreadcrumbEntry = { id: null, label: 'My Project' }
 
+export type SaveDraftModalMode = 'save' | 'publish' | 'move'
+
+const modeCopy: Record<
+  SaveDraftModalMode,
+  { title: string; description: string; actionLabel: string; destinationLabel: string }
+> = {
+  save: {
+    title: 'Save draft',
+    description: 'Choose a location for this form. You can move it later.',
+    actionLabel: 'Save',
+    destinationLabel: 'Save to',
+  },
+  publish: {
+    title: 'Publish form',
+    description: 'Choose a location to publish this form to. You can move it later.',
+    actionLabel: 'Publish',
+    destinationLabel: 'Publish to',
+  },
+  move: {
+    title: 'Move form',
+    description: 'Choose a new location for this form.',
+    actionLabel: 'Move',
+    destinationLabel: 'Move to',
+  },
+}
+
 export type SaveDraftModalProps = {
   open: boolean
-  mode: 'save' | 'move'
+  mode: SaveDraftModalMode
   projects: ProjectTreeItem[]
   onOpenChange: (open: boolean) => void
   onConfirm: (folderId: string | null) => void
@@ -50,18 +76,16 @@ export function SaveDraftModal({
     onOpenChange(false)
   }
 
-  const actionLabel = mode === 'move' ? 'Move' : 'Save'
+  const copy = modeCopy[mode]
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#d2d8e5] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
         <DialogTitle className="m-0 text-[22px] font-normal text-[#3c4043]">
-          {mode === 'move' ? 'Move form' : 'Save draft'}
+          {copy.title}
         </DialogTitle>
         <DialogDescription className="mt-1 text-[13px] text-[#726f6f]">
-          {mode === 'move'
-            ? 'Choose a new location for this form.'
-            : 'Choose a location for this form. You can move it later.'}
+          {copy.description}
         </DialogDescription>
 
         <div className="mt-5 flex flex-wrap items-center gap-1 text-[14px]">
@@ -113,7 +137,7 @@ export function SaveDraftModal({
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <span className="min-w-0 truncate text-[13px] text-[#726f6f]">
-            {mode === 'move' ? 'Move to' : 'Save to'}:{' '}
+            {copy.destinationLabel}:{' '}
             <strong className="text-[#3f4045]">{currentEntry.label}</strong>
           </span>
           <div className="flex shrink-0 items-center gap-2">
@@ -129,7 +153,7 @@ export function SaveDraftModal({
               className="h-9.5 rounded-[5px] px-5 text-[14px] font-semibold tracking-[0.14px]"
               onClick={handleConfirm}
             >
-              {actionLabel}
+              {copy.actionLabel}
             </Button>
           </div>
         </div>

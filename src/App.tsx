@@ -4,7 +4,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { createForm } from './api/forms'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
-import { SaveDraftModal } from './components/navigation/SaveDraftModal'
+import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
 import { Sidebar } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
@@ -45,7 +45,7 @@ function App() {
   const [isCreateFormSettingsOpen, setIsCreateFormSettingsOpen] =
     useState(false)
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
-  const [saveDraftMode, setSaveDraftMode] = useState<'save' | 'move'>('save')
+  const [saveDraftMode, setSaveDraftMode] = useState<SaveDraftModalMode>('save')
   const [saveDraftOpenCount, setSaveDraftOpenCount] = useState(0)
   const {
     settings: createFormAccessSettings,
@@ -166,6 +166,14 @@ function App() {
     setIsSaveDraftModalOpen(true)
   }
 
+  // Publishing a not-yet-saved form still needs a destination first — reuse the same
+  // folder-picker modal, just with publish copy and a status of 'active' on confirm.
+  function handleOpenPublish() {
+    setSaveDraftMode('publish')
+    setSaveDraftOpenCount((currentValue) => currentValue + 1)
+    setIsSaveDraftModalOpen(true)
+  }
+
   function handleOpenMove() {
     setSaveDraftMode('move')
     setSaveDraftOpenCount((currentValue) => currentValue + 1)
@@ -178,7 +186,7 @@ function App() {
       return
     }
 
-    void persistNewForm(folderId, 'draft')
+    void persistNewForm(folderId, saveDraftMode === 'publish' ? 'active' : 'draft')
   }
 
   return (
@@ -212,7 +220,7 @@ function App() {
             formTitle={createFormModel.title.trim() || 'Untitled form'}
             isSettingsOpen={isCreateFormSettingsOpen}
             onGoHome={handleGoHome}
-            onPublish={() => persistNewForm(null, 'active')}
+            onPublish={handleOpenPublish}
             onSaveDraft={handleOpenSaveDraft}
             onToggleSettings={() =>
               setIsCreateFormSettingsOpen((currentValue) => !currentValue)
