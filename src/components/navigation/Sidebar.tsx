@@ -36,6 +36,16 @@ type SidebarBrand = {
   name: string
 }
 
+export type MoveTarget = { folderId: string | null; beforeId?: string | null }
+
+// A drop can land in one of three zones on a row: the top strip reorders the dragged
+// item to just above it, the bottom strip to just below it, and (folders only) the
+// middle band moves it inside. The sentinel id lets the same state double as "hovering
+// empty space below the list", so dropping there moves the item back to root.
+type DropZone = 'before' | 'after' | 'into'
+type DragOverTarget = { id: string; zone: DropZone } | null
+const ROOT_DROP_ID = '__root__'
+
 export type SidebarProps = {
   brand: SidebarBrand
   user: SidebarUser
@@ -48,7 +58,7 @@ export type SidebarProps = {
   onCreateForm: () => void
   onGoFiles: () => void
   onGoHome: () => void
-  onMoveProject: (projectId: string, folderId: string) => void
+  onMoveProject: (projectId: string, target: MoveTarget) => void
   onSearchChange: (value: string) => void
   onSelectProject: (item: ProjectTreeItem) => void
   onToggleCollapse: () => void
@@ -57,12 +67,20 @@ export type SidebarProps = {
 
 type ProjectItemProps = {
   item: ProjectTreeItem
+  parentFolderId: string | null
+  siblings: ProjectTreeItem[]
+  index: number
   isCollapsed?: boolean
   openFolderIds: Set<string>
   searchTerm: string
   selectedProjectId: string
+  draggedId: string | null
+  dragOverTarget: DragOverTarget
+  onDragStart: (id: string) => void
+  onDragEnd: () => void
+  onDragOverTarget: (target: DragOverTarget) => void
   onSelectProject: (item: ProjectTreeItem) => void
-  onMoveProject: (projectId: string, folderId: string) => void
+  onMoveProject: (projectId: string, target: MoveTarget) => void
   onToggleFolder: (id: string) => void
 }
 
@@ -166,18 +184,28 @@ function HomeNav({
 
 function ProjectItem({
   item,
+  parentFolderId,
+  siblings,
+  index,
   isCollapsed = false,
   openFolderIds,
   searchTerm,
   selectedProjectId,
+  draggedId,
+  dragOverTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOverTarget,
   onSelectProject,
   onMoveProject,
   onToggleFolder,
 }: ProjectItemProps) {
   const isFolder = item.type === 'folder'
-  const isOpen = isFolder && (openFolderIds.has(item.id) || searchTerm.trim())
+  const isOpen = isFolder && (openFolderIds.has(item.id) || Boolean(searchTerm.trim()))
   const isSelected =
     item.id === selectedProjectId || item.formId === selectedProjectId
+  const isDragging = draggedId === item.id
+  const zone = dragOverTarget?.id === item.id ? dragOverTarget.zone : null
   const Icon = isFolder ? (isOpen ? FolderOpen : Folder) : FileText
 
   function handleSelect() {
@@ -187,31 +215,85 @@ function ProjectItem({
   function handleDragStart(event: DragEvent<HTMLElement>) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', item.id)
+    onDragStart(item.id)
   }
 
+  // Splits the row into drop zones by cursor position: top/bottom strips reorder
+  // (before/after this item), the middle band — folders only — moves inside instead.
+  // A document row has no "into" zone since it can't hold children, so it's a plain
+  // 50/50 split.
   function handleDragOver(event: DragEvent<HTMLElement>) {
-    if (!isFolder) {
+    if (draggedId === item.id) {
       return
     }
 
     event.preventDefault()
+    event.stopPropagation()
     event.dataTransfer.dropEffect = 'move'
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5
+    const nextZone: DropZone = isFolder
+      ? ratio < 0.25
+        ? 'before'
+        : ratio > 0.75
+          ? 'after'
+          : 'into'
+      : ratio < 0.5
+        ? 'before'
+        : 'after'
+
+    // Skip the state update (and the re-render it triggers) when nothing actually
+    // changed — dragover fires continuously while the mouse sits still over a row.
+    if (dragOverTarget?.id !== item.id || dragOverTarget.zone !== nextZone) {
+      onDragOverTarget({ id: item.id, zone: nextZone })
+    }
   }
 
   function handleDrop(event: DragEvent<HTMLElement>) {
-    if (!isFolder) {
-      return
-    }
-
     event.preventDefault()
+    event.stopPropagation()
+
     const draggedProjectId = event.dataTransfer.getData('text/plain')
+    const resolvedZone = zone ?? (isFolder ? 'into' : 'after')
+    // Don't wait on the dragged row's own `dragend` to clear its dimmed state — when a
+    // drop actually moves it, React can unmount/remount that DOM node during the
+    // resulting re-render before the browser gets to dispatch `dragend` on it, leaving
+    // it stuck dimmed. Clearing here, from the *target's* handler, doesn't have that
+    // problem (this element isn't the one being moved).
+    onDragEnd()
 
     if (!draggedProjectId || draggedProjectId === item.id) {
       return
     }
 
-    onMoveProject(draggedProjectId, item.id)
+    if (resolvedZone === 'into') {
+      onMoveProject(draggedProjectId, { folderId: item.id })
+      return
+    }
+
+    // "After this row" means "before whichever sibling currently follows it" — but if
+    // that follower happens to be the dragged item itself (dropping on the row right
+    // above where it already sits), skip forward to the next one, or it would resolve
+    // to "before itself", not be found once removed, and silently append at the end.
+    let beforeId: string | null = item.id
+    if (resolvedZone === 'after') {
+      beforeId = null
+      for (let i = index + 1; i < siblings.length; i += 1) {
+        if (siblings[i].id !== draggedProjectId) {
+          beforeId = siblings[i].id
+          break
+        }
+      }
+    }
+    onMoveProject(draggedProjectId, { folderId: parentFolderId, beforeId })
   }
+
+  const dropZoneClass = cn(
+    zone === 'into' && 'ring-2 ring-[#1e55c5]/30',
+    zone === 'before' && 'shadow-[inset_0_2px_0_0_#1e55c5]',
+    zone === 'after' && 'shadow-[inset_0_-2px_0_0_#1e55c5]',
+  )
 
   if (isFolder) {
     return (
@@ -226,10 +308,12 @@ function ProjectItem({
             'transition-colors hover:bg-[#f7f8fb]',
             isOpen && 'text-[#1e55c5]',
             isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
-            'data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-[#1e55c5]/30',
+            isDragging && 'opacity-40',
+            dropZoneClass,
           )}
           draggable
           title={isCollapsed ? item.label : undefined}
+          onDragEnd={onDragEnd}
           onDragOver={handleDragOver}
           onDragStart={handleDragStart}
           onDrop={handleDrop}
@@ -253,14 +337,22 @@ function ProjectItem({
         </div>
         {item.children && item.children.length > 0 ? (
           <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
-            {item.children.map((child) => (
+            {item.children.map((child, childIndex) => (
               <ProjectItem
                 item={child}
                 key={child.id}
+                parentFolderId={item.id}
+                siblings={item.children ?? []}
+                index={childIndex}
                 isCollapsed={isCollapsed}
                 openFolderIds={openFolderIds}
                 searchTerm={searchTerm}
                 selectedProjectId={selectedProjectId}
+                draggedId={draggedId}
+                dragOverTarget={dragOverTarget}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onDragOverTarget={onDragOverTarget}
                 onMoveProject={onMoveProject}
                 onSelectProject={onSelectProject}
                 onToggleFolder={onToggleFolder}
@@ -279,12 +371,15 @@ function ProjectItem({
         treeTextClass,
         'cursor-grab transition-colors hover:bg-[#f7f8fb] active:cursor-grabbing',
         isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
+        isDragging && 'opacity-40',
+        dropZoneClass,
       )}
       type="button"
       aria-pressed={isSelected}
       draggable
       title={isCollapsed ? item.label : undefined}
       onClick={handleSelect}
+      onDragEnd={onDragEnd}
       onDragOver={handleDragOver}
       onDragStart={handleDragStart}
       onDrop={handleDrop}
@@ -384,12 +479,55 @@ function ProjectNavigation({
   'brand' | 'user' | 'isCollapsed' | 'onGoFiles' | 'onGoHome' | 'onToggleCollapse'
 >) {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverTarget, setDragOverTarget] = useState<DragOverTarget>(null)
   const visibleProjects = filterProjects(projects, searchTerm)
+
+  function updateDragOverTarget(target: DragOverTarget) {
+    setDragOverTarget((current) => {
+      if (current?.id === target?.id && current?.zone === target?.zone) {
+        return current
+      }
+      return target
+    })
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null)
+    setDragOverTarget(null)
+  }
+
+  // Fires only when a drag is over genuine empty space — every row's own drag handlers
+  // call stopPropagation, so this never runs while hovering a row (nested or not).
+  // That's what makes it double as the "drag a file out of its folder, back to root"
+  // target: leaving every folder's contents still means leaving this section's rows.
+  function handleRootDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    updateDragOverTarget({ id: ROOT_DROP_ID, zone: 'into' })
+  }
+
+  function handleRootDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
+    const draggedProjectId = event.dataTransfer.getData('text/plain')
+    // See the comment on ProjectItem's handleDrop — clear here rather than waiting on
+    // the dragged row's own `dragend`, which can get lost if the move unmounts it.
+    handleDragEnd()
+
+    if (draggedProjectId) {
+      onMoveProject(draggedProjectId, { folderId: null })
+    }
+  }
 
   return (
     <section
-      className="min-h-0 flex-1 overflow-y-auto px-5 pt-5.75 pb-6 max-[900px]:pb-4"
+      className={cn(
+        'min-h-0 flex-1 overflow-y-auto px-5 pt-5.75 pb-6 max-[900px]:pb-4',
+        dragOverTarget?.id === ROOT_DROP_ID && 'bg-[#f0f4ff]',
+      )}
       aria-labelledby="project-nav-title"
+      onDragOver={handleRootDragOver}
+      onDrop={handleRootDrop}
     >
       <h2
         className="mt-0 mr-0 mb-3.25 ml-0.75 text-[14px] leading-5.5 font-medium tracking-[0.14px] text-black"
@@ -454,13 +592,21 @@ function ProjectNavigation({
           />
         ) : null}
         {visibleProjects.length > 0 ? (
-          visibleProjects.map((project) => (
+          visibleProjects.map((project, index) => (
             <ProjectItem
               item={project}
               key={project.id}
+              parentFolderId={null}
+              siblings={visibleProjects}
+              index={index}
               openFolderIds={openFolderIds}
               searchTerm={searchTerm}
               selectedProjectId={selectedProjectId}
+              draggedId={draggedId}
+              dragOverTarget={dragOverTarget}
+              onDragStart={setDraggedId}
+              onDragEnd={handleDragEnd}
+              onDragOverTarget={updateDragOverTarget}
               onMoveProject={onMoveProject}
               onSelectProject={onSelectProject}
               onToggleFolder={onToggleFolder}

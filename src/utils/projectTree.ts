@@ -167,11 +167,48 @@ export function findFolderById(
   return null
 }
 
+// `beforeId` inserts `projectToAdd` just before the sibling with that id (used for
+// drag-to-reorder); omitted, or an id no longer present among these siblings, appends
+// at the end — the existing "just add it" behavior every other caller relies on.
 export function addProjectToRoot(
   projects: ProjectTreeItem[],
   projectToAdd: ProjectTreeItem,
+  beforeId?: string | null,
 ): ProjectTreeItem[] {
-  return [...projects, projectToAdd]
+  const index = beforeId ? projects.findIndex((project) => project.id === beforeId) : -1
+
+  if (index === -1) {
+    return [...projects, projectToAdd]
+  }
+
+  const next = projects.slice()
+  next.splice(index, 0, projectToAdd)
+  return next
+}
+
+/** Which folder (by id) directly contains `id`, or `null` if it's not nested — including when `id` isn't found at all. */
+export function findParentFolderId(projects: ProjectTreeItem[], id: string): string | null {
+  function locate(items: ProjectTreeItem[], parentId: string | null): { found: true; parentId: string | null } | { found: false } {
+    for (const item of items) {
+      if (item.id === id || item.formId === id) {
+        return { found: true, parentId }
+      }
+    }
+
+    for (const item of items) {
+      if (item.children) {
+        const result = locate(item.children, item.id)
+        if (result.found) {
+          return result
+        }
+      }
+    }
+
+    return { found: false }
+  }
+
+  const result = locate(projects, null)
+  return result.found ? result.parentId : null
 }
 
 export function renameProjectById(
@@ -199,19 +236,20 @@ export function addProjectToFolder(
   projects: ProjectTreeItem[],
   folderId: string,
   projectToAdd: ProjectTreeItem,
+  beforeId?: string | null,
 ): ProjectTreeItem[] {
   return projects.map((project) => {
     if (project.id === folderId && project.type === 'folder') {
       return {
         ...project,
-        children: [...(project.children ?? []), projectToAdd],
+        children: addProjectToRoot(project.children ?? [], projectToAdd, beforeId),
       }
     }
 
     if (project.children) {
       return {
         ...project,
-        children: addProjectToFolder(project.children, folderId, projectToAdd),
+        children: addProjectToFolder(project.children, folderId, projectToAdd, beforeId),
       }
     }
 

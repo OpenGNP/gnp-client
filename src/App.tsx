@@ -6,7 +6,7 @@ import { createFolder, deleteFolder, updateFolder } from './api/folders'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
-import { Sidebar } from './components/navigation/Sidebar'
+import { Sidebar, type MoveTarget } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
 import { useAuth } from './lib/auth'
@@ -20,7 +20,12 @@ import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
 import { HomePage } from './pages/HomePage'
-import { findProjectById, getSelectedProjectId, removeFolderPromotingChildren } from './utils/projectTree'
+import {
+  findParentFolderId,
+  findProjectById,
+  getSelectedProjectId,
+  removeFolderPromotingChildren,
+} from './utils/projectTree'
 
 function App() {
   const navigate = useNavigate()
@@ -172,19 +177,26 @@ function App() {
     }
   }
 
-  /**
-   * Moves a form or folder in the tree, persisting the change for a form (its
-   * `folderId`) since that's a real column. A folder's own location has nowhere to
-   * persist to yet (the API doesn't expose `parent_folder_id`), so dragging a folder
-   * into another one stays the same client-side-only convenience it always was.
+/**
+   * Moves or reorders a form or folder in the tree. `beforeId` (a sibling id, or
+   * omitted to append) places it at a precise position — purely a local sidebar
+   * convenience, not persisted, since display order isn't a column the API tracks for
+   * either forms or folders. Only an actual *folder change* for a form persists (its
+   * `folderId` is a real column); a folder's own container has nowhere to persist to
+   * yet (no `parent_folder_id` support), so moving a folder — reorder or into another
+   * folder — stays the client-side-only convenience it always was.
    */
-  async function handleMoveProject(projectId: string, folderId: string | null) {
+  async function handleMoveProject(
+    projectId: string,
+    target: MoveTarget,
+  ) {
     const item = findProjectById(projects, projectId)
+    const previousFolderId = findParentFolderId(projects, projectId)
     const snapshot = projects
 
-    moveProject(projectId, folderId)
+    moveProject(projectId, target)
 
-    if (!item || item.type === 'folder') {
+    if (!item || item.type === 'folder' || previousFolderId === target.folderId) {
       return
     }
 
@@ -194,7 +206,7 @@ function App() {
     }
 
     try {
-      await updateForm(numericFormId, { folderId: parseFolderId(folderId) ?? null })
+      await updateForm(numericFormId, { folderId: parseFolderId(target.folderId) ?? null })
     } catch (error) {
       setProjects(snapshot)
       window.alert(
@@ -300,7 +312,7 @@ function App() {
   function handleConfirmSaveOrMove(folderId: string | null) {
     if (saveDraftMode === 'move') {
       if (moveTargetId) {
-        void handleMoveProject(moveTargetId, folderId)
+        void handleMoveProject(moveTargetId, { folderId })
       }
       return
     }

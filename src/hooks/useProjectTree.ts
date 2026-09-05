@@ -44,7 +44,15 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     })
   }
 
-  function moveProject(projectId: string, folderId: string | null) {
+  /**
+   * Moves a project into `folderId` (`null` for root). `beforeId`, when given, places
+   * it immediately before that sibling instead of appending — resolved by id against
+   * whatever the destination's children look like *after* removal, so it's immune to
+   * the classic off-by-one from the dragged item shifting its own former siblings.
+   */
+  function moveProject(projectId: string, target: { folderId: string | null; beforeId?: string | null }) {
+    const { folderId, beforeId } = target
+
     setProjects((currentProjects) => {
       const moved = findProjectById(currentProjects, projectId)
 
@@ -64,8 +72,8 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
       }
 
       return folderId
-        ? addProjectToFolder(result.projects, folderId, result.removedProject)
-        : addProjectToRoot(result.projects, result.removedProject)
+        ? addProjectToFolder(result.projects, folderId, result.removedProject, beforeId)
+        : addProjectToRoot(result.projects, result.removedProject, beforeId)
     })
 
     if (folderId) {
