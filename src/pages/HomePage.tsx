@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { deleteForm, listForms, type ApiForm } from '../api/forms'
+import { deleteForm, listForms, updateForm, type ApiForm } from '../api/forms'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
-import { recentForms } from '../data/dashboard'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
-
-// The API has no cover image yet — reuse the bundled thumbnails, keyed by form id.
-const PLACEHOLDER_IMAGES = recentForms.map((form) => form.image)
-const placeholderImage = (id: number) =>
-  PLACEHOLDER_IMAGES[((id % PLACEHOLDER_IMAGES.length) + PLACEHOLDER_IMAGES.length) % PLACEHOLDER_IMAGES.length]
+import { placeholderFormImage } from '../lib/formCardImage'
 
 function firstName(user: { fullName: string | null; email: string } | null): string {
   const source = user?.fullName?.trim() || user?.email || ''
@@ -21,7 +16,11 @@ function firstName(user: { fullName: string | null; email: string } | null): str
   return first || 'there'
 }
 
-export function HomePage() {
+export type HomePageProps = {
+  onMoveItem: (id: string) => void
+}
+
+export function HomePage({ onMoveItem }: HomePageProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [forms, setForms] = useState<ApiForm[]>([])
@@ -73,6 +72,29 @@ export function HomePage() {
     }
   }
 
+  // Home keeps its own independently-fetched form list rather than the sidebar's
+  // shared tree, so — like handleDeleteForm above — this updates that local list
+  // optimistically and persists via the same API the tree-based handlers use. A rename
+  // made here won't be visible in the sidebar/Files page until the next reload, same
+  // staleness that already existed for delete.
+  async function handleRenameForm(id: number, label: string) {
+    const trimmed = label.trim()
+    if (!trimmed) {
+      return
+    }
+
+    const snapshot = forms
+    setForms((current) =>
+      current.map((form) => (form.id === id ? { ...form, formTitle: trimmed } : form)),
+    )
+    try {
+      await updateForm(id, { formTitle: trimmed })
+    } catch (error) {
+      setForms(snapshot)
+      window.alert(error instanceof ApiError ? error.message : 'Could not rename the form.')
+    }
+  }
+
   return (
     <PageContainer>
       <section className="grid h-65.5 grid-cols-[minmax(320px,419px)_minmax(420px,562px)] items-center gap-14.25 max-[1200px]:h-auto max-[1200px]:grid-cols-1 max-[1200px]:gap-6 max-[1200px]:py-12 max-[1200px]:pb-7 max-[560px]:py-8">
@@ -117,11 +139,13 @@ export function HomePage() {
             {forms.map((form) => (
               <FormCard
                 key={form.id}
-                image={placeholderImage(form.id)}
+                image={placeholderFormImage(form.id)}
                 title={form.formTitle ?? 'Untitled form'}
                 updatedAt={formatRelativeTime(form.updatedAt ?? form.createdAt)}
                 onDelete={() => handleDeleteForm(form.id)}
+                onMove={() => onMoveItem(String(form.id))}
                 onOpen={() => navigate(`/forms/${form.id}`)}
+                onRename={(name) => handleRenameForm(form.id, name)}
               />
             ))}
           </div>

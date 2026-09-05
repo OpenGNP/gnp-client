@@ -1,4 +1,4 @@
-import { Clock3, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Clock3, FolderInput, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 
 import { useInlineEdit } from '../../hooks/useInlineEdit'
@@ -20,6 +20,7 @@ export type FormCardProps = {
   onOpen?: () => void
   onDelete?: () => void
   onRename?: (name: string) => void
+  onMove?: () => void
 }
 
 function CardBody({
@@ -80,6 +81,7 @@ export function FormCard({
   onOpen,
   onDelete,
   onRename,
+  onMove,
 }: FormCardProps) {
   const [isRenaming, setIsRenaming] = useState(false)
 
@@ -145,6 +147,12 @@ export function FormCard({
                 <DropdownMenuItem onSelect={() => setIsRenaming(true)}>
                   <Pencil size={14} />
                   Rename
+                </DropdownMenuItem>
+              ) : null}
+              {onMove ? (
+                <DropdownMenuItem onSelect={onMove}>
+                  <FolderInput size={14} />
+                  Move
                 </DropdownMenuItem>
               ) : null}
               {onDelete ? (

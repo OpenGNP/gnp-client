@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
-import { createForm } from './api/forms'
+import { createForm, deleteForm, updateForm } from './api/forms'
+import { createFolder, deleteFolder, updateFolder } from './api/folders'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
@@ -19,7 +20,7 @@ import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
 import { HomePage } from './pages/HomePage'
-import { getSelectedProjectId } from './utils/projectTree'
+import { findProjectById, getSelectedProjectId, removeFolderPromotingChildren } from './utils/projectTree'
 
 function App() {
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ function App() {
   const workspace = useWorkspaceTree()
   const {
     projects,
+    setProjects,
     openFolderIds,
     addProject,
     addFolder,
@@ -47,6 +49,10 @@ function App() {
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
   const [saveDraftMode, setSaveDraftMode] = useState<SaveDraftModalMode>('save')
   const [saveDraftOpenCount, setSaveDraftOpenCount] = useState(0)
+  // Which project the open SaveDraftModal ('move' mode) is acting on — the modal can be
+  // triggered from anywhere a FormCard dropdown lives (Home, Files), not just the
+  // currently-open route, so the target can't be derived from the URL.
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null)
   const {
     settings: createFormAccessSettings,
     updateSettings: onUpdateCreateFormAccessSettings,
@@ -151,6 +157,116 @@ function App() {
     }
   }
 
+  async function handleCreateFolder(name: string, parentFolderId: string | null = null) {
+    const label = name.trim()
+    if (!label) {
+      return
+    }
+    try {
+      const created = await createFolder({ folderName: label })
+      addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
+    } catch (error) {
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not create the folder. Please try again.',
+      )
+    }
+  }
+
+  /**
+   * Moves a form or folder in the tree, persisting the change for a form (its
+   * `folderId`) since that's a real column. A folder's own location has nowhere to
+   * persist to yet (the API doesn't expose `parent_folder_id`), so dragging a folder
+   * into another one stays the same client-side-only convenience it always was.
+   */
+  async function handleMoveProject(projectId: string, folderId: string | null) {
+    const item = findProjectById(projects, projectId)
+    const snapshot = projects
+
+    moveProject(projectId, folderId)
+
+    if (!item || item.type === 'folder') {
+      return
+    }
+
+    const numericFormId = Number(item.formId ?? item.id)
+    if (!Number.isInteger(numericFormId) || numericFormId <= 0) {
+      return
+    }
+
+    try {
+      await updateForm(numericFormId, { folderId: parseFolderId(folderId) ?? null })
+    } catch (error) {
+      setProjects(snapshot)
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not move the form. Please try again.',
+      )
+    }
+  }
+
+  async function handleRenameProject(id: string, label: string) {
+    const trimmed = label.trim()
+    const item = findProjectById(projects, id)
+    if (!trimmed || !item) {
+      return
+    }
+
+    const snapshot = projects
+    renameProject(id, trimmed)
+
+    try {
+      if (item.type === 'folder') {
+        const numericId = Number(item.id)
+        if (Number.isInteger(numericId) && numericId > 0) {
+          await updateFolder(numericId, { folderName: trimmed })
+        }
+      } else {
+        const numericId = Number(item.formId ?? item.id)
+        if (Number.isInteger(numericId) && numericId > 0) {
+          await updateForm(numericId, { formTitle: trimmed })
+        }
+      }
+    } catch (error) {
+      setProjects(snapshot)
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not rename this item. Please try again.',
+      )
+    }
+  }
+
+  async function handleDeleteProject(id: string) {
+    const item = findProjectById(projects, id)
+    if (!item) {
+      return
+    }
+
+    const snapshot = projects
+    const isFolder = item.type === 'folder'
+
+    if (isFolder) {
+      setProjects((current) => removeFolderPromotingChildren(current, id))
+    } else {
+      removeProject(id)
+    }
+
+    const numericId = Number(isFolder ? item.id : (item.formId ?? item.id))
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return
+    }
+
+    try {
+      if (isFolder) {
+        await deleteFolder(numericId)
+      } else {
+        await deleteForm(numericId)
+      }
+    } catch (error) {
+      setProjects(snapshot)
+      window.alert(
+        error instanceof ApiError ? error.message : `Could not delete "${item.label}". Please try again.`,
+      )
+    }
+  }
+
   function handleSelectProject(project: ProjectTreeItem) {
     setIsCreateFormSettingsOpen(false)
     const path =
@@ -174,7 +290,8 @@ function App() {
     setIsSaveDraftModalOpen(true)
   }
 
-  function handleOpenMove() {
+  function handleOpenMove(id: string) {
+    setMoveTargetId(id)
     setSaveDraftMode('move')
     setSaveDraftOpenCount((currentValue) => currentValue + 1)
     setIsSaveDraftModalOpen(true)
@@ -182,7 +299,9 @@ function App() {
 
   function handleConfirmSaveOrMove(folderId: string | null) {
     if (saveDraftMode === 'move') {
-      moveProject(selectedProjectId, folderId)
+      if (moveTargetId) {
+        void handleMoveProject(moveTargetId, folderId)
+      }
       return
     }
 
@@ -200,11 +319,11 @@ function App() {
           searchTerm={searchTerm}
           selectedProjectId={selectedProjectId}
           user={sidebarUser}
-          onCreateFolder={addFolder}
+          onCreateFolder={handleCreateFolder}
           onCreateForm={handleCreateForm}
           onGoFiles={handleGoFiles}
           onGoHome={handleGoHome}
-          onMoveProject={moveProject}
+          onMoveProject={handleMoveProject}
           onSearchChange={setSearchTerm}
           onSelectProject={handleSelectProject}
           onToggleCollapse={() =>
@@ -235,15 +354,16 @@ function App() {
           />
         )}
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage onMoveItem={handleOpenMove} />} />
           <Route
             path="/files"
             element={
               <FilesPage
-                onCreateFolder={addFolder}
+                onCreateFolder={handleCreateFolder}
                 onCreateForm={handleCreateFormInFolder}
-                onDeleteItem={removeProject}
-                onRenameItem={renameProject}
+                onDeleteItem={handleDeleteProject}
+                onMoveItem={handleOpenMove}
+                onRenameItem={handleRenameProject}
                 projects={projects}
               />
             }
@@ -252,10 +372,11 @@ function App() {
             path="/files/:folderId"
             element={
               <FilesPage
-                onCreateFolder={addFolder}
+                onCreateFolder={handleCreateFolder}
                 onCreateForm={handleCreateFormInFolder}
-                onDeleteItem={removeProject}
-                onRenameItem={renameProject}
+                onDeleteItem={handleDeleteProject}
+                onMoveItem={handleOpenMove}
+                onRenameItem={handleRenameProject}
                 projects={projects}
               />
             }
@@ -277,7 +398,7 @@ function App() {
             path="/forms/:projectId"
             element={
               <EditFormPage
-                onMove={handleOpenMove}
+                onMove={() => handleOpenMove(selectedProjectId)}
                 onToggleSidebar={() => setIsSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />

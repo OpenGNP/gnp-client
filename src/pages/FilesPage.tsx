@@ -11,8 +11,9 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../components/ui/context-menu'
-import { recentForms } from '../data/dashboard'
 import type { ProjectTreeItem } from '../data/dashboard'
+import { formatRelativeTime } from '../lib/formatRelativeTime'
+import { placeholderFormImage } from '../lib/formCardImage'
 import { cn } from '../lib/utils'
 import { getFolderPath } from '../utils/projectTree'
 
@@ -21,11 +22,9 @@ export type FilesPageProps = {
   onCreateFolder: (name: string, parentFolderId: string | null) => void
   onCreateForm: (parentFolderId: string | null) => void
   onDeleteItem: (id: string) => void
+  onMoveItem: (id: string) => void
   onRenameItem: (id: string, label: string) => void
 }
-
-const recentFormsById = new Map(recentForms.map((form) => [form.id, form]))
-const FALLBACK_IMAGE = recentForms[recentForms.length - 1].image
 
 // A right-click on a card should fall through to the browser, not open the page's
 // "new file / new folder" menu — that belongs to genuine white space only.
@@ -38,6 +37,7 @@ export function FilesPage({
   onCreateFolder,
   onCreateForm,
   onDeleteItem,
+  onMoveItem,
   onRenameItem,
 }: FilesPageProps) {
   const navigate = useNavigate()
@@ -148,22 +148,19 @@ export function FilesPage({
                 </h2>
                 {files.length > 0 ? (
                   <div className="grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
-                    {files.map((file) => {
-                      const recentForm = recentFormsById.get(file.formId ?? file.id)
-
-                      return (
-                        <div key={file.id} onContextMenu={stopContextMenu}>
-                          <FormCard
-                            image={recentForm?.image ?? FALLBACK_IMAGE}
-                            onDelete={() => deleteItem(file)}
-                            onOpen={() => openForm(file.id)}
-                            onRename={(name) => onRenameItem(file.id, name)}
-                            title={file.label}
-                            updatedAt={recentForm?.updatedAt ?? '—'}
-                          />
-                        </div>
-                      )
-                    })}
+                    {files.map((file) => (
+                      <div key={file.id} onContextMenu={stopContextMenu}>
+                        <FormCard
+                          image={placeholderFormImage(Number(file.formId ?? file.id))}
+                          onDelete={() => deleteItem(file)}
+                          onMove={() => onMoveItem(file.id)}
+                          onOpen={() => openForm(file.id)}
+                          onRename={(name) => onRenameItem(file.id, name)}
+                          title={file.label}
+                          updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="m-0 text-[14px] text-[#8b8e98]">No file here</p>

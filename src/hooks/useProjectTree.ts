@@ -109,23 +109,17 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     }
   }
 
-  function addFolder(name: string, parentFolderId: string | null = null) {
-    const label = name.trim()
-
-    if (!label) {
-      return
-    }
-
-    const newFolder: ProjectTreeItem = {
-      id: crypto.randomUUID(),
-      label,
-      type: 'folder',
-    }
-
+  // Takes a ready-made node (caller already has its real, API-assigned id) rather than
+  // a name — folder creation is now async (POST /folders happens first), so there's no
+  // synchronous id to generate here the way there used to be. Root folders are
+  // prepended, not appended: the Sidebar's inline "new folder" input renders at the top
+  // of the list, and this keeps the real folder swapping in at that same spot instead
+  // of jumping to the bottom once the request resolves.
+  function addFolder(folder: ProjectTreeItem, parentFolderId: string | null = null) {
     setProjects((currentProjects) =>
       parentFolderId
-        ? addProjectToFolder(currentProjects, parentFolderId, newFolder)
-        : [newFolder, ...currentProjects],
+        ? addProjectToFolder(currentProjects, parentFolderId, folder)
+        : [folder, ...currentProjects],
     )
 
     if (parentFolderId) {
@@ -139,6 +133,7 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
 
   return {
     projects,
+    setProjects,
     openFolderIds,
     addProject,
     addFolder,

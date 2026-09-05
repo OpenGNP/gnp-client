@@ -1,4 +1,4 @@
-import { apiGet } from '../lib/api'
+import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api'
 
 /** Row shape returned by `GET /api/folders` (see gnp-server folderService.listByAdmin). */
 export type ApiFolder = {
@@ -9,6 +9,28 @@ export type ApiFolder = {
   formCount: number
 }
 
+export type CreateFolderPayload = {
+  folderName: string
+  folderDescription?: string
+}
+
+export type UpdateFolderPayload = {
+  folderName?: string
+  folderDescription?: string
+}
+
 export function listFolders(): Promise<ApiFolder[]> {
   return apiGet<ApiFolder[]>('/folders')
+}
+
+export function createFolder(payload: CreateFolderPayload): Promise<{ id: number }> {
+  return apiPost<{ id: number }>('/folders', payload)
+}
+
+export function updateFolder(id: number, payload: UpdateFolderPayload): Promise<{ id: number }> {
+  return apiPatch<{ id: number }>(`/folders/${id}`, payload)
+}
+
+export function deleteFolder(id: number): Promise<null> {
+  return apiDelete<null>(`/folders/${id}`)
 }

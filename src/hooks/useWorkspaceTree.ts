@@ -34,6 +34,8 @@ export function useWorkspaceTree(): WorkspaceTree {
             label: form.formTitle ?? 'Untitled form',
             type: 'document',
             formId: String(form.id),
+            updatedAt: form.updatedAt,
+            createdAt: form.createdAt,
           }
           const key = form.folderId ?? null
           const bucket = formsByFolder.get(key)

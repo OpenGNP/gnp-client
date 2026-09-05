@@ -14,6 +14,10 @@ export type ProjectTreeItem = {
   formId?: string
   open?: boolean
   children?: ProjectTreeItem[]
+  // Documents only — carried through from the API so the Files page's FormCard can
+  // show the same "Last update" as HomePage's, instead of mock data.
+  updatedAt?: string | null
+  createdAt?: string | null
 }
 
 export type RecentForm = {
