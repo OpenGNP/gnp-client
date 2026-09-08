@@ -13,6 +13,7 @@ export type ApiForm = {
   status: string | null
   accessType: string | null
   folderId: number | null
+  sortOrder: number
   startDate: string | null
   endDate: string | null
   createdAt: string | null
@@ -139,4 +140,14 @@ export function updateForm(id: number, payload: UpdateFormPayload): Promise<{ id
 
 export function deleteForm(id: number): Promise<null> {
   return apiDelete<null>(`/forms/${id}`)
+}
+
+export type ReorderFormsPayload = {
+  folderId: number | null
+  formIds: number[]
+}
+
+/** formIds must be the exact set of forms currently in that folder (or, for `folderId: null`, at the root). */
+export function reorderForms(payload: ReorderFormsPayload): Promise<null> {
+  return apiPatch<null>('/forms/reorder', payload)
 }

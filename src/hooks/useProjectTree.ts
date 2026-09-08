@@ -49,32 +49,33 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
    * it immediately before that sibling instead of appending — resolved by id against
    * whatever the destination's children look like *after* removal, so it's immune to
    * the classic off-by-one from the dragged item shifting its own former siblings.
+   *
+   * Unlike this hook's other setters, this computes against `projects` directly and
+   * returns the result (rather than only going through `setProjects`'s updater) so a
+   * caller can read back exactly what the destination container's new order is, in the
+   * same tick, to persist it — see App.tsx's handleMoveProject. Safe here specifically
+   * because this is always the only tree edit in flight for a given drag; there's
+   * nothing else racing to update `projects` first.
    */
-  function moveProject(projectId: string, target: { folderId: string | null; beforeId?: string | null }) {
+  function moveProject(projectId: string, target: { folderId: string | null; beforeId?: string | null }): ProjectTreeItem[] {
     const { folderId, beforeId } = target
+    const moved = findProjectById(projects, projectId)
 
-    setProjects((currentProjects) => {
-      const moved = findProjectById(currentProjects, projectId)
+    // A folder can't be dropped into itself or one of its own descendants.
+    if (!moved || (moved.type === 'folder' && folderId && isIdWithinItem(moved, folderId))) {
+      return projects
+    }
 
-      if (!moved) {
-        return currentProjects
-      }
+    const result = removeProjectById(projects, projectId)
+    if (!result.removedProject) {
+      return projects
+    }
 
-      // A folder can't be dropped into itself or one of its own descendants.
-      if (moved.type === 'folder' && folderId && isIdWithinItem(moved, folderId)) {
-        return currentProjects
-      }
+    const nextProjects = folderId
+      ? addProjectToFolder(result.projects, folderId, result.removedProject, beforeId)
+      : addProjectToRoot(result.projects, result.removedProject, beforeId)
 
-      const result = removeProjectById(currentProjects, projectId)
-
-      if (!result.removedProject) {
-        return currentProjects
-      }
-
-      return folderId
-        ? addProjectToFolder(result.projects, folderId, result.removedProject, beforeId)
-        : addProjectToRoot(result.projects, result.removedProject, beforeId)
-    })
+    setProjects(nextProjects)
 
     if (folderId) {
       setOpenFolderIds((currentFolderIds) => {
@@ -83,6 +84,8 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
         return nextFolderIds
       })
     }
+
+    return nextProjects
   }
 
   function removeProject(projectId: string) {

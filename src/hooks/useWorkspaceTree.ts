@@ -15,7 +15,11 @@ const EMPTY: ProjectTreeItem[] = []
  * Builds the sidebar project tree from the real API: top-level folders (flat — the
  * backend has no folder nesting yet) each holding their forms, then any folder-less
  * forms at the root. Fetched once; the local add/rename/move edits in `useProjectTree`
- * stay client-side for now.
+ * stay client-side until a drag persists them via reorderForms/reorderFolders.
+ *
+ * `GET /forms`/`GET /folders` are also used elsewhere for recency order (Home's
+ * "Recent forms"), so their own ordering is left alone — sorting by `sortOrder` for
+ * the tree happens here, client-side, rather than changing what the endpoints return.
  */
 export function useWorkspaceTree(): WorkspaceTree {
   const [state, setState] = useState<WorkspaceTree>({ projects: EMPTY, status: 'loading' })
@@ -27,8 +31,11 @@ export function useWorkspaceTree(): WorkspaceTree {
       .then(([folders, forms]) => {
         if (cancelled) return
 
+        const sortedForms = forms.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+        const sortedFolders = folders.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+
         const formsByFolder = new Map<number | null, ProjectTreeItem[]>()
-        for (const form of forms) {
+        for (const form of sortedForms) {
           const node: ProjectTreeItem = {
             id: String(form.id),
             label: form.formTitle ?? 'Untitled form',
@@ -46,7 +53,7 @@ export function useWorkspaceTree(): WorkspaceTree {
           }
         }
 
-        const folderNodes: ProjectTreeItem[] = folders.map((folder) => ({
+        const folderNodes: ProjectTreeItem[] = sortedFolders.map((folder) => ({
           id: String(folder.id),
           label: folder.folderName ?? 'Untitled folder',
           type: 'folder',

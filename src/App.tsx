@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
-import { createForm, deleteForm, updateForm } from './api/forms'
-import { createFolder, deleteFolder, updateFolder } from './api/folders'
+import { createForm, deleteForm, reorderForms, updateForm } from './api/forms'
+import { createFolder, deleteFolder, reorderFolders, updateFolder } from './api/folders'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
@@ -21,6 +21,7 @@ import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
 import { HomePage } from './pages/HomePage'
 import {
+  findFolderById,
   findParentFolderId,
   findProjectById,
   getSelectedProjectId,
@@ -177,38 +178,84 @@ function App() {
     }
   }
 
-/**
+  /**
    * Moves or reorders a form or folder in the tree. `beforeId` (a sibling id, or
-   * omitted to append) places it at a precise position — purely a local sidebar
-   * convenience, not persisted, since display order isn't a column the API tracks for
-   * either forms or folders. Only an actual *folder change* for a form persists (its
-   * `folderId` is a real column); a folder's own container has nowhere to persist to
-   * yet (no `parent_folder_id` support), so moving a folder — reorder or into another
-   * folder — stays the client-side-only convenience it always was.
+   * omitted to append) places it at a precise position. Forms persist fully: an actual
+   * folder change via `updateForm`, then the destination container's whole new order
+   * via `reorderForms` (needs the folder change to have landed first, or the exact-set
+   * check on the reorder call would still see the old container). Folders persist only
+   * their order among root-level siblings — dragging one *into* another folder still
+   * doesn't stick (no `parent_folder_id` support), so that case is left as the
+   * client-side-only convenience it always was.
    */
-  async function handleMoveProject(
-    projectId: string,
-    target: MoveTarget,
-  ) {
+  async function handleMoveProject(projectId: string, target: MoveTarget) {
     const item = findProjectById(projects, projectId)
     const previousFolderId = findParentFolderId(projects, projectId)
     const snapshot = projects
 
-    moveProject(projectId, target)
+    const nextProjects = moveProject(projectId, target)
+    if (!item || nextProjects === snapshot) {
+      return // nothing found, or the move was rejected (e.g. folder into its own descendant)
+    }
 
-    if (!item || item.type === 'folder' || previousFolderId === target.folderId) {
+    const siblings = target.folderId
+      ? (findFolderById(nextProjects, target.folderId)?.children ?? [])
+      : nextProjects
+
+    if (item.type === 'folder') {
+      if (target.folderId !== null) {
+        return // moved into another folder — not persisted, per the note above
+      }
+
+      const folderIds = siblings
+        .filter((sibling) => sibling.type === 'folder')
+        .map((sibling) => Number(sibling.id))
+
+      if (folderIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+        return
+      }
+
+      try {
+        await reorderFolders({ folderIds })
+      } catch (error) {
+        setProjects(snapshot)
+        window.alert(
+          error instanceof ApiError ? error.message : 'Could not reorder folders. Please try again.',
+        )
+      }
       return
     }
 
     const numericFormId = Number(item.formId ?? item.id)
-    if (!Number.isInteger(numericFormId) || numericFormId <= 0) {
+    const formIds = siblings
+      .filter((sibling) => sibling.type === 'document')
+      .map((sibling) => Number(sibling.formId ?? sibling.id))
+
+    if (
+      !Number.isInteger(numericFormId) ||
+      numericFormId <= 0 ||
+      formIds.some((id) => !Number.isInteger(id) || id <= 0)
+    ) {
       return
     }
 
+    const resolvedFolderId = parseFolderId(target.folderId) ?? null
+    // Tracks whether the folder change has actually landed server-side yet, so a
+    // failure on the *reorder* half below doesn't revert a move that already
+    // committed — that would leave the tree showing the old folder while the server
+    // (correctly) has the new one.
+    let folderChangePersisted = previousFolderId === target.folderId
+
     try {
-      await updateForm(numericFormId, { folderId: parseFolderId(target.folderId) ?? null })
+      if (!folderChangePersisted) {
+        await updateForm(numericFormId, { folderId: resolvedFolderId })
+        folderChangePersisted = true
+      }
+      await reorderForms({ folderId: resolvedFolderId, formIds })
     } catch (error) {
-      setProjects(snapshot)
+      if (!folderChangePersisted) {
+        setProjects(snapshot)
+      }
       window.alert(
         error instanceof ApiError ? error.message : 'Could not move the form. Please try again.',
       )
