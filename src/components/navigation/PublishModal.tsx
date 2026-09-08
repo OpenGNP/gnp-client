@@ -1,9 +1,13 @@
-import { CalendarClock, Eye, Link2, MessageSquareText, PencilLine } from 'lucide-react'
+import { CalendarClock, Eye, Link2, MessageSquareText, PencilLine, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
-import type { FormAccessSettings, WhoCanFillValue } from '../../hooks/useFormAccessSettings'
+import {
+  formAccessSettingsChanged,
+  type FormAccessSettings,
+  type WhoCanFillValue,
+} from '../../hooks/useFormAccessSettings'
 import { useNow } from '../../hooks/useNow'
 import { cn } from '../../lib/utils'
 import {
@@ -80,6 +84,13 @@ export type PublishModalProps = {
   onPublish: () => void
   settings: FormAccessSettings
   onUpdateSettings: (partial: Partial<FormAccessSettings>) => void
+  /**
+   * Access settings as last saved — drives every readout in the modal (status chip,
+   * schedule summary, share heading) so nothing looks changed until Save. The toggle
+   * / radios / email list still bind to the live `settings` (they show what you're
+   * about to save). Falls back to `settings` when omitted (create mode).
+   */
+  savedAccessSettings?: FormAccessSettings
   /** Respondent-facing URL for this form; only shown once the form is published. */
   shareUrl?: string
   /** Opens the Settings panel to the "Response window" section. */
@@ -91,21 +102,27 @@ export function PublishModal({
   onPublish,
   settings,
   onUpdateSettings,
+  savedAccessSettings,
   shareUrl,
   onEditSchedule,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
   const now = useNow()
 
+  // Every readout derives from the saved snapshot; controls still bind to `settings`.
+  const saved = savedAccessSettings ?? settings
   const windowInputs = {
     isPublished,
-    acceptingResponses: settings.acceptingResponses,
-    startDate: settings.startDate,
-    endDate: settings.endDate,
+    acceptingResponses: saved.acceptingResponses,
+    startDate: saved.startDate,
+    endDate: saved.endDate,
   }
   const state = deriveResponseState(windowInputs, now)
   const badge = describeResponseState(state, windowInputs)
   const toggleEffective = isToggleEffective(state)
+  // Edit mode: something in the modal has been changed but not yet saved.
+  const hasUnsavedChanges =
+    savedAccessSettings != null && formAccessSettingsChanged(savedAccessSettings, settings)
 
   const handleCopyLink = async () => {
     if (!shareUrl) return
@@ -120,7 +137,7 @@ export function PublishModal({
 
   const shareHeading =
     state === 'scheduled'
-      ? `Opens ${formatDateTime(settings.startDate)} — share the link now`
+      ? `Opens ${formatDateTime(saved.startDate)} — share the link now`
       : state === 'paused'
         ? 'Paused — the link still works'
         : state === 'closed'
@@ -155,7 +172,7 @@ export function PublishModal({
             <CalendarClock className="mt-px shrink-0 text-[#8b8e98]" size={13} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="text-[11px] leading-4 text-[#616161]">
-                {scheduleSummary(settings)}
+                {scheduleSummary(saved)}
               </span>
               {!toggleEffective ? (
                 <span className="text-[11px] leading-4 text-[#b7791f]">
@@ -304,6 +321,17 @@ export function PublishModal({
           </div>
         ) : null}
       </div>
+
+      {hasUnsavedChanges ? (
+        <div className="flex items-start gap-1.5 rounded-[6px] bg-[#fff8ec] px-2.5 py-2 text-[11px] leading-4 text-[#b7791f]">
+          <TriangleAlert className="mt-px shrink-0" size={12} strokeWidth={2.2} />
+          <span>
+            Not applied yet — click{' '}
+            <span className="font-semibold">{isPublished ? 'Save' : 'Publish'}</span> to apply your
+            changes.
+          </span>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2">
         <PopoverClose asChild>

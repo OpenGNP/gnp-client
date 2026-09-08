@@ -32,6 +32,23 @@ export const defaultFormAccessSettings: FormAccessSettings = {
   specificEmails: [],
 }
 
+/** True when two access-settings objects differ on any editable field — i.e. a Save is pending. */
+export function formAccessSettingsChanged(a: FormAccessSettings, b: FormAccessSettings): boolean {
+  return (
+    a.acceptingResponses !== b.acceptingResponses ||
+    a.startDate !== b.startDate ||
+    a.endDate !== b.endDate ||
+    a.whoCanFill !== b.whoCanFill ||
+    a.anyoneOneResponsePerPerson !== b.anyoneOneResponsePerPerson ||
+    a.organizationRecordName !== b.organizationRecordName ||
+    a.organizationOneResponsePerPerson !== b.organizationOneResponsePerPerson ||
+    a.specificRecordName !== b.specificRecordName ||
+    a.specificOneResponsePerPerson !== b.specificOneResponsePerPerson ||
+    a.specificEmails.length !== b.specificEmails.length ||
+    a.specificEmails.some((email, index) => email !== b.specificEmails[index])
+  )
+}
+
 export function useFormAccessSettings(initial: FormAccessSettings = defaultFormAccessSettings) {
   const [settings, setSettings] = useState<FormAccessSettings>(initial)
 

@@ -33,6 +33,12 @@ export type FormActionBarProps = {
   saveStatus?: SaveStatus
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
+  /**
+   * Access settings as last saved — drives the status chip (and the PublishModal's
+   * readouts / "unsaved" reminder) so nothing looks changed before the user saves.
+   * Falls back to the live settings when omitted (create mode, no chip anyway).
+   */
+  savedAccessSettings?: FormAccessSettings
   /** Respondent-facing URL, threaded to the PublishModal's "share this link" section. */
   shareUrl?: string
   /** Opens the Settings panel to the "Response window" section. */
@@ -70,17 +76,19 @@ export function FormActionBar({
   saveStatus = 'idle',
   formAccessSettings,
   onUpdateFormAccessSettings,
+  savedAccessSettings,
   shareUrl,
   onEditSchedule,
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
   const now = useNow()
 
+  const savedWindow = savedAccessSettings ?? formAccessSettings
   const responseWindow = {
     isPublished,
-    acceptingResponses: formAccessSettings.acceptingResponses,
-    startDate: formAccessSettings.startDate,
-    endDate: formAccessSettings.endDate,
+    acceptingResponses: savedWindow.acceptingResponses,
+    startDate: savedWindow.startDate,
+    endDate: savedWindow.endDate,
   }
   const responseBadge = describeResponseState(deriveResponseState(responseWindow, now), responseWindow)
 
@@ -134,6 +142,7 @@ export function FormActionBar({
         <PopoverContent align="end" className="z-40" sideOffset={8} side="bottom">
           <PublishModal
             isPublished={isPublished}
+            savedAccessSettings={savedAccessSettings}
             onPublish={() => {
               // In edit mode `onPublish` saves immediately, so reflect that right away.
               // In create mode it just opens the destination picker — nothing is

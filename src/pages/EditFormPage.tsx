@@ -7,7 +7,12 @@ import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { getDashboardAnalytics } from '../data/dashboardAnalytics'
-import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
+import {
+  defaultFormAccessSettings,
+  formAccessSettingsChanged,
+  useFormAccessSettings,
+  type FormAccessSettings,
+} from '../hooks/useFormAccessSettings'
 import { useFormEditorModel } from '../hooks/useFormEditorModel'
 import { ApiError } from '../lib/api'
 import {
@@ -47,6 +52,12 @@ export function EditFormPage({
   const { model, update, setModel } = useFormEditorModel()
   const { settings, updateSettings, setSettings } = useFormAccessSettings()
 
+  // Access settings as last persisted — the Publish popover's status chip / schedule
+  // readout derive from this, not the live edits, so nothing in it looks changed
+  // until the user actually saves. Refreshed on load and after a successful save.
+  const [savedSettings, setSavedSettings] = useState<FormAccessSettings>(defaultFormAccessSettings)
+  const hasUnsavedChanges = formAccessSettingsChanged(savedSettings, settings)
+
   // Snapshot of the fields as loaded — lets a settings-only save skip sending
   // `fields` (which the server refuses once a form has responses).
   const loadedFieldsRef = useRef('')
@@ -64,8 +75,10 @@ export function EditFormPage({
       .then((detail) => {
         if (cancelled) return
         const nextModel = formDetailToModel(detail)
+        const nextSettings = accessSettingsFromForm(detail)
         setModel(nextModel)
-        setSettings(accessSettingsFromForm(detail))
+        setSettings(nextSettings)
+        setSavedSettings(nextSettings)
         setIsPublished(detail.status === 'active')
         loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
         setLoadStatus('ready')
@@ -112,6 +125,8 @@ export function EditFormPage({
       if (publish) {
         setIsPublished(true)
       }
+      // Only now do the modal's readouts / reminder catch up to the edits.
+      setSavedSettings(settings)
       setSaveStatus('saved')
     } catch (error) {
       setSaveStatus('error')
@@ -142,6 +157,7 @@ export function EditFormPage({
               onSaveDraft={() => handleSave(false)}
               onToggleSettings={() => setIsSettingsOpen((open) => !open)}
               onUpdateFormAccessSettings={updateSettings}
+              savedAccessSettings={savedSettings}
               saveStatus={saveStatus}
               shareUrl={hasValidId ? `${window.location.origin}/forms/${formId}/public` : undefined}
             />
@@ -175,6 +191,7 @@ export function EditFormPage({
             <CreateFormCard onChange={update} value={model} />
             {isSettingsOpen ? (
               <FormSettingsPanel
+                hasUnsavedChanges={hasUnsavedChanges}
                 onClose={() => setIsSettingsOpen(false)}
                 onUpdateSettings={updateSettings}
                 settings={settings}
