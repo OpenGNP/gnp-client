@@ -12,10 +12,13 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { forwardRef, useState } from 'react'
 
 import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
+import { useNow } from '../../hooks/useNow'
 import { cn } from '../../lib/utils'
+import { deriveResponseState, describeResponseState } from '../../lib/responseWindow'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { PublishModal } from './PublishModal'
+import { ResponseStateChip } from './ResponseStateChip'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -32,6 +35,8 @@ export type FormActionBarProps = {
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
   /** Respondent-facing URL, threaded to the PublishModal's "share this link" section. */
   shareUrl?: string
+  /** Opens the Settings panel to the "Response window" section. */
+  onEditSchedule?: () => void
 }
 
 export const FormActionButton = forwardRef<
@@ -66,11 +71,25 @@ export function FormActionBar({
   formAccessSettings,
   onUpdateFormAccessSettings,
   shareUrl,
+  onEditSchedule,
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
+  const now = useNow()
+
+  const responseWindow = {
+    isPublished,
+    acceptingResponses: formAccessSettings.acceptingResponses,
+    startDate: formAccessSettings.startDate,
+    endDate: formAccessSettings.endDate,
+  }
+  const responseBadge = describeResponseState(deriveResponseState(responseWindow, now), responseWindow)
 
   return (
     <div className="flex shrink-0 items-center gap-2.5">
+      {mode === 'edit' ? (
+        <ResponseStateChip badge={responseBadge} className="max-[760px]:hidden" />
+      ) : null}
+
       {mode === 'edit' && saveStatus !== 'idle' ? (
         <span
           className={cn(
@@ -124,6 +143,7 @@ export function FormActionBar({
               }
               void onPublish?.()
             }}
+            onEditSchedule={onEditSchedule}
             onUpdateSettings={onUpdateFormAccessSettings}
             settings={formAccessSettings}
             shareUrl={shareUrl}

@@ -1,7 +1,9 @@
-import { Eye, FormInput, X } from "lucide-react";
+import { CalendarClock, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { FormAccessSettings, WhoCanFillValue } from "../../hooks/useFormAccessSettings";
+import { formatRelativeTime } from "../../lib/formatRelativeTime";
+import { LOCAL_TIMEZONE } from "../../lib/responseWindow";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
@@ -113,40 +115,65 @@ function DateCheckboxField({
   label,
   value,
   onChange,
+  seed,
+  error,
 }: {
   label: string;
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Timestamp used when the box is first ticked (event handler, so `Date.now()` here is fine). */
+  seed: () => string;
+  error?: string;
 }) {
   const checked = value !== null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <label className="flex cursor-pointer items-center gap-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#3f4045]">
         <Checkbox
           checked={checked}
-          onCheckedChange={(next) => onChange(next === true ? new Date().toISOString() : null)}
+          onCheckedChange={(next) => onChange(next === true ? seed() : null)}
         />
         <span>{label}</span>
       </label>
       {checked ? (
-        <input
-          className="ml-7.5 h-9.5 rounded-[5px] border border-[#e8eaf1] bg-[#f8f9fc] px-3 text-[14px] text-[#3f4045] outline-none focus:border-[#1e55c5]"
-          aria-label={label}
-          onChange={(event) => onChange(fromDatetimeLocalValue(event.target.value))}
-          type="datetime-local"
-          value={toDatetimeLocalValue(value)}
-        />
+        <>
+          <input
+            className={cn(
+              "ml-7.5 h-9.5 rounded-[5px] border bg-[#f8f9fc] px-3 text-[14px] text-[#3f4045] outline-none",
+              error ? "border-[#e0507a]" : "border-[#e8eaf1] focus:border-[#1e55c5]",
+            )}
+            aria-label={label}
+            onChange={(event) => onChange(fromDatetimeLocalValue(event.target.value))}
+            type="datetime-local"
+            value={toDatetimeLocalValue(value)}
+          />
+          {value ? (
+            <span className="ml-7.5 text-[11px] leading-4 text-[#8b8e98]">{formatRelativeTime(value)}</span>
+          ) : null}
+          {error ? (
+            <span className="ml-7.5 text-[11px] leading-4 text-[#e0507a]">{error}</span>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function FormSettingsPanel({
   settings,
   onUpdateSettings,
   onClose,
 }: FormSettingsPanelProps) {
+  const scheduleError =
+    settings.startDate &&
+    settings.endDate &&
+    Date.parse(settings.endDate) <= Date.parse(settings.startDate)
+      ? "End date must be after the start date."
+      : undefined;
+
   return (
     <aside
       className="min-h-[822px] w-full max-w-[380px] rounded-[10px] bg-white px-7.5 pt-7.5 pb-9 max-[1200px]:max-w-[978px] max-[760px]:min-h-0 max-[560px]:px-5"
@@ -258,18 +285,29 @@ export function FormSettingsPanel({
       <div className={cn(dividerClass, "my-7")} />
 
       <SettingsSection
-        icon={<FormInput size={24} strokeWidth={2.2} />}
-        title="Option for responses"
+        icon={<CalendarClock size={24} strokeWidth={2.2} />}
+        title="Response window"
       >
         <div className="flex flex-col gap-3">
+          <p className="m-0 text-[12px] leading-4 tracking-[0.12px] text-[#8b8e98]">
+            Optional. With neither set, the form accepts responses until you pause it. Times are in
+            your timezone{LOCAL_TIMEZONE ? ` (${LOCAL_TIMEZONE})` : ""}.
+          </p>
           <DateCheckboxField
             label="Start date"
             onChange={(value) => onUpdateSettings({ startDate: value })}
+            seed={() => new Date().toISOString()}
             value={settings.startDate}
           />
           <DateCheckboxField
+            error={scheduleError}
             label="End date"
             onChange={(value) => onUpdateSettings({ endDate: value })}
+            seed={() =>
+              new Date(
+                (settings.startDate ? Date.parse(settings.startDate) : Date.now()) + 7 * DAY_MS,
+              ).toISOString()
+            }
             value={settings.endDate}
           />
         </div>

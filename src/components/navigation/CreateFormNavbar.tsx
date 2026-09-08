@@ -12,6 +12,7 @@ export type CreateFormNavbarProps = {
   onGoHome: () => void
   onSaveDraft?: () => void
   onPublish?: () => void | Promise<void>
+  onEditSchedule?: () => void
   onToggleSettings: () => void
   onToggleSidebar?: () => void
   formAccessSettings: FormAccessSettings
@@ -25,6 +26,7 @@ export function CreateFormNavbar({
   onGoHome,
   onSaveDraft,
   onPublish,
+  onEditSchedule,
   onToggleSettings,
   onToggleSidebar,
   formAccessSettings,
@@ -53,6 +55,7 @@ export function CreateFormNavbar({
       <FormActionBar
         formAccessSettings={formAccessSettings}
         isSettingsOpen={isSettingsOpen}
+        onEditSchedule={onEditSchedule}
         onPublish={onPublish}
         onSaveDraft={onSaveDraft}
         onToggleSettings={onToggleSettings}

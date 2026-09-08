@@ -7,7 +7,9 @@ import { getPublicForm, type ApiFormField, type ApiPublicForm } from '../api/for
 import { Button } from '../components/ui/button'
 import { Checkbox } from '../components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
+import { useNow } from '../hooks/useNow'
 import { ApiError } from '../lib/api'
+import { deriveResponseState, formatDateTime } from '../lib/responseWindow'
 import { cn } from '../lib/utils'
 
 const OTHER_VALUE = '__other__'
@@ -219,12 +221,12 @@ export function PublicFormPage() {
       ? { title: '', body: '' }
       : { title: 'This form isn’t available', body: 'The link looks incomplete.' },
   )
+  const now = useNow(15_000)
   const [form, setForm] = useState<ApiPublicForm | null>(null)
-  // Snapshotted at load — `Date.now()` can't be called during render, and freezing
-  // it here also avoids the form flickering closed if the window lapses mid-fill (the
-  // POST still rejects in that case, surfaced as a submit error).
-  const [availability, setAvailability] = useState<'open' | 'not-yet' | 'closed' | 'paused'>('open')
   const [answers, setAnswers] = useState<Record<number, Answer>>({})
+  // Once someone starts answering, a window boundary passing keeps the form on screen
+  // (with a banner) rather than yanking their work — see the gate below.
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   const [submitState, setSubmitState] = useState<'idle' | 'submitting'>('idle')
   const [submitError, setSubmitError] = useState('')
@@ -239,17 +241,7 @@ export function PublicFormPage() {
     getPublicForm(formId)
       .then((data) => {
         if (cancelled) return
-        const now = Date.now()
         setForm(data)
-        setAvailability(
-          data.startDate && now < Date.parse(data.startDate)
-            ? 'not-yet'
-            : data.endDate && now > Date.parse(data.endDate)
-              ? 'closed'
-              : data.acceptingResponses
-                ? 'open'
-                : 'paused',
-        )
         setAnswers(initialAnswers(data.fields))
         setStatus('ready')
       })
@@ -292,34 +284,64 @@ export function PublicFormPage() {
     return <Notice body="Please try again." title="Something went wrong" />
   }
 
-  if (availability === 'not-yet' && form.startDate) {
-    return (
-      <Notice
-        body={`This form opens on ${new Date(form.startDate).toLocaleString()}.`}
-        title="Not open yet"
-      />
-    )
-  }
-  if (availability === 'closed' && form.endDate) {
-    return (
-      <Notice
-        body={`This form closed on ${new Date(form.endDate).toLocaleString()}.`}
-        title="This form is closed"
-      />
-    )
-  }
-  if (availability === 'paused') {
+  // Recomputed on every `useNow` tick, so the form opens/closes on its own as the
+  // start/end time passes — no reload needed.
+  const responseState = deriveResponseState(
+    {
+      isPublished: true,
+      acceptingResponses: form.acceptingResponses,
+      startDate: form.startDate,
+      endDate: form.endDate,
+    },
+    now,
+  )
+  const isOpen = responseState === 'open'
+
+  if (!isOpen && !hasInteracted) {
+    if (responseState === 'scheduled') {
+      return (
+        <Notice
+          body={
+            form.startDate ? `This form opens on ${formatDateTime(form.startDate)}.` : 'This form opens later.'
+          }
+          title="Not open yet"
+        />
+      )
+    }
+    if (responseState === 'closed') {
+      return (
+        <Notice
+          body={form.endDate ? `This form closed on ${formatDateTime(form.endDate)}.` : 'This form is closed.'}
+          title="This form is closed"
+        />
+      )
+    }
     return <Notice body="The owner has paused new responses for now." title="Not accepting responses" />
   }
 
   const orderedFields = form.fields.slice().sort((a, b) => (a.fieldOrder ?? 0) - (b.fieldOrder ?? 0))
 
   const setAnswer = (fieldId: number, next: Answer) => {
+    setHasInteracted(true)
     setAnswers((current) => ({ ...current, [fieldId]: next }))
   }
 
+  const closedNotice =
+    responseState === 'closed'
+      ? 'This form just closed — you can no longer submit a response.'
+      : responseState === 'scheduled'
+        ? 'This form isn’t open for responses yet.'
+        : responseState === 'paused'
+          ? 'The owner has paused new responses.'
+          : ''
+
   const handleSubmit = async () => {
     if (submitState === 'submitting') return
+
+    if (!isOpen) {
+      setSubmitError(closedNotice || 'This form isn’t accepting responses right now.')
+      return
+    }
 
     const missing = orderedFields.filter(
       (field) => field.isRequired && !isAnswered(answers[field.id]),
@@ -362,6 +384,12 @@ export function PublicFormPage() {
           ) : null}
         </div>
 
+        {!isOpen ? (
+          <div className="rounded-[10px] border border-[#f3c6cf] bg-[#fdf2f4] px-5 py-3 text-[13px] leading-5 text-[#c02b47]">
+            {closedNotice}
+          </div>
+        ) : null}
+
         {orderedFields.map((field) => {
           const answer = answers[field.id]
           return (
@@ -398,7 +426,11 @@ export function PublicFormPage() {
 
         <div className={cn(cardClass, 'flex flex-col gap-3')}>
           {submitError ? <p className="m-0 text-[13px] text-[#e0507a]">{submitError}</p> : null}
-          <Button className="h-10 self-start px-6" disabled={submitState === 'submitting'} onClick={handleSubmit}>
+          <Button
+            className="h-10 self-start px-6"
+            disabled={submitState === 'submitting' || !isOpen}
+            onClick={handleSubmit}
+          >
             {submitState === 'submitting' ? 'Submitting…' : 'Submit'}
           </Button>
         </div>

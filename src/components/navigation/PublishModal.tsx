@@ -1,14 +1,24 @@
-import { Eye, Link2, MessageSquareText } from 'lucide-react'
+import { CalendarClock, Eye, Link2, MessageSquareText, PencilLine } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import type { FormAccessSettings, WhoCanFillValue } from '../../hooks/useFormAccessSettings'
+import { useNow } from '../../hooks/useNow'
+import { cn } from '../../lib/utils'
+import {
+  deriveResponseState,
+  describeResponseState,
+  formatDateTime,
+  isToggleEffective,
+  scheduleSummary,
+} from '../../lib/responseWindow'
 import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
 import { PopoverClose } from '../ui/popover'
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Switch } from '../ui/switch'
+import { ResponseStateChip } from './ResponseStateChip'
 
 function ModalRadioOption({
   value,
@@ -72,6 +82,8 @@ export type PublishModalProps = {
   onUpdateSettings: (partial: Partial<FormAccessSettings>) => void
   /** Respondent-facing URL for this form; only shown once the form is published. */
   shareUrl?: string
+  /** Opens the Settings panel to the "Response window" section. */
+  onEditSchedule?: () => void
 }
 
 export function PublishModal({
@@ -80,8 +92,20 @@ export function PublishModal({
   settings,
   onUpdateSettings,
   shareUrl,
+  onEditSchedule,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
+  const now = useNow()
+
+  const windowInputs = {
+    isPublished,
+    acceptingResponses: settings.acceptingResponses,
+    startDate: settings.startDate,
+    endDate: settings.endDate,
+  }
+  const state = deriveResponseState(windowInputs, now)
+  const badge = describeResponseState(state, windowInputs)
+  const toggleEffective = isToggleEffective(state)
 
   const handleCopyLink = async () => {
     if (!shareUrl) return
@@ -94,14 +118,24 @@ export function PublishModal({
     }
   }
 
+  const shareHeading =
+    state === 'scheduled'
+      ? `Opens ${formatDateTime(settings.startDate)} — share the link now`
+      : state === 'paused'
+        ? 'Paused — the link still works'
+        : state === 'closed'
+          ? 'Response window ended'
+          : 'Your form is live — share this link'
+
   return (
     <div className="flex w-[400px] max-w-[calc(100vw-32px)] flex-col gap-4 rounded-[10px] border border-[#d2d8e5] bg-white p-6 text-black shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
-      <p className="m-0 text-[17px] leading-6 font-bold text-black">
-        Publish Setting
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="m-0 text-[17px] leading-6 font-bold text-black">Publish Setting</p>
+        <ResponseStateChip badge={badge} />
+      </div>
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 text-[#1e55c5]">
               <MessageSquareText size={16} strokeWidth={2.2} />
@@ -115,6 +149,34 @@ export function PublishModal({
               onCheckedChange={(checked) => onUpdateSettings({ acceptingResponses: checked })}
               thumbClassName="size-[11.5px] data-[state=checked]:translate-x-4"
             />
+          </div>
+
+          <div className="flex items-start gap-1.5 rounded-[6px] bg-[#f7f8fb] px-2.5 py-2">
+            <CalendarClock className="mt-px shrink-0 text-[#8b8e98]" size={13} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-[11px] leading-4 text-[#616161]">
+                {scheduleSummary(settings)}
+              </span>
+              {!toggleEffective ? (
+                <span className="text-[11px] leading-4 text-[#b7791f]">
+                  {state === 'scheduled'
+                    ? 'This applies once the form opens.'
+                    : 'Window ended — edit the schedule to reopen.'}
+                </span>
+              ) : null}
+              {onEditSchedule ? (
+                <PopoverClose asChild>
+                  <button
+                    className="mt-0.5 inline-flex w-fit cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[11px] font-medium text-[#1e55c5] hover:underline"
+                    onClick={onEditSchedule}
+                    type="button"
+                  >
+                    <PencilLine size={11} />
+                    Edit schedule
+                  </button>
+                </PopoverClose>
+              ) : null}
+            </div>
           </div>
 
           <div className="h-px w-full bg-[#e8eaf1]" />
@@ -213,8 +275,13 @@ export function PublishModal({
 
         {isPublished && shareUrl ? (
           <div className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-[#1e55c5]">
-              Your form is live — share this link
+            <span
+              className={cn(
+                'text-[12px] font-medium',
+                state === 'open' ? 'text-[#1e55c5]' : 'text-[#726f6f]',
+              )}
+            >
+              {shareHeading}
             </span>
             <div className="flex items-center gap-2 rounded-[8px] bg-[#f7f8fb] px-3 py-2">
               <Link2 className="shrink-0 text-[#616161]" size={16} />

@@ -397,6 +397,7 @@ function App() {
             formAccessSettings={createFormAccessSettings}
             formTitle={createFormModel.title.trim() || 'Untitled form'}
             isSettingsOpen={isCreateFormSettingsOpen}
+            onEditSchedule={() => setIsCreateFormSettingsOpen(true)}
             onGoHome={handleGoHome}
             onPublish={handleOpenPublish}
             onSaveDraft={handleOpenSaveDraft}

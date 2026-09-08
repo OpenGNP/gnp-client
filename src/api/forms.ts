@@ -1,5 +1,19 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api'
 
+/**
+ * `forms.start_date` / `end_date` are Postgres `timestamp` (no time zone) columns, so
+ * they come back as a zone-less string like "2026-06-08 02:55:00". We always store
+ * UTC (the server does `.toISOString()` on write and Postgres keeps the digits), so a
+ * zone-less value has to be read back as UTC — otherwise `new Date(...)` treats it as
+ * the viewer's local time and a saved schedule looks shifted by their offset after a
+ * reload.
+ */
+function asUtcIso(value: string | null): string | null {
+  if (!value) return null
+  const withT = value.includes('T') ? value : value.replace(' ', 'T')
+  return /Z$|[+-]\d\d(:?\d\d)?$/.test(withT) ? withT : `${withT}Z`
+}
+
 export type FormStatus = 'draft' | 'active' | 'closed' | 'archived'
 export type FormAccessType = 'public' | 'organization' | 'specific'
 export type FormFieldType = 'text' | 'textarea' | 'radio' | 'checkbox'
@@ -83,8 +97,9 @@ export type ApiPublicForm = {
   fields: ApiFormField[]
 }
 
-export function getPublicForm(id: number): Promise<ApiPublicForm> {
-  return apiGet<ApiPublicForm>(`/forms/${id}/public`)
+export async function getPublicForm(id: number): Promise<ApiPublicForm> {
+  const form = await apiGet<ApiPublicForm>(`/forms/${id}/public`)
+  return { ...form, startDate: asUtcIso(form.startDate), endDate: asUtcIso(form.endDate) }
 }
 
 export type FieldOptionPayload = {
@@ -142,8 +157,9 @@ export function listForms(folderId?: number): Promise<ApiForm[]> {
   })
 }
 
-export function getForm(id: number): Promise<ApiFormDetail> {
-  return apiGet<ApiFormDetail>(`/forms/${id}`)
+export async function getForm(id: number): Promise<ApiFormDetail> {
+  const form = await apiGet<ApiFormDetail>(`/forms/${id}`)
+  return { ...form, startDate: asUtcIso(form.startDate), endDate: asUtcIso(form.endDate) }
 }
 
 /** `POST /api/forms` returns the raw inserted row; callers only need its id. */

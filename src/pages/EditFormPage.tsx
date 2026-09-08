@@ -136,6 +136,7 @@ export function EditFormPage({
               formAccessSettings={settings}
               isSettingsOpen={isSettingsOpen}
               mode="edit"
+              onEditSchedule={() => setIsSettingsOpen(true)}
               onMove={onMove}
               onPublish={() => handleSave(true)}
               onSaveDraft={() => handleSave(false)}
