@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { submitFeedback, type FeedbackAnswerPayload } from '../api/feedback'
-import { getPublicForm, type ApiFormField, type ApiPublicForm } from '../api/forms'
+import { getPublicFormByToken, type ApiFormField, type ApiPublicForm } from '../api/forms'
 import { Button } from '../components/ui/button'
 import { Checkbox } from '../components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
@@ -209,15 +209,14 @@ function ChoiceField({
 }
 
 export function PublicFormPage() {
-  const { id } = useParams()
-  const formId = Number(id)
-  const hasValidId = Number.isInteger(formId) && formId > 0
+  const { token } = useParams()
+  const hasToken = typeof token === 'string' && token.length > 0
 
   const [status, setStatus] = useState<'loading' | 'error' | 'ready' | 'submitted'>(
-    hasValidId ? 'loading' : 'error',
+    hasToken ? 'loading' : 'error',
   )
   const [loadError, setLoadError] = useState<{ title: string; body: string }>(
-    hasValidId
+    hasToken
       ? { title: '', body: '' }
       : { title: 'This form isn’t available', body: 'The link looks incomplete.' },
   )
@@ -232,13 +231,13 @@ export function PublicFormPage() {
   const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
-    if (!hasValidId) {
+    if (!hasToken) {
       return
     }
 
     let cancelled = false
 
-    getPublicForm(formId)
+    getPublicFormByToken(token)
       .then((data) => {
         if (cancelled) return
         setForm(data)
@@ -254,7 +253,7 @@ export function PublicFormPage() {
     return () => {
       cancelled = true
     }
-  }, [formId, hasValidId])
+  }, [token, hasToken])
 
   if (status === 'loading') {
     return (

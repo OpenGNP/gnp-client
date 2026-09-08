@@ -80,11 +80,13 @@ export type ApiFormDetail = {
   endDate: string | null
   createdAt: string | null
   updatedAt: string | null
+  /** Unguessable id for the respondent-facing URL (`/f/:token`), not the sequential form id. */
+  publicToken: string
   formFields: ApiFormField[]
   formAllowedUsers: ApiFormAllowedUser[]
 }
 
-/** Respondent-facing view returned by `GET /api/forms/:id/public` (see gnp-server formService.getPublic). */
+/** Respondent-facing view returned by `GET /api/forms/public/:token` (see gnp-server formService.getPublicByToken). */
 export type ApiPublicForm = {
   id: number
   formTitle: string | null
@@ -97,8 +99,8 @@ export type ApiPublicForm = {
   fields: ApiFormField[]
 }
 
-export async function getPublicForm(id: number): Promise<ApiPublicForm> {
-  const form = await apiGet<ApiPublicForm>(`/forms/${id}/public`)
+export async function getPublicFormByToken(token: string): Promise<ApiPublicForm> {
+  const form = await apiGet<ApiPublicForm>(`/forms/public/${encodeURIComponent(token)}`)
   return { ...form, startDate: asUtcIso(form.startDate), endDate: asUtcIso(form.endDate) }
 }
 

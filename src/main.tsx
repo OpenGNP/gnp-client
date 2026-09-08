@@ -11,8 +11,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Respondent view — no login, no admin shell, so it sits outside AuthProvider/AppGate. */}
-        <Route path="/forms/:id/public" element={<PublicFormPage />} />
+        {/* Respondent view — no login, no admin shell, so it sits outside AuthProvider/AppGate.
+            Routed by the form's unguessable public token, not its sequential id. */}
+        <Route path="/f/:token" element={<PublicFormPage />} />
         <Route
           path="*"
           element={

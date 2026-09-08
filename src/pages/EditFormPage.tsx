@@ -48,6 +48,8 @@ export function EditFormPage({
   const [reloadKey, setReloadKey] = useState(0)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isPublished, setIsPublished] = useState(false)
+  // The form's unguessable public token, for the respondent-facing share link.
+  const [publicToken, setPublicToken] = useState('')
 
   const { model, update, setModel } = useFormEditorModel()
   const { settings, updateSettings, setSettings } = useFormAccessSettings()
@@ -79,6 +81,7 @@ export function EditFormPage({
         setModel(nextModel)
         setSettings(nextSettings)
         setSavedSettings(nextSettings)
+        setPublicToken(detail.publicToken)
         setIsPublished(detail.status === 'active')
         loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
         setLoadStatus('ready')
@@ -159,7 +162,7 @@ export function EditFormPage({
               onUpdateFormAccessSettings={updateSettings}
               savedAccessSettings={savedSettings}
               saveStatus={saveStatus}
-              shareUrl={hasValidId ? `${window.location.origin}/forms/${formId}/public` : undefined}
+              shareUrl={publicToken ? `${window.location.origin}/f/${publicToken}` : undefined}
             />
           </div>
         ) : null}
