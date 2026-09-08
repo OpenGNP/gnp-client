@@ -25,16 +25,6 @@ export function deriveResponseState(inputs: ResponseWindowInputs, now: number): 
   return 'open'
 }
 
-/**
- * Whether the "open for responses" toggle is what's actually deciding availability
- * right now. Outside the window (`scheduled`/`closed`) the schedule overrides it — the
- * toggle stays editable (it's the state the form takes once the window opens), the UI
- * just notes that it isn't in effect yet.
- */
-export function isToggleEffective(state: ResponseState): boolean {
-  return state === 'open' || state === 'paused'
-}
-
 // Read once at import — no per-render environment reads (keeps the purity lint happy).
 export const LOCAL_TIMEZONE: string = (() => {
   try {
@@ -54,6 +44,8 @@ export function formatDateTime(iso: string | null): string {
 }
 
 export type ResponseStateBadge = {
+  /** The raw state, so the chip can pick a matching icon without a second lookup. */
+  state: ResponseState
   label: string
   detail: string
   tone: 'neutral' | 'positive' | 'warning' | 'danger'
@@ -65,9 +57,10 @@ export function describeResponseState(
 ): ResponseStateBadge {
   switch (state) {
     case 'draft':
-      return { label: 'Draft', detail: 'Not published yet', tone: 'neutral' }
+      return { state, label: 'Draft', detail: 'Not published yet', tone: 'neutral' }
     case 'scheduled':
       return {
+        state,
         label: 'Scheduled',
         detail: inputs.startDate
           ? `Opens ${formatDateTime(inputs.startDate)} (${formatRelativeTime(inputs.startDate)})`
@@ -76,6 +69,7 @@ export function describeResponseState(
       }
     case 'closed':
       return {
+        state,
         label: 'Closed',
         detail: inputs.endDate
           ? `Ended ${formatDateTime(inputs.endDate)} (${formatRelativeTime(inputs.endDate)})`
@@ -83,10 +77,11 @@ export function describeResponseState(
         tone: 'danger',
       }
     case 'paused':
-      return { label: 'Paused', detail: 'You stopped new responses', tone: 'warning' }
+      return { state, label: 'Paused', detail: 'Not accepting responses', tone: 'warning' }
     case 'open':
     default:
       return {
+        state,
         label: 'Open',
         detail: inputs.endDate
           ? `Accepting responses · closes ${formatDateTime(inputs.endDate)} (${formatRelativeTime(inputs.endDate)})`
@@ -96,12 +91,12 @@ export function describeResponseState(
   }
 }
 
-/** Compact one-liner for the Publish popover's schedule summary — a plain range. */
+/** Compact one-liner describing the optional start/end window for the Publish popover. */
 export function scheduleSummary(inputs: Pick<ResponseWindowInputs, 'startDate' | 'endDate'>): string {
   const start = formatDateTime(inputs.startDate)
   const end = formatDateTime(inputs.endDate)
   if (start && end) return `Opens ${start} – ${end}`
   if (start) return `Opens ${start}`
-  if (end) return `Opens immediately – ${end}`
-  return 'Opens immediately'
+  if (end) return `Closes ${end}`
+  return 'No start or end date'
 }

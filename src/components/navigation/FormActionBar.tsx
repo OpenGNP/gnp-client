@@ -95,7 +95,7 @@ export function FormActionBar({
   return (
     <div className="flex shrink-0 items-center gap-2.5">
       {mode === 'edit' ? (
-        <ResponseStateChip badge={responseBadge} className="max-[760px]:hidden" />
+        <ResponseStateChip badge={responseBadge} className="max-[760px]:hidden" iconOnly />
       ) : null}
 
       {mode === 'edit' && saveStatus !== 'idle' ? (

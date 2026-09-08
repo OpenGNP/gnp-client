@@ -14,7 +14,6 @@ import {
   deriveResponseState,
   describeResponseState,
   formatDateTime,
-  isToggleEffective,
   scheduleSummary,
 } from '../../lib/responseWindow'
 import { Button } from '../ui/button'
@@ -119,7 +118,6 @@ export function PublishModal({
   }
   const state = deriveResponseState(windowInputs, now)
   const badge = describeResponseState(state, windowInputs)
-  const toggleEffective = isToggleEffective(state)
   // Edit mode: something in the modal has been changed but not yet saved.
   const hasUnsavedChanges =
     savedAccessSettings != null && formAccessSettingsChanged(savedAccessSettings, settings)
@@ -174,11 +172,13 @@ export function PublishModal({
               <span className="text-[11px] leading-4 text-[#616161]">
                 {scheduleSummary(saved)}
               </span>
-              {!toggleEffective ? (
+              {state === 'scheduled' ? (
                 <span className="text-[11px] leading-4 text-[#b7791f]">
-                  {state === 'scheduled'
-                    ? 'This applies once the form opens.'
-                    : 'Window ended — edit the schedule to reopen.'}
+                  This applies once the form opens.
+                </span>
+              ) : state === 'closed' ? (
+                <span className="text-[11px] leading-4 text-[#b7791f]">
+                  Window ended — edit the schedule to reopen.
                 </span>
               ) : null}
               {onEditSchedule ? (

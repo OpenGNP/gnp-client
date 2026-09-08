@@ -20,7 +20,9 @@ export type FormAccessSettings = {
 }
 
 export const defaultFormAccessSettings: FormAccessSettings = {
-  acceptingResponses: true,
+  // Off by default — a new form isn't collecting responses until the author explicitly
+  // opens it (or sets a start date, which flips this on; see FormSettingsPanel).
+  acceptingResponses: false,
   startDate: null,
   endDate: null,
   whoCanFill: 'organization',
