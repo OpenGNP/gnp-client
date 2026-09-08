@@ -142,6 +142,7 @@ export function EditFormPage({
               onToggleSettings={() => setIsSettingsOpen((open) => !open)}
               onUpdateFormAccessSettings={updateSettings}
               saveStatus={saveStatus}
+              shareUrl={hasValidId ? `${window.location.origin}/forms/${formId}/public` : undefined}
             />
           </div>
         ) : null}

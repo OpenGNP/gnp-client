@@ -10,8 +10,6 @@ import { PopoverClose } from '../ui/popover'
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Switch } from '../ui/switch'
 
-const shareUrl = 'https://opengnp.com/cs-focus-group-2026-feedback'
-
 function ModalRadioOption({
   value,
   title,
@@ -72,6 +70,8 @@ export type PublishModalProps = {
   onPublish: () => void
   settings: FormAccessSettings
   onUpdateSettings: (partial: Partial<FormAccessSettings>) => void
+  /** Respondent-facing URL for this form; only shown once the form is published. */
+  shareUrl?: string
 }
 
 export function PublishModal({
@@ -79,10 +79,12 @@ export function PublishModal({
   onPublish,
   settings,
   onUpdateSettings,
+  shareUrl,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
 
   const handleCopyLink = async () => {
+    if (!shareUrl) return
     try {
       await navigator.clipboard.writeText(shareUrl)
       setIsCopied(true)
@@ -209,16 +211,21 @@ export function PublishModal({
           </div>
         </div>
 
-        {isPublished ? (
+        {isPublished && shareUrl ? (
           <div className="flex flex-col gap-1.5">
             <span className="text-[12px] font-medium text-[#1e55c5]">
               Your form is live — share this link
             </span>
             <div className="flex items-center gap-2 rounded-[8px] bg-[#f7f8fb] px-3 py-2">
               <Link2 className="shrink-0 text-[#616161]" size={16} />
-              <span className="min-w-0 flex-1 truncate text-[12px] text-[#726f6f]">
+              <a
+                className="min-w-0 flex-1 truncate text-[12px] text-[#1e55c5] hover:underline"
+                href={shareUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
                 {shareUrl}
-              </span>
+              </a>
               <Button
                 className="h-7 shrink-0 rounded-[8px] border-primary px-3 text-[12px] font-medium text-primary hover:bg-[#eef3ff]"
                 onClick={handleCopyLink}

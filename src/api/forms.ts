@@ -70,6 +70,23 @@ export type ApiFormDetail = {
   formAllowedUsers: ApiFormAllowedUser[]
 }
 
+/** Respondent-facing view returned by `GET /api/forms/:id/public` (see gnp-server formService.getPublic). */
+export type ApiPublicForm = {
+  id: number
+  formTitle: string | null
+  formDescription: string | null
+  accessType: string | null
+  acceptingResponses: boolean
+  recordName: boolean | null
+  startDate: string | null
+  endDate: string | null
+  fields: ApiFormField[]
+}
+
+export function getPublicForm(id: number): Promise<ApiPublicForm> {
+  return apiGet<ApiPublicForm>(`/forms/${id}/public`)
+}
+
 export type FieldOptionPayload = {
   optionLabel: string
   optionValue: string

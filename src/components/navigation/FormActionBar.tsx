@@ -30,6 +30,8 @@ export type FormActionBarProps = {
   saveStatus?: SaveStatus
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
+  /** Respondent-facing URL, threaded to the PublishModal's "share this link" section. */
+  shareUrl?: string
 }
 
 export const FormActionButton = forwardRef<
@@ -63,6 +65,7 @@ export function FormActionBar({
   saveStatus = 'idle',
   formAccessSettings,
   onUpdateFormAccessSettings,
+  shareUrl,
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
 
@@ -123,6 +126,7 @@ export function FormActionBar({
             }}
             onUpdateSettings={onUpdateFormAccessSettings}
             settings={formAccessSettings}
+            shareUrl={shareUrl}
           />
         </PopoverContent>
       </Popover>
