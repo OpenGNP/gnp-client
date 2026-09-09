@@ -1,18 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api'
-
-/**
- * `forms.start_date` / `end_date` are Postgres `timestamp` (no time zone) columns, so
- * they come back as a zone-less string like "2026-06-08 02:55:00". We always store
- * UTC (the server does `.toISOString()` on write and Postgres keeps the digits), so a
- * zone-less value has to be read back as UTC — otherwise `new Date(...)` treats it as
- * the viewer's local time and a saved schedule looks shifted by their offset after a
- * reload.
- */
-function asUtcIso(value: string | null): string | null {
-  if (!value) return null
-  const withT = value.includes('T') ? value : value.replace(' ', 'T')
-  return /Z$|[+-]\d\d(:?\d\d)?$/.test(withT) ? withT : `${withT}Z`
-}
+import { asUtcIso } from '../lib/apiTimestamp'
 
 export type FormStatus = 'draft' | 'active' | 'closed' | 'archived'
 export type FormAccessType = 'public' | 'organization' | 'specific'
@@ -153,15 +140,30 @@ export type UpdateFormPayload = {
   allowedEmails?: string[]
 }
 
-export function listForms(folderId?: number): Promise<ApiForm[]> {
-  return apiGet<ApiForm[]>('/forms', {
+export async function listForms(folderId?: number): Promise<ApiForm[]> {
+  const forms = await apiGet<ApiForm[]>('/forms', {
     params: folderId === undefined ? undefined : { folderId },
   })
+  // Normalise the zone-less DB timestamps to UTC so "last updated" / date sorts use
+  // the right instant (see asUtcIso).
+  return forms.map((form) => ({
+    ...form,
+    createdAt: asUtcIso(form.createdAt),
+    updatedAt: asUtcIso(form.updatedAt),
+    startDate: asUtcIso(form.startDate),
+    endDate: asUtcIso(form.endDate),
+  }))
 }
 
 export async function getForm(id: number): Promise<ApiFormDetail> {
   const form = await apiGet<ApiFormDetail>(`/forms/${id}`)
-  return { ...form, startDate: asUtcIso(form.startDate), endDate: asUtcIso(form.endDate) }
+  return {
+    ...form,
+    createdAt: asUtcIso(form.createdAt),
+    updatedAt: asUtcIso(form.updatedAt),
+    startDate: asUtcIso(form.startDate),
+    endDate: asUtcIso(form.endDate),
+  }
 }
 
 /** `POST /api/forms` returns the raw inserted row; callers only need its id. */

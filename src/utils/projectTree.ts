@@ -177,6 +177,41 @@ export function findFolderById(
   return null
 }
 
+// --- Duplicate-name handling (Files page / sidebar create + rename) ----------
+
+type NameScope = {
+  /** Container to check within — a folder node id, or `null` for the root. */
+  parentFolderId: string | null
+  type: ProjectTreeItem['type']
+  /** Ignore this item (renaming something to a variant of its own name). */
+  exceptId?: string
+}
+
+function siblingsInScope(projects: ProjectTreeItem[], scope: NameScope): ProjectTreeItem[] {
+  const container = scope.parentFolderId
+    ? (findFolderById(projects, scope.parentFolderId)?.children ?? [])
+    : projects
+  return container.filter((item) => item.type === scope.type && item.id !== scope.exceptId)
+}
+
+/** True if a same-type sibling in the same container already has this name (case-insensitive). */
+export function isNameTaken(projects: ProjectTreeItem[], name: string, scope: NameScope): boolean {
+  const target = name.trim().toLowerCase()
+  return siblingsInScope(projects, scope).some(
+    (item) => item.label.trim().toLowerCase() === target,
+  )
+}
+
+/** `name` if free, else the first free `name (2)`, `name (3)`, … (used on create). */
+export function uniqueName(projects: ProjectTreeItem[], name: string, scope: NameScope): string {
+  const base = name.trim()
+  if (!isNameTaken(projects, base, scope)) return base
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base} (${n})`
+    if (!isNameTaken(projects, candidate, scope)) return candidate
+  }
+}
+
 // `beforeId` inserts `projectToAdd` just before the sibling with that id (used for
 // drag-to-reorder); omitted, or an id no longer present among these siblings, appends
 // at the end — the existing "just add it" behavior every other caller relies on.

@@ -84,6 +84,18 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       return
     }
 
+    const target = forms.find((form) => form.id === id)
+    const clashesInSameFolder = forms.some(
+      (form) =>
+        form.id !== id &&
+        form.folderId === (target?.folderId ?? null) &&
+        (form.formTitle ?? '').trim().toLowerCase() === trimmed.toLowerCase(),
+    )
+    if (clashesInSameFolder && trimmed.toLowerCase() !== (target?.formTitle ?? '').trim().toLowerCase()) {
+      window.alert(`A form named “${trimmed}” already exists in this location.`)
+      return
+    }
+
     const snapshot = forms
     setForms((current) =>
       current.map((form) => (form.id === id ? { ...form, formTitle: trimmed } : form)),

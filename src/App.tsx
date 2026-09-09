@@ -26,7 +26,9 @@ import {
   findProjectById,
   formNodeId,
   getSelectedProjectId,
+  isNameTaken,
   removeFolderPromotingChildren,
+  uniqueName,
 } from './utils/projectTree'
 
 function App() {
@@ -111,6 +113,11 @@ function App() {
         status,
         folderId: parseFolderId(folderId),
       })
+      // Keep the title distinct from any sibling form in the destination.
+      payload.formTitle = uniqueName(projects, payload.formTitle, {
+        parentFolderId: folderId,
+        type: 'document',
+      })
       const created = await createForm(payload)
       const idStr = String(created.id)
 
@@ -139,17 +146,21 @@ function App() {
     }
     savingNewFormRef.current = true
     try {
-      const created = await createForm(
-        buildCreateFormPayload(emptyFormEditorModel, defaultFormAccessSettings, {
-          status: 'draft',
-          folderId: parseFolderId(folderId),
-        }),
-      )
+      const title = uniqueName(projects, 'Untitled form', {
+        parentFolderId: folderId,
+        type: 'document',
+      })
+      const payload = buildCreateFormPayload(emptyFormEditorModel, defaultFormAccessSettings, {
+        status: 'draft',
+        folderId: parseFolderId(folderId),
+      })
+      payload.formTitle = title
+      const created = await createForm(payload)
       const idStr = String(created.id)
 
       addProject(folderId, {
         id: formNodeId(idStr),
-        label: 'Untitled form',
+        label: title,
         type: 'document',
         formId: idStr,
       })
@@ -165,10 +176,13 @@ function App() {
   }
 
   async function handleCreateFolder(name: string, parentFolderId: string | null = null) {
-    const label = name.trim()
-    if (!label) {
+    const desired = name.trim()
+    if (!desired) {
       return
     }
+    // Silently uniquify on create (Finder-style) so the default "New folder" name
+    // doesn't fail on the second one.
+    const label = uniqueName(projects, desired, { parentFolderId, type: 'folder' })
     try {
       const created = await createFolder({ folderName: label })
       addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
@@ -267,6 +281,22 @@ function App() {
     const trimmed = label.trim()
     const item = findProjectById(projects, id)
     if (!trimmed || !item) {
+      return
+    }
+
+    // Block an explicit rename onto a name a sibling already uses (unlike create,
+    // don't silently change what the user typed).
+    if (
+      trimmed.toLowerCase() !== item.label.trim().toLowerCase() &&
+      isNameTaken(projects, trimmed, {
+        parentFolderId: findParentFolderId(projects, id),
+        type: item.type,
+        exceptId: id,
+      })
+    ) {
+      window.alert(
+        `A ${item.type === 'folder' ? 'folder' : 'form'} named “${trimmed}” already exists in this location.`,
+      )
       return
     }
 

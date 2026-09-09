@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api'
+import { asUtcIso } from '../lib/apiTimestamp'
 
 /** Row shape returned by `GET /api/folders` (see gnp-server folderService.listByAdmin). */
 export type ApiFolder = {
@@ -21,8 +22,14 @@ export type UpdateFolderPayload = {
   folderDescription?: string
 }
 
-export function listFolders(): Promise<ApiFolder[]> {
-  return apiGet<ApiFolder[]>('/folders')
+export async function listFolders(): Promise<ApiFolder[]> {
+  const folders = await apiGet<ApiFolder[]>('/folders')
+  // Zone-less DB timestamps → UTC, so "date modified/created" sorts use the right instant.
+  return folders.map((folder) => ({
+    ...folder,
+    createdAt: asUtcIso(folder.createdAt),
+    updatedAt: asUtcIso(folder.updatedAt),
+  }))
 }
 
 export function createFolder(payload: CreateFolderPayload): Promise<{ id: number }> {
