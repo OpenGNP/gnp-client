@@ -1,4 +1,13 @@
-import { ChevronRight, FilePlus, FolderPlus } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  FilePlus,
+  FolderPlus,
+} from 'lucide-react'
 import { type DragEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -11,6 +20,12 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../components/ui/context-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu'
 import type { ProjectTreeItem } from '../data/dashboard'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { placeholderFormImage } from '../lib/formCardImage'
@@ -30,6 +45,36 @@ export type FilesPageProps = {
 
 const ROOT_CRUMB = '__root__'
 
+type SortKey = 'name' | 'modified' | 'created'
+type SortDir = 'asc' | 'desc'
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'modified', label: 'Date modified' },
+  { key: 'created', label: 'Date created' },
+]
+
+// Sensible default direction when the sort key is switched (A→Z for names,
+// newest-first for dates); the user can still flip it with the toggle.
+const DEFAULT_DIR: Record<SortKey, SortDir> = { name: 'asc', modified: 'desc', created: 'desc' }
+
+const compareByName = (a: ProjectTreeItem, b: ProjectTreeItem) =>
+  a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' })
+
+// `Date.parse(string)` is deterministic, so this is render-safe. Missing/unparseable → 0.
+const timeOf = (item: ProjectTreeItem, key: SortKey) =>
+  Date.parse((key === 'created' ? item.createdAt : item.updatedAt) ?? '') || 0
+
+function sortItems(list: ProjectTreeItem[], sortKey: SortKey, sortDir: SortDir): ProjectTreeItem[] {
+  const flip = sortDir === 'asc' ? 1 : -1
+  const compare =
+    sortKey === 'name'
+      ? (a: ProjectTreeItem, b: ProjectTreeItem) => flip * compareByName(a, b)
+      : (a: ProjectTreeItem, b: ProjectTreeItem) =>
+          flip * (timeOf(a, sortKey) - timeOf(b, sortKey)) || compareByName(a, b)
+  return [...list].sort(compare)
+}
+
 // A right-click on a card should fall through to the browser, not open the page's
 // "new file / new folder" menu — that belongs to genuine white space only.
 function stopContextMenu(event: { stopPropagation: () => void }) {
@@ -48,6 +93,13 @@ export function FilesPage({
   const navigate = useNavigate()
   const { folderId } = useParams()
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+
+  function chooseSort(key: SortKey) {
+    setSortKey(key)
+    setSortDir(DEFAULT_DIR[key])
+  }
   // Id of the card being dragged right now (null when nothing is), plus which
   // breadcrumb crumb the cursor is over — both just drive the drop highlighting.
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -60,8 +112,17 @@ export function FilesPage({
   // children); only the true root falls back to the top-level project list.
   const items = currentFolder ? (currentFolder.children ?? []) : projects
 
-  const folders = items.filter((item) => item.type === 'folder')
-  const files = items.filter((item) => item.type === 'document')
+  const folders = sortItems(
+    items.filter((item) => item.type === 'folder'),
+    sortKey,
+    sortDir,
+  )
+  const files = sortItems(
+    items.filter((item) => item.type === 'document'),
+    sortKey,
+    sortDir,
+  )
+  const activeSortLabel = SORT_OPTIONS.find((option) => option.key === sortKey)?.label ?? 'Name'
 
   function openFolder(id: string) {
     navigate(`/files/${encodeURIComponent(id)}`)
@@ -149,7 +210,51 @@ export function FilesPage({
               })}
             </nav>
 
-            <div className="mt-6 flex flex-col gap-8">
+            <div className="mt-4 flex justify-end gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#e0e2e7] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
+                    type="button"
+                  >
+                    <ArrowUpDown className="text-[#5f6368]" size={14} />
+                    <span className="text-[#8b8e98]">Sort:</span>
+                    {activeSortLabel}
+                    <ChevronDown className="text-[#5f6368]" size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {SORT_OPTIONS.map((option) => (
+                    <DropdownMenuItem key={option.key} onSelect={() => chooseSort(option.key)}>
+                      <Check
+                        className={cn(option.key === sortKey ? 'opacity-100' : 'opacity-0')}
+                        size={14}
+                      />
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <button
+                aria-label={sortDir === 'asc' ? 'Ascending — switch to descending' : 'Descending — switch to ascending'}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#e0e2e7] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
+                onClick={() => setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'))}
+                title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+                type="button"
+              >
+                {sortDir === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                {sortKey === 'name'
+                  ? sortDir === 'asc'
+                    ? 'A–Z'
+                    : 'Z–A'
+                  : sortDir === 'asc'
+                    ? 'Oldest'
+                    : 'Newest'}
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-8">
               {folders.length > 0 || isCreatingFolder ? (
                 <section aria-labelledby="files-folders-heading">
                   <h2

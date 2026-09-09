@@ -7,6 +7,7 @@ export type ApiFolder = {
   folderDescription: string | null
   sortOrder: number
   createdAt: string | null
+  updatedAt: string | null
   formCount: number
 }
 

@@ -58,6 +58,10 @@ export function useWorkspaceTree(): WorkspaceTree {
           id: String(folder.id),
           label: folder.folderName ?? 'Untitled folder',
           type: 'folder',
+          // Feeds the Files page's "Date modified" sort. `updatedAt` bumps on rename;
+          // `createdAt` is the fallback for folders never renamed.
+          updatedAt: folder.updatedAt,
+          createdAt: folder.createdAt,
           children: formsByFolder.get(folder.id) ?? [],
         }))
 
