@@ -24,6 +24,7 @@ import {
   findFolderById,
   findParentFolderId,
   findProjectById,
+  formNodeId,
   getSelectedProjectId,
   removeFolderPromotingChildren,
 } from './utils/projectTree'
@@ -114,7 +115,7 @@ function App() {
       const idStr = String(created.id)
 
       addProject(folderId, {
-        id: idStr,
+        id: formNodeId(idStr),
         label: payload.formTitle,
         type: 'document',
         formId: idStr,
@@ -147,7 +148,7 @@ function App() {
       const idStr = String(created.id)
 
       addProject(folderId, {
-        id: idStr,
+        id: formNodeId(idStr),
         label: 'Untitled form',
         type: 'document',
         formId: idStr,
@@ -331,7 +332,7 @@ function App() {
     const path =
       project.type === 'folder'
         ? `/files/${encodeURIComponent(project.id)}`
-        : `/forms/${encodeURIComponent(project.id)}`
+        : `/forms/${encodeURIComponent(project.formId ?? project.id)}`
     navigate(path)
   }
 
@@ -366,6 +367,26 @@ function App() {
 
     void persistNewForm(folderId, saveDraftMode === 'publish' ? 'active' : 'draft')
   }
+
+  // The SaveDraftModal in 'move' mode acts on either a form or a folder — tell it which,
+  // and (for folders) which id to hide from the picker so it can't move into itself.
+  const moveTargetItem = moveTargetId ? findProjectById(projects, moveTargetId) : null
+  const moveItemIsFolder = moveTargetItem?.type === 'folder'
+
+  // Both /files routes render the same element — useParams() inside handles the folder id.
+  const filesPageElement = (
+    <FilesPage
+      onCreateFolder={handleCreateFolder}
+      onCreateForm={handleCreateFormInFolder}
+      onDeleteItem={handleDeleteProject}
+      onMoveItem={handleOpenMove}
+      onMoveItemInto={(id, folderId) => {
+        void handleMoveProject(id, { folderId })
+      }}
+      onRenameItem={handleRenameProject}
+      projects={projects}
+    />
+  )
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f9ff] text-[#050608] min-[901px]:flex-row">
@@ -415,32 +436,8 @@ function App() {
         )}
         <Routes>
           <Route path="/" element={<HomePage onMoveItem={handleOpenMove} />} />
-          <Route
-            path="/files"
-            element={
-              <FilesPage
-                onCreateFolder={handleCreateFolder}
-                onCreateForm={handleCreateFormInFolder}
-                onDeleteItem={handleDeleteProject}
-                onMoveItem={handleOpenMove}
-                onRenameItem={handleRenameProject}
-                projects={projects}
-              />
-            }
-          />
-          <Route
-            path="/files/:folderId"
-            element={
-              <FilesPage
-                onCreateFolder={handleCreateFolder}
-                onCreateForm={handleCreateFormInFolder}
-                onDeleteItem={handleDeleteProject}
-                onMoveItem={handleOpenMove}
-                onRenameItem={handleRenameProject}
-                projects={projects}
-              />
-            }
-          />
+          <Route path="/files" element={filesPageElement} />
+          <Route path="/files/:folderId" element={filesPageElement} />
           <Route
             path="/create-form"
             element={
@@ -458,7 +455,7 @@ function App() {
             path="/forms/:projectId"
             element={
               <EditFormPage
-                onMove={() => handleOpenMove(selectedProjectId)}
+                onMove={() => handleOpenMove(formNodeId(selectedProjectId))}
                 onToggleSidebar={() => setIsSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />
@@ -477,7 +474,9 @@ function App() {
       </main>
       <SaveDraftModal
         key={saveDraftOpenCount}
+        excludeFolderId={moveItemIsFolder ? moveTargetId : undefined}
         mode={saveDraftMode}
+        moveItemLabel={moveItemIsFolder ? 'folder' : 'form'}
         onConfirm={handleConfirmSaveOrMove}
         onOpenChange={setIsSaveDraftModalOpen}
         open={isSaveDraftModalOpen}

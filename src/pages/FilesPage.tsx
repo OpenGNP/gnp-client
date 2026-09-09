@@ -1,5 +1,5 @@
 import { ChevronRight, FilePlus, FolderPlus } from 'lucide-react'
-import { useState } from 'react'
+import { type DragEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { FolderCard, NewFolderCard } from '../components/files/FolderCard'
@@ -23,8 +23,12 @@ export type FilesPageProps = {
   onCreateForm: (parentFolderId: string | null) => void
   onDeleteItem: (id: string) => void
   onMoveItem: (id: string) => void
+  /** Direct move (drag-and-drop): put `id` into `folderId` (null = root). */
+  onMoveItemInto: (id: string, folderId: string | null) => void
   onRenameItem: (id: string, label: string) => void
 }
+
+const ROOT_CRUMB = '__root__'
 
 // A right-click on a card should fall through to the browser, not open the page's
 // "new file / new folder" menu — that belongs to genuine white space only.
@@ -38,11 +42,16 @@ export function FilesPage({
   onCreateForm,
   onDeleteItem,
   onMoveItem,
+  onMoveItemInto,
   onRenameItem,
 }: FilesPageProps) {
   const navigate = useNavigate()
   const { folderId } = useParams()
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  // Id of the card being dragged right now (null when nothing is), plus which
+  // breadcrumb crumb the cursor is over — both just drive the drop highlighting.
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverCrumb, setDragOverCrumb] = useState<string | null>(null)
 
   const path = folderId ? getFolderPath(projects, folderId) : []
   const currentFolder = path.length > 0 ? path[path.length - 1] : null
@@ -68,6 +77,37 @@ export function FilesPage({
     }
   }
 
+  function endDrag() {
+    setDraggingId(null)
+    setDragOverCrumb(null)
+  }
+
+  // Drop handlers for a breadcrumb crumb (an ancestor folder, or `null` for root).
+  // `key` is what `dragOverCrumb` stores, so a crumb only lights up while hovered.
+  function crumbDropProps(targetFolderId: string | null) {
+    if (draggingId === null) return {}
+    const key = targetFolderId ?? ROOT_CRUMB
+
+    return {
+      'data-drop-over': dragOverCrumb === key || undefined,
+      onDragOver: (event: DragEvent<HTMLElement>) => {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+        if (dragOverCrumb !== key) setDragOverCrumb(key)
+      },
+      onDragLeave: (event: DragEvent<HTMLElement>) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+        setDragOverCrumb((current) => (current === key ? null : current))
+      },
+      onDrop: (event: DragEvent<HTMLElement>) => {
+        event.preventDefault()
+        const id = event.dataTransfer.getData('text/plain')
+        endDrag()
+        if (id) onMoveItemInto(id, targetFolderId)
+      },
+    }
+  }
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -78,10 +118,11 @@ export function FilesPage({
               className="flex flex-wrap items-center gap-0.5 pt-8 pb-1 text-[22px] text-[#3c4043]"
             >
               <button
-                className="cursor-pointer rounded px-1.5 py-1 font-medium hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent"
+                className="cursor-pointer rounded px-1.5 py-1 font-medium hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
                 disabled={path.length === 0}
                 onClick={() => navigate('/files')}
                 type="button"
+                {...crumbDropProps(null)}
               >
                 My Project
               </button>
@@ -93,12 +134,13 @@ export function FilesPage({
                     <ChevronRight className="shrink-0 text-[#b0b1b3]" size={18} />
                     <button
                       className={cn(
-                        'cursor-pointer rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent',
+                        'cursor-pointer rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]',
                         isLast ? 'font-semibold' : 'text-[#1e55c5]',
                       )}
                       disabled={isLast}
                       onClick={() => openFolder(folder.id)}
                       type="button"
+                      {...(isLast ? {} : crumbDropProps(folder.id))}
                     >
                       {folder.label}
                     </button>
@@ -128,9 +170,18 @@ export function FilesPage({
                     ) : null}
                     {folders.map((folder) => (
                       <FolderCard
+                        dragId={folder.id}
+                        draggingId={draggingId}
                         folder={folder}
                         key={folder.id}
                         onDelete={() => deleteItem(folder)}
+                        onDragEnd={endDrag}
+                        onDragStart={setDraggingId}
+                        onItemDrop={(draggedId) => {
+                          endDrag()
+                          onMoveItemInto(draggedId, folder.id)
+                        }}
+                        onMove={() => onMoveItem(folder.id)}
                         onOpen={() => openFolder(folder.id)}
                         onRename={(name) => onRenameItem(folder.id, name)}
                       />
@@ -151,10 +202,13 @@ export function FilesPage({
                     {files.map((file) => (
                       <div key={file.id} onContextMenu={stopContextMenu}>
                         <FormCard
+                          dragId={file.id}
                           image={placeholderFormImage(Number(file.formId ?? file.id))}
                           onDelete={() => deleteItem(file)}
+                          onDragEnd={endDrag}
+                          onDragStart={setDraggingId}
                           onMove={() => onMoveItem(file.id)}
-                          onOpen={() => openForm(file.id)}
+                          onOpen={() => openForm(file.formId ?? file.id)}
                           onRename={(name) => onRenameItem(file.id, name)}
                           title={file.label}
                           updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}

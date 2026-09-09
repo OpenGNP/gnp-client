@@ -17,6 +17,7 @@ import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 
 
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
+import { findProjectById, isIdWithinItem } from '../../utils/projectTree'
 import { Button } from '../ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import {
@@ -75,6 +76,8 @@ type ProjectItemProps = {
   searchTerm: string
   selectedProjectId: string
   draggedId: string | null
+  /** The resolved item being dragged — lets a folder refuse to drop into its own subtree. */
+  draggedItem: ProjectTreeItem | null
   dragOverTarget: DragOverTarget
   onDragStart: (id: string) => void
   onDragEnd: () => void
@@ -192,6 +195,7 @@ function ProjectItem({
   searchTerm,
   selectedProjectId,
   draggedId,
+  draggedItem,
   dragOverTarget,
   onDragStart,
   onDragEnd,
@@ -201,6 +205,9 @@ function ProjectItem({
   onToggleFolder,
 }: ProjectItemProps) {
   const isFolder = item.type === 'folder'
+  // A folder can't be dropped onto itself or any row inside it.
+  const rejectsDraggedItem =
+    draggedItem?.type === 'folder' && isIdWithinItem(draggedItem, item.id)
   const isOpen = isFolder && (openFolderIds.has(item.id) || Boolean(searchTerm.trim()))
   const isSelected =
     item.id === selectedProjectId || item.formId === selectedProjectId
@@ -223,7 +230,7 @@ function ProjectItem({
   // A document row has no "into" zone since it can't hold children, so it's a plain
   // 50/50 split.
   function handleDragOver(event: DragEvent<HTMLElement>) {
-    if (draggedId === item.id) {
+    if (draggedId === item.id || rejectsDraggedItem) {
       return
     }
 
@@ -263,7 +270,7 @@ function ProjectItem({
     // problem (this element isn't the one being moved).
     onDragEnd()
 
-    if (!draggedProjectId || draggedProjectId === item.id) {
+    if (!draggedProjectId || draggedProjectId === item.id || rejectsDraggedItem) {
       return
     }
 
@@ -349,6 +356,7 @@ function ProjectItem({
                 searchTerm={searchTerm}
                 selectedProjectId={selectedProjectId}
                 draggedId={draggedId}
+                draggedItem={draggedItem}
                 dragOverTarget={dragOverTarget}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
@@ -482,6 +490,7 @@ function ProjectNavigation({
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverTarget, setDragOverTarget] = useState<DragOverTarget>(null)
   const visibleProjects = filterProjects(projects, searchTerm)
+  const draggedItem = draggedId ? findProjectById(projects, draggedId) : null
 
   function updateDragOverTarget(target: DragOverTarget) {
     setDragOverTarget((current) => {
@@ -603,6 +612,7 @@ function ProjectNavigation({
               searchTerm={searchTerm}
               selectedProjectId={selectedProjectId}
               draggedId={draggedId}
+              draggedItem={draggedItem}
               dragOverTarget={dragOverTarget}
               onDragStart={setDraggedId}
               onDragEnd={handleDragEnd}

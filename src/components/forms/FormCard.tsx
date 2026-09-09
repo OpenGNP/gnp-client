@@ -1,5 +1,5 @@
 import { Clock3, FolderInput, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type DragEvent, type ReactNode, useState } from 'react'
 
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { cn } from '../../lib/utils'
@@ -21,6 +21,10 @@ export type FormCardProps = {
   onDelete?: () => void
   onRename?: (name: string) => void
   onMove?: () => void
+  /** When set, the card is draggable and carries this id (drag-to-move on the Files page). */
+  dragId?: string
+  onDragStart?: (id: string) => void
+  onDragEnd?: () => void
 }
 
 function CardBody({
@@ -82,15 +86,44 @@ export function FormCard({
   onDelete,
   onRename,
   onMove,
+  dragId,
+  onDragStart,
+  onDragEnd,
 }: FormCardProps) {
   const [isRenaming, setIsRenaming] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Draggable only when it has an id and isn't mid-rename (dragging would swallow
+  // text selection in the rename field).
+  const draggable = Boolean(dragId) && !isRenaming
 
   return (
     <article
       className={cn(
         'relative h-[239px] w-full max-w-[235px] overflow-hidden rounded-lg bg-white shadow-[0_2px_7px_rgba(31,43,69,0.13)] max-[560px]:max-w-none',
         !isRenaming && 'transition-colors hover:bg-[#f7f8fb]',
+        draggable && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-40',
       )}
+      draggable={draggable}
+      onDragEnd={
+        draggable
+          ? () => {
+              setIsDragging(false)
+              onDragEnd?.()
+            }
+          : undefined
+      }
+      onDragStart={
+        draggable
+          ? (event: DragEvent<HTMLElement>) => {
+              event.dataTransfer.setData('text/plain', dragId!)
+              event.dataTransfer.effectAllowed = 'move'
+              setIsDragging(true)
+              onDragStart?.(dragId!)
+            }
+          : undefined
+      }
     >
       {isRenaming && onRename ? (
         <CardBody

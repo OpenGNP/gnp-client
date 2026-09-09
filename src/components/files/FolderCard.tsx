@@ -1,5 +1,5 @@
-import { Folder, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Folder, FolderInput, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { type DragEvent, useState } from 'react'
 
 import { useInlineEdit } from '../../hooks/useInlineEdit'
 import type { ProjectTreeItem } from '../../data/dashboard'
@@ -49,13 +49,76 @@ export function FolderCard({
   onOpen,
   onDelete,
   onRename,
+  onMove,
+  dragId,
+  draggingId,
+  onDragStart,
+  onDragEnd,
+  onItemDrop,
 }: {
   folder: ProjectTreeItem
   onOpen: () => void
   onDelete?: () => void
   onRename?: (name: string) => void
+  onMove?: () => void
+  /** When set, the card is draggable and carries this id (drag-to-move on the Files page). */
+  dragId?: string
+  /** Id of the item currently being dragged anywhere on the page — drives drop validity. */
+  draggingId?: string | null
+  onDragStart?: (id: string) => void
+  onDragEnd?: () => void
+  /** Another card was dropped onto this folder — move that item into it. */
+  onItemDrop?: (draggedId: string) => void
 }) {
   const [isRenaming, setIsRenaming] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isDropOver, setIsDropOver] = useState(false)
+
+  const draggable = Boolean(dragId) && !isRenaming
+  // Can't drop onto the card being dragged (into itself); descendants aren't shown
+  // on the Files page so that's the only invalid target here.
+  const canAcceptDrop = Boolean(onItemDrop && draggingId && draggingId !== folder.id)
+  // Deriving the ring off `canAcceptDrop` too means it can't get stuck on if the drag
+  // ends without a dragleave/drop landing on this card.
+  const showDropRing = isDropOver && canAcceptDrop
+
+  const dragSourceProps = draggable
+    ? {
+        draggable: true,
+        onDragStart: (event: DragEvent<HTMLElement>) => {
+          event.dataTransfer.setData('text/plain', dragId!)
+          event.dataTransfer.effectAllowed = 'move'
+          setIsDragging(true)
+          onDragStart?.(dragId!)
+        },
+        onDragEnd: () => {
+          setIsDragging(false)
+          onDragEnd?.()
+        },
+      }
+    : {}
+
+  const dropTargetProps = onItemDrop
+    ? {
+        onDragOver: (event: DragEvent<HTMLElement>) => {
+          if (!canAcceptDrop) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+          if (!isDropOver) setIsDropOver(true)
+        },
+        onDragLeave: (event: DragEvent<HTMLElement>) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+          setIsDropOver(false)
+        },
+        onDrop: (event: DragEvent<HTMLElement>) => {
+          if (!canAcceptDrop) return
+          event.preventDefault()
+          setIsDropOver(false)
+          const draggedId = event.dataTransfer.getData('text/plain')
+          if (draggedId && draggedId !== folder.id) onItemDrop!(draggedId)
+        },
+      }
+    : {}
 
   if (isRenaming && onRename) {
     return (
@@ -75,8 +138,16 @@ export function FolderCard({
 
   return (
     <div
-      className={cn(cardBaseClass, 'relative transition-colors hover:bg-[#f7f8fb]')}
+      className={cn(
+        cardBaseClass,
+        'relative transition-colors hover:bg-[#f7f8fb]',
+        draggable && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-40',
+        showDropRing && 'border-[#1e55c5] bg-[#eef3ff] ring-2 ring-[#1e55c5]/30',
+      )}
       onContextMenu={stopContextMenu}
+      {...dragSourceProps}
+      {...dropTargetProps}
     >
       <button
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left"
@@ -109,6 +180,12 @@ export function FolderCard({
             <DropdownMenuItem onSelect={() => setIsRenaming(true)}>
               <Pencil size={14} />
               Rename
+            </DropdownMenuItem>
+          ) : null}
+          {onMove ? (
+            <DropdownMenuItem onSelect={onMove}>
+              <FolderInput size={14} />
+              Move
             </DropdownMenuItem>
           ) : null}
           {onDelete ? (

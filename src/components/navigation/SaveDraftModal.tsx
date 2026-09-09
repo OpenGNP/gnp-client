@@ -46,6 +46,10 @@ export type SaveDraftModalProps = {
   projects: ProjectTreeItem[]
   onOpenChange: (open: boolean) => void
   onConfirm: (folderId: string | null) => void
+  /** 'move' mode only: whether the thing being moved is a form or a folder (drives the copy). */
+  moveItemLabel?: 'form' | 'folder'
+  /** 'move' mode only: hide this folder from the picker so it can't be moved into itself. */
+  excludeFolderId?: string | null
 }
 
 export function SaveDraftModal({
@@ -54,13 +58,15 @@ export function SaveDraftModal({
   projects,
   onOpenChange,
   onConfirm,
+  moveItemLabel = 'form',
+  excludeFolderId,
 }: SaveDraftModalProps) {
   const [path, setPath] = useState<BreadcrumbEntry[]>([ROOT_ENTRY])
 
   const currentEntry = path[path.length - 1]
   const currentFolder = currentEntry.id ? findFolderById(projects, currentEntry.id) : null
   const currentFolders = (currentFolder ? currentFolder.children : projects)?.filter(
-    (project) => project.type === 'folder',
+    (project) => project.type === 'folder' && project.id !== excludeFolderId,
   ) ?? []
 
   const handleOpenFolder = (folder: ProjectTreeItem) => {
@@ -76,7 +82,14 @@ export function SaveDraftModal({
     onOpenChange(false)
   }
 
-  const copy = modeCopy[mode]
+  const copy =
+    mode === 'move'
+      ? {
+          ...modeCopy.move,
+          title: `Move ${moveItemLabel}`,
+          description: `Choose a new location for this ${moveItemLabel}.`,
+        }
+      : modeCopy[mode]
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>

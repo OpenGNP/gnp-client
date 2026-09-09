@@ -1,5 +1,15 @@
 import type { ProjectTreeItem } from '../data/dashboard'
 
+/**
+ * Tree-node id for a form. Deliberately NOT the bare DB id: form ids and folder ids
+ * are independent DB sequences, so a form and a folder can share a number. The tree
+ * (and `findProjectById`, which checks folders first) needs node ids unique across
+ * both. The real numeric id still rides along on the node's `formId` for routing/API.
+ */
+export function formNodeId(dbId: string | number): string {
+  return `form-${dbId}`
+}
+
 export function getDefaultOpenFolderIds(projects: ProjectTreeItem[]) {
   const folderIds = new Set<string>()
 

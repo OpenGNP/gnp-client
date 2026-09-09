@@ -9,6 +9,7 @@ import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { placeholderFormImage } from '../lib/formCardImage'
+import { formNodeId } from '../utils/projectTree'
 
 function firstName(user: { fullName: string | null; email: string } | null): string {
   const source = user?.fullName?.trim() || user?.email || ''
@@ -143,7 +144,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
                 title={form.formTitle ?? 'Untitled form'}
                 updatedAt={formatRelativeTime(form.updatedAt ?? form.createdAt)}
                 onDelete={() => handleDeleteForm(form.id)}
-                onMove={() => onMoveItem(String(form.id))}
+                onMove={() => onMoveItem(formNodeId(form.id))}
                 onOpen={() => navigate(`/forms/${form.id}`)}
                 onRename={(name) => handleRenameForm(form.id, name)}
               />

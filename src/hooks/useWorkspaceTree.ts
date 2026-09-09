@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { listFolders } from '../api/folders'
 import { listForms } from '../api/forms'
 import type { ProjectTreeItem } from '../data/dashboard'
+import { formNodeId } from '../utils/projectTree'
 
 type WorkspaceTree = {
   projects: ProjectTreeItem[]
@@ -37,7 +38,7 @@ export function useWorkspaceTree(): WorkspaceTree {
         const formsByFolder = new Map<number | null, ProjectTreeItem[]>()
         for (const form of sortedForms) {
           const node: ProjectTreeItem = {
-            id: String(form.id),
+            id: formNodeId(form.id),
             label: form.formTitle ?? 'Untitled form',
             type: 'document',
             formId: String(form.id),
