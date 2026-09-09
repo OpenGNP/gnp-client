@@ -6,7 +6,6 @@ import { CreateFormCard } from '../components/forms/CreateFormCard'
 import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
-import { getDashboardAnalytics } from '../data/dashboardAnalytics'
 import {
   defaultFormAccessSettings,
   formAccessSettingsChanged,
@@ -64,7 +63,9 @@ export function EditFormPage({
   // `fields` (which the server refuses once a form has responses).
   const loadedFieldsRef = useRef('')
 
-  const hasDashboardData = Boolean(getDashboardAnalytics(projectId))
+  // Any saved form has a dashboard (the Response tab reads live data; the page shows
+  // its own empty state when there are no submissions yet).
+  const hasDashboardData = hasValidId
 
   useEffect(() => {
     if (!hasValidId) {
