@@ -5,6 +5,7 @@ export type SentimentBarProps = {
   neutral: number
   positive: number
   maxValue?: number
+  className?: string
 }
 
 export function SentimentBar({
@@ -12,6 +13,7 @@ export function SentimentBar({
   neutral,
   positive,
   maxValue = 50,
+  className = 'w-72',
 }: SentimentBarProps) {
   const segments = [
     { key: 'negative', value: negative, color: SENTIMENT_COLORS.negative, label: 'Negative' },
@@ -21,7 +23,7 @@ export function SentimentBar({
 
   return (
     <div
-      className="flex h-6.25 w-72 items-center gap-0.5"
+      className={`flex h-6.25 items-center gap-0.5 ${className}`}
       aria-label={`Negative ${negative}, Neutral ${neutral}, Positive ${positive}, out of ${maxValue} feedback points`}
       role="img"
     >

@@ -54,14 +54,14 @@ function TopicRow({
 }) {
   return (
     <button
-      className={`flex h-[45px] w-full cursor-pointer items-center justify-between border-l-[3px] py-0 pr-7.5 pl-6.75 text-left transition-colors ${
+      className={`flex h-[45px] w-full cursor-pointer items-center gap-4 border-l-[3px] py-0 pr-7.5 pl-6.75 text-left transition-colors ${
         isSelected ? 'border-[#1e55c5] bg-[#f7f8fb]' : 'border-transparent hover:bg-[#f7f8fb]'
       }`}
       onClick={() => onSelect?.(topic.id)}
       type="button"
     >
-      <div className="flex w-38 shrink-0 items-center justify-between gap-2">
-        <span className="truncate text-[14px] text-[#14181f]">{topic.label}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="min-w-0 truncate text-[14px] text-[#14181f]">{topic.label}</span>
         {topic.isHighIntensity ? (
           <TriangleAlert
             className="shrink-0 text-[#e0507a]"
@@ -70,34 +70,31 @@ function TopicRow({
           />
         ) : null}
       </div>
-      <div className="flex flex-1 items-center justify-end gap-6">
-        <SentimentBar
-          maxValue={AXIS_MAX}
-          negative={topic.negative}
-          neutral={topic.neutral}
-          positive={topic.positive}
-        />
-        <span className="w-12 shrink-0 text-right text-[14px] text-[#14181f]">
-          {topic.percentOfTotal}%
-        </span>
-      </div>
+      <SentimentBar
+        className="w-60 shrink-0"
+        maxValue={AXIS_MAX}
+        negative={topic.negative}
+        neutral={topic.neutral}
+        positive={topic.positive}
+      />
+      <span className="w-12 shrink-0 text-right text-[14px] text-[#14181f]">
+        {topic.percentOfTotal}%
+      </span>
     </button>
   )
 }
 
 function FeedbackPointsAxis() {
   return (
-    <div className="flex h-6.25 w-full items-center px-7.5 max-[900px]:hidden">
-      <span className="w-38 shrink-0 text-[12px] font-medium text-[#929292]">
+    <div className="flex h-6.25 w-full items-center gap-4 px-7.5 max-[900px]:hidden">
+      <span className="min-w-0 flex-1 text-[12px] font-medium text-[#929292]">
         Feedback points:
       </span>
-      <div className="flex flex-1 items-center justify-end gap-6">
-        <div className="flex w-72 items-center justify-between text-[12px] font-medium text-[#929292]">
-          <span>0</span>
-          <span>{AXIS_MAX}</span>
-        </div>
-        <span aria-hidden="true" className="w-12 shrink-0" />
+      <div className="flex w-60 shrink-0 items-center justify-between text-[12px] font-medium text-[#929292]">
+        <span>0</span>
+        <span>{AXIS_MAX}</span>
       </div>
+      <span aria-hidden="true" className="w-12 shrink-0" />
     </div>
   )
 }
