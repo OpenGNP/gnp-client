@@ -5,6 +5,8 @@ import type { DateRange } from 'react-day-picker'
 import { Calendar } from '../ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
 type PresetDays = 7 | 30 | 90
 type PresetKey = PresetDays | 'custom'
 
@@ -27,6 +29,19 @@ function rangeForPreset(days: PresetDays, today: Date): DateRange {
   return { from, to }
 }
 
+/** Inclusive day span of a range. */
+function daySpan(from: Date, to: Date) {
+  return Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / DAY_MS) + 1
+}
+
+/** Which preset (if any) a range corresponds to — must span exactly N days AND end today. */
+function detectPreset(range: DateRange | undefined, today: Date): PresetKey {
+  if (!range?.from || !range.to) return 'custom'
+  const endsToday = Math.abs(startOfDay(range.to).getTime() - startOfDay(today).getTime()) < DAY_MS
+  if (!endsToday) return 'custom'
+  return PRESETS.find((preset) => preset.key === daySpan(range.from!, range.to!))?.key ?? 'custom'
+}
+
 function formatChipDate(date: Date | undefined) {
   if (!date) {
     return 'Select date'
@@ -46,6 +61,16 @@ function parseChipDate(text: string): Date | undefined {
   const isRealDate =
     date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
   return isRealDate ? date : undefined
+}
+
+function formatRange(range: DateRange | undefined) {
+  if (!range?.from) {
+    return 'Select dates'
+  }
+  if (!range.to) {
+    return formatChipDate(range.from)
+  }
+  return `${formatChipDate(range.from)} - ${formatChipDate(range.to)}`
 }
 
 function DateChipInput({
@@ -94,41 +119,35 @@ function DateChipInput({
   )
 }
 
-function triggerLabel(preset: PresetKey, range: DateRange | undefined) {
-  if (preset !== 'custom') {
-    return `Last ${preset} days`
-  }
-  if (!range?.from) {
-    return 'Select dates'
-  }
-  if (!range.to) {
-    return formatChipDate(range.from)
-  }
-  return `${formatChipDate(range.from)} - ${formatChipDate(range.to)}`
-}
-
 export type DateRangeFilterProps = {
-  /** Fires on "Select" with the applied window as ISO strings (start-of-day → end-of-day). */
+  /** The currently-applied window (ISO) — seeds the popover so it reflects what's shown. */
+  value?: { from: string; to: string }
+  /** Fires on "Select" with the picked window as ISO strings (start-of-day → end-of-day). */
   onChange?: (range: { from: string; to: string }) => void
+  /** Overrides the trigger label — e.g. the server's nicely-formatted range string. */
+  label?: string
 }
 
-export function DateRangeFilter({ onChange }: DateRangeFilterProps = {}) {
+export function DateRangeFilter({ value, onChange, label }: DateRangeFilterProps = {}) {
   const today = new Date()
   const [open, setOpen] = useState(false)
-  const [appliedPreset, setAppliedPreset] = useState<PresetKey>(30)
-  const [appliedRange, setAppliedRange] = useState<DateRange | undefined>(() =>
-    rangeForPreset(30, today),
-  )
-  const [draftPreset, setDraftPreset] = useState<PresetKey>(appliedPreset)
-  const [draftRange, setDraftRange] = useState<DateRange | undefined>(appliedRange)
-  const [visibleMonth, setVisibleMonth] = useState<Date>(appliedRange?.to ?? today)
+  const [draftPreset, setDraftPreset] = useState<PresetKey>('custom')
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined)
+  const [visibleMonth, setVisibleMonth] = useState<Date>(today)
+
+  // The applied range comes entirely from the `value` prop (parent-owned).
+  const appliedRange: DateRange | undefined = value
+    ? { from: startOfDay(new Date(value.from)), to: startOfDay(new Date(value.to)) }
+    : undefined
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen)
     if (nextOpen) {
-      setDraftPreset(appliedPreset)
-      setDraftRange(appliedRange)
-      setVisibleMonth(appliedRange?.to ?? today)
+      // Seed the popover from what's actually applied, so it follows the default.
+      const seed = appliedRange ?? rangeForPreset(90, today)
+      setDraftRange(seed)
+      setDraftPreset(detectPreset(seed, today))
+      setVisibleMonth(seed.to ?? today)
     }
   }
 
@@ -140,8 +159,6 @@ export function DateRangeFilter({ onChange }: DateRangeFilterProps = {}) {
   }
 
   const handleSelect = () => {
-    setAppliedPreset(draftPreset)
-    setAppliedRange(draftRange)
     setOpen(false)
     if (draftRange?.from) {
       const from = startOfDay(draftRange.from)
@@ -173,7 +190,7 @@ export function DateRangeFilter({ onChange }: DateRangeFilterProps = {}) {
             type="button"
           >
             <SlidersHorizontal size={16} />
-            {triggerLabel(appliedPreset, appliedRange)}
+            {label ?? formatRange(appliedRange)}
           </button>
         </PopoverTrigger>
         <PopoverContent

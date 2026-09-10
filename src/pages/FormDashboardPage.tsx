@@ -41,15 +41,6 @@ const BUCKETS: { value: TrendBucket; label: string }[] = [
   { value: 'year', label: 'Yearly' },
 ]
 
-/** Default trend window: the last 30 days. */
-function defaultRange(): { from: string; to: string } {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(from.getDate() - 29)
-  from.setHours(0, 0, 0, 0)
-  return { from: from.toISOString(), to: to.toISOString() }
-}
-
 function StatusRow({
   status,
   openDateRangeLabel,
@@ -158,11 +149,12 @@ export function FormDashboardPage({
   const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
 
   // Trend tab: user-driven window + bucket granularity, fetched separately so
-  // changing them doesn't reload the rest of the dashboard.
+  // changing them doesn't reload the rest of the dashboard. `range === null` means
+  // "auto" — the server anchors it to the last 7 days that actually have data.
   const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
   const [trendPending, setTrendPending] = useState(false)
   const [bucket, setBucket] = useState<TrendBucket>('week')
-  const [range, setRange] = useState(defaultRange)
+  const [range, setRange] = useState<{ from: string; to: string } | null>(null)
 
   const changeBucket = (next: TrendBucket) => {
     setBucket(next)
@@ -210,7 +202,7 @@ export function FormDashboardPage({
 
     let cancelled = false
 
-    getFormTrendAnalytics(formId, { from: range.from, to: range.to, bucket })
+    getFormTrendAnalytics(formId, { from: range?.from, to: range?.to, bucket })
       .then((data) => {
         if (cancelled) return
         setTrend(data)
@@ -224,7 +216,7 @@ export function FormDashboardPage({
     return () => {
       cancelled = true
     }
-  }, [formId, hasValidId, bucket, range.from, range.to])
+  }, [formId, hasValidId, bucket, range?.from, range?.to])
 
   if (loadStatus !== 'ready' || !form || !responses || !themes) {
     return (
@@ -325,7 +317,11 @@ export function FormDashboardPage({
                         ))}
                       </div>
                     </div>
-                    <DateRangeFilter onChange={changeRange} />
+                    <DateRangeFilter
+                      label={range === null ? (trend?.rangeLabel ?? 'Latest 90 days') : undefined}
+                      onChange={changeRange}
+                      value={range ?? (trend ? { from: trend.from, to: trend.to } : undefined)}
+                    />
                   </div>
                 ) : null}
               </div>

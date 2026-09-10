@@ -112,6 +112,9 @@ export type TrendSentimentPoint = {
 
 export type FormTrendAnalytics = {
   bucket: TrendBucket
+  /** The resolved window (ISO) — the auto default, or whatever the caller asked for. */
+  from: string
+  to: string
   rangeLabel: string
   comparisonLabel: string
   /** Analysed mentions for this form across all time — "no data yet" vs "range too narrow". */
