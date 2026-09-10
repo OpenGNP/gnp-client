@@ -27,12 +27,28 @@ import { TrendView } from '../components/dashboard/TrendView'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
-import type { FormTrendAnalytics } from '../data/dashboardAnalytics'
+import type { FormTrendAnalytics, TrendBucket } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
 import { ApiError } from '../lib/api'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formatDateTime } from '../lib/responseWindow'
 import { cn } from '../lib/utils'
+
+const BUCKETS: { value: TrendBucket; label: string }[] = [
+  { value: 'day', label: 'Daily' },
+  { value: 'week', label: 'Weekly' },
+  { value: 'month', label: 'Monthly' },
+  { value: 'year', label: 'Yearly' },
+]
+
+/** Default trend window: the last 30 days. */
+function defaultRange(): { from: string; to: string } {
+  const to = new Date()
+  const from = new Date(to)
+  from.setDate(from.getDate() - 29)
+  from.setHours(0, 0, 0, 0)
+  return { from: from.toISOString(), to: to.toISOString() }
+}
 
 function StatusRow({
   status,
@@ -140,7 +156,22 @@ export function FormDashboardPage({
   const [form, setForm] = useState<ApiFormDetail | null>(null)
   const [responses, setResponses] = useState<FormResponseAnalytics | null>(null)
   const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
+
+  // Trend tab: user-driven window + bucket granularity, fetched separately so
+  // changing them doesn't reload the rest of the dashboard.
   const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
+  const [trendPending, setTrendPending] = useState(false)
+  const [bucket, setBucket] = useState<TrendBucket>('week')
+  const [range, setRange] = useState(defaultRange)
+
+  const changeBucket = (next: TrendBucket) => {
+    setBucket(next)
+    setTrendPending(true)
+  }
+  const changeRange = (next: { from: string; to: string }) => {
+    setRange(next)
+    setTrendPending(true)
+  }
 
   useEffect(() => {
     if (!hasValidId) {
@@ -153,14 +184,12 @@ export function FormDashboardPage({
       getForm(formId),
       getFormResponseAnalytics(formId),
       getFormThemeAnalytics(formId),
-      getFormTrendAnalytics(formId),
     ])
-      .then(([detail, responseAnalytics, themeAnalytics, trendAnalytics]) => {
+      .then(([detail, responseAnalytics, themeAnalytics]) => {
         if (cancelled) return
         setForm(detail)
         setResponses(responseAnalytics)
         setThemes(themeAnalytics)
-        setTrend(trendAnalytics)
         setLoadStatus('ready')
       })
       .catch((error: unknown) => {
@@ -174,7 +203,30 @@ export function FormDashboardPage({
     }
   }, [formId, hasValidId])
 
-  if (loadStatus !== 'ready' || !form || !responses || !themes || !trend) {
+  useEffect(() => {
+    if (!hasValidId) {
+      return
+    }
+
+    let cancelled = false
+
+    getFormTrendAnalytics(formId, { from: range.from, to: range.to, bucket })
+      .then((data) => {
+        if (cancelled) return
+        setTrend(data)
+        setTrendPending(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setTrendPending(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [formId, hasValidId, bucket, range.from, range.to])
+
+  if (loadStatus !== 'ready' || !form || !responses || !themes) {
     return (
       <div>
         <FormDetailTabs
@@ -246,7 +298,36 @@ export function FormDashboardPage({
                         : 'Response Overview'}
                   </h1>
                 </div>
-                {activeView === 'trend' ? <DateRangeFilter /> : null}
+                {activeView === 'trend' ? (
+                  <div className="flex flex-wrap items-end gap-3">
+                    {trendPending ? (
+                      <span className="self-center text-[11px] font-medium text-[#929292]">
+                        Updating…
+                      </span>
+                    ) : null}
+                    <div className="flex flex-col items-start gap-2">
+                      <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
+                      <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
+                        {BUCKETS.map((option) => (
+                          <button
+                            className={cn(
+                              'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
+                              option.value === bucket
+                                ? 'bg-[#1e55c5] text-white'
+                                : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
+                            )}
+                            key={option.value}
+                            onClick={() => changeBucket(option.value)}
+                            type="button"
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <DateRangeFilter onChange={changeRange} />
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -373,13 +454,20 @@ export function FormDashboardPage({
             ) : null}
 
             {activeView === 'trend' ? (
-              trend.topicVolumeSeries.length === 0 ? (
+              !trend ? (
+                <EmptyNote>Loading trend…</EmptyNote>
+              ) : trend.topicVolumeSeries.length > 0 ? (
+                <TrendView trend={trend} />
+              ) : trend.totalMentions === 0 ? (
                 <EmptyNote>
-                  No trend yet — the AI pipeline hasn’t analysed enough feedback over time for this
-                  form.
+                  No feedback has been analysed for this form yet — the AI pipeline runs once
+                  responses start coming in.
                 </EmptyNote>
               ) : (
-                <TrendView trend={trend} />
+                <EmptyNote>
+                  This form has analysed feedback, but none falls in {trend.rangeLabel}. Try a wider
+                  date range.
+                </EmptyNote>
               )
             ) : null}
           </div>

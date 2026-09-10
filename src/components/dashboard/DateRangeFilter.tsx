@@ -107,7 +107,12 @@ function triggerLabel(preset: PresetKey, range: DateRange | undefined) {
   return `${formatChipDate(range.from)} - ${formatChipDate(range.to)}`
 }
 
-export function DateRangeFilter() {
+export type DateRangeFilterProps = {
+  /** Fires on "Select" with the applied window as ISO strings (start-of-day → end-of-day). */
+  onChange?: (range: { from: string; to: string }) => void
+}
+
+export function DateRangeFilter({ onChange }: DateRangeFilterProps = {}) {
   const today = new Date()
   const [open, setOpen] = useState(false)
   const [appliedPreset, setAppliedPreset] = useState<PresetKey>(30)
@@ -138,6 +143,12 @@ export function DateRangeFilter() {
     setAppliedPreset(draftPreset)
     setAppliedRange(draftRange)
     setOpen(false)
+    if (draftRange?.from) {
+      const from = startOfDay(draftRange.from)
+      const to = new Date(draftRange.to ?? draftRange.from)
+      to.setHours(23, 59, 59, 999)
+      onChange?.({ from: from.toISOString(), to: to.toISOString() })
+    }
   }
 
   const handleFromCommit = (date: Date) => {

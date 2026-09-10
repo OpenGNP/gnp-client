@@ -2,6 +2,7 @@ import type {
   DemographicBreakdown,
   FormTrendAnalytics,
   TopicSentiment,
+  TrendBucket,
 } from '../data/dashboardAnalytics'
 import { apiGet } from '../lib/api'
 
@@ -40,10 +41,20 @@ export function getFormThemeAnalytics(formId: number): Promise<FormThemeAnalytic
 }
 
 /**
- * Topic movement over time for one form — the Dashboard's Trend tab. Compares the two
- * halves of the form's feedback window (Rising/Declining tables, Emerging Issues,
- * Timeline); the two line charts in `TrendView` stay client-synthetic.
+ * Trend over a chosen window + bucket granularity (day/week/month/year) for one form.
+ * Real time series (`volumeSeries` / `sentimentSeries`) plus Rising/Declining vs the
+ * previous equal-length window. `from`/`to` are ISO date strings.
  */
-export function getFormTrendAnalytics(formId: number): Promise<FormTrendAnalytics> {
-  return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend`)
+export type TrendQuery = { from?: string; to?: string; bucket?: TrendBucket }
+
+export function getFormTrendAnalytics(
+  formId: number,
+  query: TrendQuery = {},
+): Promise<FormTrendAnalytics> {
+  const params = new URLSearchParams()
+  if (query.from) params.set('from', query.from)
+  if (query.to) params.set('to', query.to)
+  if (query.bucket) params.set('bucket', query.bucket)
+  const qs = params.toString()
+  return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
 }

@@ -1,5 +1,4 @@
 import { ArrowDown, ArrowUp, Frown, Smile, TrendingDown, TrendingUp } from 'lucide-react'
-import { useMemo } from 'react'
 import {
   Area,
   AreaChart,
@@ -15,24 +14,14 @@ import type {
   EmergingIssue,
   FormTrendAnalytics,
   TopicMovement,
+  TrendSentimentPoint,
   TrendTimelineEvent,
   TrendTopicSeries,
+  TrendVolumePoint,
 } from '../../data/dashboardAnalytics'
-
-const DAYS = 31
 
 // Line colors for the "Topic Trends (by volume)" chart, in series order (Figma).
 const TOPIC_TREND_COLORS = ['#7156F1', '#177CFD', '#51C66D', '#FEB535', '#F63B56']
-
-// Rough start / end volume per series so the generated walk reads like the design
-// (first series climbs the most, last two stay low) without hand-typing 155 points.
-const TREND_SHAPE: { start: number; end: number }[] = [
-  { start: 34, end: 88 },
-  { start: 26, end: 46 },
-  { start: 12, end: 36 },
-  { start: 9, end: 11 },
-  { start: 6, end: 9 },
-]
 
 const SENTIMENT_AREA = {
   positive: '#B5E6B1',
@@ -47,60 +36,6 @@ const SENTIMENT_DOT = {
 } as const
 
 const AXIS_TICK = { fill: '#73777e', fontSize: 10 } as const
-
-function hashString(value: string) {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) | 0
-  }
-  return Math.abs(hash)
-}
-
-function seededRandom(seed: number) {
-  let state = seed || 1
-  return () => {
-    state = (state * 9301 + 49297) % 233280
-    return state / 233280
-  }
-}
-
-function buildVolumeData(series: TrendTopicSeries[]) {
-  const walks = series.map((entry, index) => {
-    const random = seededRandom(hashString(entry.id))
-    const shape = TREND_SHAPE[index] ?? { start: 10, end: 40 }
-    return Array.from({ length: DAYS }, (_unused, day) => {
-      const base = shape.start + (shape.end - shape.start) * (day / (DAYS - 1))
-      const value = base + (random() - 0.5) * 14
-      return Math.round(Math.min(100, Math.max(0, value)))
-    })
-  })
-
-  return Array.from({ length: DAYS }, (_unused, day) => {
-    const row: Record<string, number | string> = { day: `Jan ${day + 1}` }
-    series.forEach((entry, index) => {
-      row[entry.id] = walks[index][day]
-    })
-    return row
-  })
-}
-
-function buildSentimentData() {
-  const random = seededRandom(hashString('sentiment-trend'))
-  return Array.from({ length: DAYS }, (_unused, day) => {
-    const negativeWeight = 30 + random() * 14 + day * 0.15
-    const neutralWeight = 16 + random() * 12
-    const positiveWeight = 44 + random() * 14
-    const total = negativeWeight + neutralWeight + positiveWeight
-    const negative = Math.round((negativeWeight / total) * 100)
-    const neutral = Math.round((neutralWeight / total) * 100)
-    return {
-      day: `Jan ${day + 1}`,
-      negative,
-      neutral,
-      positive: 100 - negative - neutral,
-    }
-  })
-}
 
 function formatEventDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -149,9 +84,13 @@ function ChartCard({
   )
 }
 
-function TopicTrendsCard({ series }: { series: TrendTopicSeries[] }) {
-  const data = useMemo(() => buildVolumeData(series), [series])
-
+function TopicTrendsCard({
+  series,
+  data,
+}: {
+  series: TrendTopicSeries[]
+  data: TrendVolumePoint[]
+}) {
   return (
     <ChartCard
       chartHeight={224}
@@ -166,14 +105,21 @@ function TopicTrendsCard({ series }: { series: TrendTopicSeries[] }) {
     >
       <LineChart data={data} margin={{ top: 12, right: 18, bottom: 0, left: 4 }}>
         <CartesianGrid stroke="#f3f5f8" vertical={false} />
-        <XAxis axisLine={false} dataKey="day" interval={4} tick={AXIS_TICK} tickLine={false} />
-        <YAxis
+        <XAxis
           axisLine={false}
-          domain={[0, 100]}
+          dataKey="label"
+          interval="preserveStartEnd"
+          minTickGap={24}
           tick={AXIS_TICK}
           tickLine={false}
-          ticks={[0, 25, 50, 75, 100]}
-          width={40}
+        />
+        <YAxis
+          allowDecimals={false}
+          axisLine={false}
+          domain={[0, 'auto']}
+          tick={AXIS_TICK}
+          tickLine={false}
+          width={36}
         />
         {series.map((entry, index) => (
           <Line
@@ -191,9 +137,7 @@ function TopicTrendsCard({ series }: { series: TrendTopicSeries[] }) {
   )
 }
 
-function SentimentTrendCard() {
-  const data = useMemo(() => buildSentimentData(), [])
-
+function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
   return (
     <ChartCard
       chartHeight={184}
@@ -208,7 +152,14 @@ function SentimentTrendCard() {
     >
       <AreaChart data={data} margin={{ top: 12, right: 18, bottom: 0, left: 4 }}>
         <CartesianGrid stroke="#f3f5f8" vertical={false} />
-        <XAxis axisLine={false} dataKey="day" interval={4} tick={AXIS_TICK} tickLine={false} />
+        <XAxis
+          axisLine={false}
+          dataKey="label"
+          interval="preserveStartEnd"
+          minTickGap={24}
+          tick={AXIS_TICK}
+          tickLine={false}
+        />
         <YAxis
           axisLine={false}
           domain={[0, 100]}
@@ -404,7 +355,7 @@ export function TrendView({ trend }: TrendViewProps) {
   return (
     <div className="grid grid-cols-[795fr_653fr] gap-4.5 max-[1160px]:grid-cols-1">
       <div className="@container flex min-w-0 flex-col gap-4.5">
-        <TopicTrendsCard series={trend.topicVolumeSeries} />
+        <TopicTrendsCard data={trend.volumeSeries} series={trend.topicVolumeSeries} />
         <div className="grid grid-cols-1 gap-4.5 @min-[700px]:grid-cols-2">
           <TopicMovementCard
             comparisonLabel={trend.comparisonLabel}
@@ -422,7 +373,7 @@ export function TrendView({ trend }: TrendViewProps) {
       </div>
 
       <div className="flex min-w-0 flex-col gap-4.5">
-        <SentimentTrendCard />
+        <SentimentTrendCard data={trend.sentimentSeries} />
         <EmergingIssuesCard issues={trend.emergingIssues} />
         <TimelineCard events={trend.timelineEvents} />
       </div>

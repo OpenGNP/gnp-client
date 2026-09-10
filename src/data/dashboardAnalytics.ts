@@ -98,10 +98,27 @@ export type TrendTimelineEvent = {
   metricLabel: string
 }
 
+export type TrendBucket = 'day' | 'week' | 'month' | 'year'
+
+/** One x-axis point of the volume chart: `{ label, [topicId]: count }`. */
+export type TrendVolumePoint = Record<string, number | string>
+
+export type TrendSentimentPoint = {
+  label: string
+  negative: number
+  neutral: number
+  positive: number
+}
+
 export type FormTrendAnalytics = {
+  bucket: TrendBucket
   rangeLabel: string
   comparisonLabel: string
+  /** Analysed mentions for this form across all time — "no data yet" vs "range too narrow". */
+  totalMentions: number
   topicVolumeSeries: TrendTopicSeries[]
+  volumeSeries: TrendVolumePoint[]
+  sentimentSeries: TrendSentimentPoint[]
   risingTopics: TopicMovement[]
   decliningTopics: TopicMovement[]
   emergingIssues: EmergingIssue[]
