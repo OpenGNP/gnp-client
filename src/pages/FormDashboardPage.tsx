@@ -27,11 +27,13 @@ import { TrendView } from '../components/dashboard/TrendView'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
+import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
+import { useNow } from '../hooks/useNow'
 import { ApiError } from '../lib/api'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
-import { formatDateTime } from '../lib/responseWindow'
+import { formatDateTime, formStatusBadge, type ResponseStateBadge } from '../lib/responseWindow'
 import { cn } from '../lib/utils'
 
 const BUCKETS: { value: TrendBucket; label: string }[] = [
@@ -42,20 +44,17 @@ const BUCKETS: { value: TrendBucket; label: string }[] = [
 ]
 
 function StatusRow({
-  status,
+  badge,
   openDateRangeLabel,
   lastUpdatedLabel,
 }: {
-  status: string
+  badge: ResponseStateBadge
   openDateRangeLabel: string
   lastUpdatedLabel: string
 }) {
   return (
     <div className="flex items-center gap-5">
-      <span className="inline-flex h-8.5 items-center gap-1.25 rounded-full bg-[#eaf9ec] px-2 text-[14px] font-semibold text-[#08882c]">
-        <span className="size-2.75 rounded-full bg-[#08882c]" aria-hidden="true" />
-        {status}
-      </span>
+      <ResponseStateChip badge={badge} />
       <span className="inline-flex items-center gap-1.5 text-[12px]">
         <Calendar className="text-[#3f4045]" size={22} strokeWidth={1.8} />
         <span className="font-medium text-[#929292]">Open</span>
@@ -137,6 +136,7 @@ export function FormDashboardPage({
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
   const detailPanelWidth = useDetailPanelWidth()
+  const now = useNow()
 
   const [loadStatus, setLoadStatus] = useState<'loading' | 'error' | 'ready'>(
     hasValidId ? 'loading' : 'error',
@@ -271,9 +271,17 @@ export function FormDashboardPage({
           >
             <div className="flex flex-col gap-1.25">
               <StatusRow
+                badge={formStatusBadge(
+                  form.status,
+                  {
+                    acceptingResponses: form.acceptingResponses,
+                    startDate: form.startDate,
+                    endDate: form.endDate,
+                  },
+                  now,
+                )}
                 lastUpdatedLabel={formatRelativeTime(form.updatedAt)}
                 openDateRangeLabel={openRangeLabel(form)}
-                status={form.status === 'active' ? 'Active' : 'Closed'}
               />
               <div className="flex items-start justify-between gap-2.5 py-2.5">
                 <div className="flex items-center gap-2.5">

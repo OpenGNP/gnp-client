@@ -91,6 +91,31 @@ export function describeResponseState(
   }
 }
 
+/**
+ * Badge for the raw `forms.status` lifecycle enum (`draft | active | closed |
+ * archived`). For an `active` form it defers to the live response state (so a
+ * scheduled/paused active form reads correctly); the other statuses map straight
+ * across. Same `ResponseStateBadge` shape / `ResponseStateChip` design used in the
+ * form editor.
+ */
+export function formStatusBadge(
+  status: string | null,
+  window: Omit<ResponseWindowInputs, 'isPublished'>,
+  now: number,
+): ResponseStateBadge {
+  if (status === 'archived') {
+    return { state: 'closed', label: 'Archived', detail: 'This form has been archived', tone: 'neutral' }
+  }
+  if (status === 'closed') {
+    return { state: 'closed', label: 'Closed', detail: 'This form has been closed', tone: 'danger' }
+  }
+  if (status !== 'active') {
+    return { state: 'draft', label: 'Draft', detail: 'Not published yet', tone: 'neutral' }
+  }
+  const inputs: ResponseWindowInputs = { ...window, isPublished: true }
+  return describeResponseState(deriveResponseState(inputs, now), inputs)
+}
+
 /** Compact one-liner describing the optional start/end window for the Publish popover. */
 export function scheduleSummary(inputs: Pick<ResponseWindowInputs, 'startDate' | 'endDate'>): string {
   const start = formatDateTime(inputs.startDate)
