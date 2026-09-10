@@ -1,4 +1,8 @@
-import type { DemographicBreakdown, TopicSentiment } from '../data/dashboardAnalytics'
+import type {
+  DemographicBreakdown,
+  FormTrendAnalytics,
+  TopicSentiment,
+} from '../data/dashboardAnalytics'
 import { apiGet } from '../lib/api'
 
 /**
@@ -33,4 +37,13 @@ export type FormThemeAnalytics = {
 
 export function getFormThemeAnalytics(formId: number): Promise<FormThemeAnalytics> {
   return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes`)
+}
+
+/**
+ * Topic movement over time for one form — the Dashboard's Trend tab. Compares the two
+ * halves of the form's feedback window (Rising/Declining tables, Emerging Issues,
+ * Timeline); the two line charts in `TrendView` stay client-synthetic.
+ */
+export function getFormTrendAnalytics(formId: number): Promise<FormTrendAnalytics> {
+  return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend`)
 }

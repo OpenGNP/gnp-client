@@ -89,17 +89,18 @@ function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
               {formatFeedbackDate(point.submittedAt)}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full border border-[#e9eaed] bg-white px-2 py-0.5 text-[11px] text-[#3f4045]">
-              department: {point.department}
-            </span>
-            <span className="rounded-full border border-[#e9eaed] bg-white px-2 py-0.5 text-[11px] text-[#3f4045]">
-              year: {point.year}
-            </span>
-            <span className="rounded-full border border-[#e9eaed] bg-white px-2 py-0.5 text-[11px] text-[#3f4045]">
-              gender: {point.gender}
-            </span>
-          </div>
+          {point.demographics.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {point.demographics.map((demo) => (
+                <span
+                  className="rounded-full border border-[#e9eaed] bg-white px-2 py-0.5 text-[11px] text-[#3f4045]"
+                  key={demo.label}
+                >
+                  {demo.label}: {demo.value}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <p className="m-0 text-[12px] leading-[1.6] text-[#3f4045]">{point.originalFeedback}</p>
         </div>
       ) : null}
@@ -156,41 +157,54 @@ export type FeedbackSegmentSectionProps = {
 export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
-  const [selectedYears, setSelectedYears] = useState<Set<string>>(new Set())
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set())
-  const [selectedGenders, setSelectedGenders] = useState<Set<string>>(new Set())
+  // Keyed by the form's demographic question label — whatever questions the form has.
+  const [selectedDemos, setSelectedDemos] = useState<Record<string, Set<string>>>({})
 
-  // Filter options are derived from the data (the values vary per form), not a fixed list.
-  const departmentOptions = useMemo(
-    () => [...new Set(feedbackSegment.map((point) => point.department))].sort(),
-    [feedbackSegment],
-  )
-  const yearOptions = useMemo(
-    () => [...new Set(feedbackSegment.map((point) => point.year))].sort(),
-    [feedbackSegment],
-  )
-  const genderOptions = useMemo(
-    () => [...new Set(feedbackSegment.map((point) => point.gender))].sort(),
-    [feedbackSegment],
-  )
+  // The demographic filter groups come from the data: one per distinct question label,
+  // with its distinct answer values.
+  const demographicFilters = useMemo(() => {
+    const byLabel = new Map<string, Set<string>>()
+    for (const point of feedbackSegment) {
+      for (const demo of point.demographics) {
+        const values = byLabel.get(demo.label) ?? new Set<string>()
+        values.add(demo.value)
+        byLabel.set(demo.label, values)
+      }
+    }
+    return [...byLabel.entries()].map(([label, values]) => ({
+      label,
+      options: [...values].sort(),
+    }))
+  }, [feedbackSegment])
 
   const activeFilterCount =
-    selectedSentiments.size + selectedYears.size + selectedDepartments.size + selectedGenders.size
+    selectedSentiments.size +
+    Object.values(selectedDemos).reduce((sum, set) => sum + set.size, 0)
+
+  const toggleDemo = (label: string, value: string) =>
+    setSelectedDemos((prev) => ({
+      ...prev,
+      [label]: toggleInSet(prev[label] ?? new Set<string>(), value),
+    }))
 
   const visiblePoints = useMemo(() => {
-    const filtered = feedbackSegment.filter(
-      (point) =>
-        (selectedSentiments.size === 0 || selectedSentiments.has(point.sentiment)) &&
-        (selectedYears.size === 0 || selectedYears.has(point.year)) &&
-        (selectedDepartments.size === 0 || selectedDepartments.has(point.department)) &&
-        (selectedGenders.size === 0 || selectedGenders.has(point.gender)),
-    )
+    const filtered = feedbackSegment.filter((point) => {
+      if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
+        return false
+      }
+      for (const [label, selected] of Object.entries(selectedDemos)) {
+        if (selected.size === 0) continue
+        const demo = point.demographics.find((entry) => entry.label === label)
+        if (!demo || !selected.has(demo.value)) return false
+      }
+      return true
+    })
     return [...filtered].sort((a, b) =>
       sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)
         : a.submittedAt.localeCompare(b.submittedAt),
     )
-  }, [feedbackSegment, selectedSentiments, selectedYears, selectedDepartments, selectedGenders, sortOption])
+  }, [feedbackSegment, selectedSentiments, selectedDemos, sortOption])
 
   return (
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
@@ -250,9 +264,7 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
                     className="cursor-pointer text-[12px] font-medium text-[#1e55c5]"
                     onClick={() => {
                       setSelectedSentiments(new Set())
-                      setSelectedYears(new Set())
-                      setSelectedDepartments(new Set())
-                      setSelectedGenders(new Set())
+                      setSelectedDemos({})
                     }}
                     type="button"
                   >
@@ -280,27 +292,16 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
                 selected={selectedSentiments}
               />
 
-              <FilterSection
-                defaultOpen
-                label="Year"
-                onToggle={(value) => setSelectedYears((prev) => toggleInSet(prev, value))}
-                options={yearOptions}
-                selected={selectedYears}
-              />
-
-              <FilterSection
-                label="Department"
-                onToggle={(value) => setSelectedDepartments((prev) => toggleInSet(prev, value))}
-                options={departmentOptions}
-                selected={selectedDepartments}
-              />
-
-              <FilterSection
-                label="Gender"
-                onToggle={(value) => setSelectedGenders((prev) => toggleInSet(prev, value))}
-                options={genderOptions}
-                selected={selectedGenders}
-              />
+              {demographicFilters.map((group, index) => (
+                <FilterSection
+                  defaultOpen={index === 0}
+                  key={group.label}
+                  label={group.label}
+                  onToggle={(value) => toggleDemo(group.label, value)}
+                  options={group.options}
+                  selected={selectedDemos[group.label] ?? new Set<string>()}
+                />
+              ))}
             </PopoverContent>
           </Popover>
         </div>

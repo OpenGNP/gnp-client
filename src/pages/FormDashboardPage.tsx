@@ -13,6 +13,7 @@ import { useParams } from 'react-router-dom'
 import {
   getFormResponseAnalytics,
   getFormThemeAnalytics,
+  getFormTrendAnalytics,
   type FormResponseAnalytics,
   type FormThemeAnalytics,
 } from '../api/analytics'
@@ -26,7 +27,7 @@ import { TrendView } from '../components/dashboard/TrendView'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
-import { getDashboardAnalytics } from '../data/dashboardAnalytics'
+import type { FormTrendAnalytics } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
 import { ApiError } from '../lib/api'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
@@ -96,14 +97,10 @@ function StatCard({
   )
 }
 
-/** Placeholder for tabs still on mock data (Themes / Trend) when a real form is open. */
-function NotWiredNote({ label }: { label: string }) {
+function EmptyNote({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-60 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-12 text-center">
-      <p className="m-0 max-w-100 text-[14px] leading-6 text-[#726f6f]">
-        {label} is produced by the AI analysis pipeline and isn’t wired to live data yet — only the
-        Response tab is.
-      </p>
+      <p className="m-0 max-w-100 text-[14px] leading-6 text-[#726f6f]">{children}</p>
     </div>
   )
 }
@@ -130,7 +127,7 @@ export function FormDashboardPage({
   const formId = Number(projectId)
   const hasValidId = Number.isInteger(formId) && formId > 0
 
-  const [activeView, setActiveView] = useState<DashboardView>('response')
+  const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
   const detailPanelWidth = useDetailPanelWidth()
 
@@ -143,10 +140,7 @@ export function FormDashboardPage({
   const [form, setForm] = useState<ApiFormDetail | null>(null)
   const [responses, setResponses] = useState<FormResponseAnalytics | null>(null)
   const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
-
-  // The Trend tab still reads the design mock (keyed by slug); real numeric-id forms
-  // won't match, so it shows a placeholder for now. Themes & Response are live.
-  const mockAnalytics = getDashboardAnalytics(projectId)
+  const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
 
   useEffect(() => {
     if (!hasValidId) {
@@ -159,12 +153,14 @@ export function FormDashboardPage({
       getForm(formId),
       getFormResponseAnalytics(formId),
       getFormThemeAnalytics(formId),
+      getFormTrendAnalytics(formId),
     ])
-      .then(([detail, responseAnalytics, themeAnalytics]) => {
+      .then(([detail, responseAnalytics, themeAnalytics, trendAnalytics]) => {
         if (cancelled) return
         setForm(detail)
         setResponses(responseAnalytics)
         setThemes(themeAnalytics)
+        setTrend(trendAnalytics)
         setLoadStatus('ready')
       })
       .catch((error: unknown) => {
@@ -178,7 +174,7 @@ export function FormDashboardPage({
     }
   }, [formId, hasValidId])
 
-  if (loadStatus !== 'ready' || !form || !responses || !themes) {
+  if (loadStatus !== 'ready' || !form || !responses || !themes || !trend) {
     return (
       <div>
         <FormDetailTabs
@@ -377,7 +373,14 @@ export function FormDashboardPage({
             ) : null}
 
             {activeView === 'trend' ? (
-              mockAnalytics ? <TrendView trend={mockAnalytics.trend} /> : <NotWiredNote label="Trend analysis" />
+              trend.topicVolumeSeries.length === 0 ? (
+                <EmptyNote>
+                  No trend yet — the AI pipeline hasn’t analysed enough feedback over time for this
+                  form.
+                </EmptyNote>
+              ) : (
+                <TrendView trend={trend} />
+              )
             ) : null}
           </div>
         </div>
