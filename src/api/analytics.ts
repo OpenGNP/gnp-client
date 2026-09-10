@@ -1,4 +1,4 @@
-import type { DemographicBreakdown } from '../data/dashboardAnalytics'
+import type { DemographicBreakdown, TopicSentiment } from '../data/dashboardAnalytics'
 import { apiGet } from '../lib/api'
 
 /**
@@ -15,4 +15,22 @@ export type FormResponseAnalytics = {
 
 export function getFormResponseAnalytics(formId: number): Promise<FormResponseAnalytics> {
   return apiGet<FormResponseAnalytics>(`/analytics/forms/${formId}/responses`)
+}
+
+/**
+ * Topic / sentiment analysis for one form — the Dashboard's Themes tab. Topics come
+ * from the AI pipeline's canonical topics; `feedbackSegment` samples are tagged with
+ * the respondent's demographic answers. Same `TopicSentiment` shape the mock used.
+ */
+export type FormThemeAnalytics = {
+  title: string
+  totalResponders: number
+  responderDeltaLabel: string
+  sentiment: { score: number; outOf: number; negative: number; neutral: number; positive: number }
+  highIntenseTopics: TopicSentiment[]
+  aiDiscoveredTopics: TopicSentiment[]
+}
+
+export function getFormThemeAnalytics(formId: number): Promise<FormThemeAnalytics> {
+  return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes`)
 }

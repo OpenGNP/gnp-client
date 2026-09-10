@@ -10,7 +10,12 @@ import {
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { getFormResponseAnalytics, type FormResponseAnalytics } from '../api/analytics'
+import {
+  getFormResponseAnalytics,
+  getFormThemeAnalytics,
+  type FormResponseAnalytics,
+  type FormThemeAnalytics,
+} from '../api/analytics'
 import { getForm, type ApiFormDetail } from '../api/forms'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { DemographicOverviewSection } from '../components/dashboard/DemographicOverviewSection'
@@ -137,9 +142,10 @@ export function FormDashboardPage({
   )
   const [form, setForm] = useState<ApiFormDetail | null>(null)
   const [responses, setResponses] = useState<FormResponseAnalytics | null>(null)
+  const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
 
-  // Themes & Trend tabs still read the design mock (keyed by slug); real numeric-id
-  // forms won't match, so those tabs show a placeholder for now.
+  // The Trend tab still reads the design mock (keyed by slug); real numeric-id forms
+  // won't match, so it shows a placeholder for now. Themes & Response are live.
   const mockAnalytics = getDashboardAnalytics(projectId)
 
   useEffect(() => {
@@ -149,11 +155,16 @@ export function FormDashboardPage({
 
     let cancelled = false
 
-    Promise.all([getForm(formId), getFormResponseAnalytics(formId)])
-      .then(([detail, analytics]) => {
+    Promise.all([
+      getForm(formId),
+      getFormResponseAnalytics(formId),
+      getFormThemeAnalytics(formId),
+    ])
+      .then(([detail, responseAnalytics, themeAnalytics]) => {
         if (cancelled) return
         setForm(detail)
-        setResponses(analytics)
+        setResponses(responseAnalytics)
+        setThemes(themeAnalytics)
         setLoadStatus('ready')
       })
       .catch((error: unknown) => {
@@ -167,7 +178,7 @@ export function FormDashboardPage({
     }
   }, [formId, hasValidId])
 
-  if (loadStatus !== 'ready' || !form || !responses) {
+  if (loadStatus !== 'ready' || !form || !responses || !themes) {
     return (
       <div>
         <FormDetailTabs
@@ -185,8 +196,8 @@ export function FormDashboardPage({
   }
 
   const selectedTopic =
-    activeView === 'themes' && mockAnalytics
-      ? ([...mockAnalytics.highIntenseTopics, ...mockAnalytics.aiDiscoveredTopics].find(
+    activeView === 'themes'
+      ? ([...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].find(
           (topic) => topic.id === selectedTopicId,
         ) ?? null)
       : null
@@ -233,7 +244,7 @@ export function FormDashboardPage({
                   )}
                   <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
                     {activeView === 'themes'
-                      ? (mockAnalytics?.title ?? 'Theme Analysis')
+                      ? themes.title
                       : activeView === 'trend'
                         ? 'Trend Overview'
                         : 'Response Overview'}
@@ -244,16 +255,22 @@ export function FormDashboardPage({
             </div>
 
             {activeView === 'themes' ? (
-              mockAnalytics ? (
+              themes.aiDiscoveredTopics.length === 0 ? (
+                <div className="flex min-h-60 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-12 text-center">
+                  <p className="m-0 max-w-100 text-[14px] leading-6 text-[#726f6f]">
+                    No themes yet — the AI pipeline hasn’t analysed this form’s feedback into topics.
+                  </p>
+                </div>
+              ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-4">
                     <StatCard
                       deltaClassName="text-[#0b842d]"
-                      deltaLabel={mockAnalytics.responderDeltaLabel}
+                      deltaLabel={themes.responderDeltaLabel}
                       icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#edf2fd]"
                       label="Total Responder"
-                      value={mockAnalytics.totalResponders}
+                      value={themes.totalResponders}
                     />
 
                     <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
@@ -262,29 +279,29 @@ export function FormDashboardPage({
                       </p>
                       <div className="flex items-center gap-3">
                         <SentimentGauge
-                          negative={mockAnalytics.sentiment.negative}
-                          neutral={mockAnalytics.sentiment.neutral}
-                          outOf={mockAnalytics.sentiment.outOf}
-                          positive={mockAnalytics.sentiment.positive}
-                          score={mockAnalytics.sentiment.score}
+                          negative={themes.sentiment.negative}
+                          neutral={themes.sentiment.neutral}
+                          outOf={themes.sentiment.outOf}
+                          positive={themes.sentiment.positive}
+                          score={themes.sentiment.score}
                         />
                         <div className="flex flex-col gap-2 text-[12px]">
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(236,102,131,0.8)]" />
                             <span className="text-[#929292]">
-                              Negative: <span className="text-[#14181f]">{mockAnalytics.sentiment.negative}%</span>
+                              Negative: <span className="text-[#14181f]">{themes.sentiment.negative}%</span>
                             </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(253,210,118,0.8)]" />
                             <span className="text-[#929292]">
-                              Neutral: <span className="text-[#14181f]">{mockAnalytics.sentiment.neutral}%</span>
+                              Neutral: <span className="text-[#14181f]">{themes.sentiment.neutral}%</span>
                             </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(156,221,153,0.8)]" />
                             <span className="text-[#929292]">
-                              Positive: <span className="text-[#14181f]">{mockAnalytics.sentiment.positive}%</span>
+                              Positive: <span className="text-[#14181f]">{themes.sentiment.positive}%</span>
                             </span>
                           </span>
                         </div>
@@ -297,30 +314,30 @@ export function FormDashboardPage({
                       icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#ffeaeb]"
                       label="High Intense Topic"
-                      value={mockAnalytics.highIntenseTopics.length}
+                      value={themes.highIntenseTopics.length}
                     />
                   </div>
 
                   <DateRangeFilter />
 
-                  <TopicSentimentCard
-                    onSelectTopic={setSelectedTopicId}
-                    selectedTopicId={selectedTopicId}
-                    title="High Intense Topic"
-                    topics={mockAnalytics.highIntenseTopics}
-                  />
+                  {themes.highIntenseTopics.length > 0 ? (
+                    <TopicSentimentCard
+                      onSelectTopic={setSelectedTopicId}
+                      selectedTopicId={selectedTopicId}
+                      title="High Intense Topic"
+                      topics={themes.highIntenseTopics}
+                    />
+                  ) : null}
 
                   <TopicSentimentCard
                     onSelectTopic={setSelectedTopicId}
                     pageSize={8}
                     selectedTopicId={selectedTopicId}
                     sortable
-                    title={`AI discovered topic (${mockAnalytics.aiDiscoveredTopics.length})`}
-                    topics={mockAnalytics.aiDiscoveredTopics}
+                    title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
+                    topics={themes.aiDiscoveredTopics}
                   />
                 </>
-              ) : (
-                <NotWiredNote label="Theme analysis" />
               )
             ) : null}
 

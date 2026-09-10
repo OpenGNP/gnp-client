@@ -22,8 +22,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ]
 
 const SENTIMENT_OPTIONS: FeedbackSentiment[] = ['negative', 'neutral', 'positive']
-const YEAR_OPTIONS = ['1st year', '2nd year', '3rd year', '4th year']
-const GENDER_OPTIONS = ['Female', 'Male', 'Non-binary']
 
 const SENTIMENT_BADGE_CLASSES: Record<FeedbackSentiment, string> = {
   negative: 'bg-[#f9eaea] text-[#e12b0c]',
@@ -162,8 +160,17 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set())
   const [selectedGenders, setSelectedGenders] = useState<Set<string>>(new Set())
 
+  // Filter options are derived from the data (the values vary per form), not a fixed list.
   const departmentOptions = useMemo(
     () => [...new Set(feedbackSegment.map((point) => point.department))].sort(),
+    [feedbackSegment],
+  )
+  const yearOptions = useMemo(
+    () => [...new Set(feedbackSegment.map((point) => point.year))].sort(),
+    [feedbackSegment],
+  )
+  const genderOptions = useMemo(
+    () => [...new Set(feedbackSegment.map((point) => point.gender))].sort(),
     [feedbackSegment],
   )
 
@@ -277,7 +284,7 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
                 defaultOpen
                 label="Year"
                 onToggle={(value) => setSelectedYears((prev) => toggleInSet(prev, value))}
-                options={YEAR_OPTIONS}
+                options={yearOptions}
                 selected={selectedYears}
               />
 
@@ -291,7 +298,7 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
               <FilterSection
                 label="Gender"
                 onToggle={(value) => setSelectedGenders((prev) => toggleInSet(prev, value))}
-                options={GENDER_OPTIONS}
+                options={genderOptions}
                 selected={selectedGenders}
               />
             </PopoverContent>
