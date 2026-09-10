@@ -263,7 +263,7 @@ function SentimentDelta({
 
   return (
     <div className="flex w-8.5 flex-col items-center gap-0.5">
-      <Face className="text-[#3f4045]" size={15} />
+      <Face className={`${tone}`} size={15} />
       <span className={`flex items-center gap-0.5 text-[10px] font-medium tracking-[0.1px] ${tone}`}>
         <Arrow size={12} />
         {Math.abs(value)}%
