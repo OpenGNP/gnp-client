@@ -7,7 +7,7 @@ import {
   TriangleAlert,
   Users,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import {
@@ -148,13 +148,16 @@ export function FormDashboardPage({
   const [responses, setResponses] = useState<FormResponseAnalytics | null>(null)
   const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
 
-  // Trend tab: user-driven window + bucket granularity, fetched separately so
-  // changing them doesn't reload the rest of the dashboard. `range === null` means
-  // "auto" — the server anchors it to the last 7 days that actually have data.
+  // Themes + Trend tabs share one date `range`, fetched separately from form/responses
+  // so changing it doesn't reload the whole dashboard. `range === null` means "auto" —
+  // the server defaults to the span of this form's analysed feedback (earliest →
+  // latest submission), so both tabs open on all feedback. Trend also has a `bucket`.
   const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
   const [trendPending, setTrendPending] = useState(false)
+  const [themesPending, setThemesPending] = useState(false)
   const [bucket, setBucket] = useState<TrendBucket>('week')
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  const themesLoadedRef = useRef(false)
 
   const changeBucket = (next: TrendBucket) => {
     setBucket(next)
@@ -163,6 +166,12 @@ export function FormDashboardPage({
   const changeRange = (next: { from: string; to: string }) => {
     setRange(next)
     setTrendPending(true)
+    setThemesPending(true)
+  }
+  const resetRange = () => {
+    setRange(null)
+    setTrendPending(true)
+    setThemesPending(true)
   }
 
   useEffect(() => {
@@ -172,16 +181,11 @@ export function FormDashboardPage({
 
     let cancelled = false
 
-    Promise.all([
-      getForm(formId),
-      getFormResponseAnalytics(formId),
-      getFormThemeAnalytics(formId),
-    ])
-      .then(([detail, responseAnalytics, themeAnalytics]) => {
+    Promise.all([getForm(formId), getFormResponseAnalytics(formId)])
+      .then(([detail, responseAnalytics]) => {
         if (cancelled) return
         setForm(detail)
         setResponses(responseAnalytics)
-        setThemes(themeAnalytics)
         setLoadStatus('ready')
       })
       .catch((error: unknown) => {
@@ -194,6 +198,37 @@ export function FormDashboardPage({
       cancelled = true
     }
   }, [formId, hasValidId])
+
+  // Themes tab — its own window fetch (shares `range` with Trend). On the first
+  // load a failure surfaces as the whole-dashboard error; a later range-change
+  // failure keeps the last-loaded themes on screen.
+  useEffect(() => {
+    if (!hasValidId) {
+      return
+    }
+
+    let cancelled = false
+
+    getFormThemeAnalytics(formId, { from: range?.from, to: range?.to })
+      .then((data) => {
+        if (cancelled) return
+        themesLoadedRef.current = true
+        setThemes(data)
+        setThemesPending(false)
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        setThemesPending(false)
+        if (!themesLoadedRef.current) {
+          setLoadError(error instanceof ApiError ? error.message : 'Could not load this dashboard.')
+          setLoadStatus('error')
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [formId, hasValidId, range?.from, range?.to])
 
   useEffect(() => {
     if (!hasValidId) {
@@ -326,8 +361,10 @@ export function FormDashboardPage({
                       </div>
                     </div>
                     <DateRangeFilter
-                      label={range === null ? (trend?.rangeLabel ?? 'Latest 90 days') : undefined}
+                      isDefault={range === null}
+                      label={range === null ? (trend?.rangeLabel ?? 'All feedback') : undefined}
                       onChange={changeRange}
+                      onReset={resetRange}
                       value={range ?? (trend ? { from: trend.from, to: trend.to } : undefined)}
                     />
                   </div>
@@ -337,11 +374,27 @@ export function FormDashboardPage({
 
             {activeView === 'themes' ? (
               themes.aiDiscoveredTopics.length === 0 ? (
-                <div className="flex min-h-60 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-12 text-center">
-                  <p className="m-0 max-w-100 text-[14px] leading-6 text-[#726f6f]">
-                    No themes yet — the AI pipeline hasn’t analysed this form’s feedback into topics.
-                  </p>
-                </div>
+                <>
+                  {themes.totalMentions > 0 ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <DateRangeFilter
+                        isDefault={range === null}
+                        label={range === null ? themes.rangeLabel : undefined}
+                        onChange={changeRange}
+                        onReset={resetRange}
+                        value={range ?? { from: themes.from, to: themes.to }}
+                      />
+                      {themesPending ? (
+                        <span className="text-[11px] font-medium text-[#929292]">Updating…</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <EmptyNote>
+                    {themes.totalMentions === 0
+                      ? 'No themes yet — the AI pipeline hasn’t analysed this form’s feedback into topics.'
+                      : `This form has analysed feedback, but none falls in ${themes.rangeLabel}. Try “All feedback” or a wider date range.`}
+                  </EmptyNote>
+                </>
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-4">
@@ -399,7 +452,18 @@ export function FormDashboardPage({
                     />
                   </div>
 
-                  <DateRangeFilter />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <DateRangeFilter
+                      isDefault={range === null}
+                      label={range === null ? themes.rangeLabel : undefined}
+                      onChange={changeRange}
+                      onReset={resetRange}
+                      value={range ?? { from: themes.from, to: themes.to }}
+                    />
+                    {themesPending ? (
+                      <span className="text-[11px] font-medium text-[#929292]">Updating…</span>
+                    ) : null}
+                  </div>
 
                   {themes.highIntenseTopics.length > 0 ? (
                     <TopicSentimentCard

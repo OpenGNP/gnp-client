@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 type PresetDays = 7 | 30 | 90
-type PresetKey = PresetDays | 'custom'
+type PresetKey = PresetDays | 'custom' | 'all'
 
 const PRESETS: { key: PresetDays; label: string }[] = [
   { key: 7, label: '7 Days' },
@@ -124,11 +124,21 @@ export type DateRangeFilterProps = {
   value?: { from: string; to: string }
   /** Fires on "Select" with the picked window as ISO strings (start-of-day → end-of-day). */
   onChange?: (range: { from: string; to: string }) => void
+  /** Fires when the user picks "All feedback" — parent should drop back to its default window. */
+  onReset?: () => void
+  /** True while the parent is on its default/auto window — highlights the "All feedback" option. */
+  isDefault?: boolean
   /** Overrides the trigger label — e.g. the server's nicely-formatted range string. */
   label?: string
 }
 
-export function DateRangeFilter({ value, onChange, label }: DateRangeFilterProps = {}) {
+export function DateRangeFilter({
+  value,
+  onChange,
+  onReset,
+  isDefault = false,
+  label,
+}: DateRangeFilterProps = {}) {
   const today = new Date()
   const [open, setOpen] = useState(false)
   const [draftPreset, setDraftPreset] = useState<PresetKey>('custom')
@@ -146,9 +156,15 @@ export function DateRangeFilter({ value, onChange, label }: DateRangeFilterProps
       // Seed the popover from what's actually applied, so it follows the default.
       const seed = appliedRange ?? rangeForPreset(90, today)
       setDraftRange(seed)
-      setDraftPreset(detectPreset(seed, today))
+      setDraftPreset(isDefault && onReset ? 'all' : detectPreset(seed, today))
       setVisibleMonth(seed.to ?? today)
     }
+  }
+
+  const handleResetClick = () => {
+    setOpen(false)
+    setDraftPreset('all')
+    onReset?.()
   }
 
   const handlePresetClick = (preset: PresetDays) => {
@@ -200,6 +216,19 @@ export function DateRangeFilter({ value, onChange, label }: DateRangeFilterProps
           sideOffset={8}
         >
           <div className="flex flex-col gap-3.75 px-5 py-2.5">
+            {onReset ? (
+              <button
+                className={`self-start text-[12px] ${
+                  draftPreset === 'all'
+                    ? 'font-semibold text-[#1e55c5]'
+                    : 'font-medium text-[#929292]'
+                }`}
+                onClick={handleResetClick}
+                type="button"
+              >
+                All feedback
+              </button>
+            ) : null}
             <div className="flex flex-col gap-2.5">
               <p className="m-0 text-[12px] font-medium text-black">Show report for the last:</p>
               <div className="flex items-center gap-3.5 text-[12px]">

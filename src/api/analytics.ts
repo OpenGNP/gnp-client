@@ -29,6 +29,12 @@ export function getFormResponseAnalytics(formId: number): Promise<FormResponseAn
  */
 export type FormThemeAnalytics = {
   title: string
+  /** Resolved analysis window (ISO) — echoes the caller's or the feedback-span default. */
+  from: string
+  to: string
+  rangeLabel: string
+  /** Analysed mentions across ALL time — distinguishes "none yet" from "none in range". */
+  totalMentions: number
   totalResponders: number
   responderDeltaLabel: string
   sentiment: { score: number; outOf: number; negative: number; neutral: number; positive: number }
@@ -36,8 +42,17 @@ export type FormThemeAnalytics = {
   aiDiscoveredTopics: TopicSentiment[]
 }
 
-export function getFormThemeAnalytics(formId: number): Promise<FormThemeAnalytics> {
-  return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes`)
+export type ThemeQuery = { from?: string; to?: string }
+
+export function getFormThemeAnalytics(
+  formId: number,
+  query: ThemeQuery = {},
+): Promise<FormThemeAnalytics> {
+  const params = new URLSearchParams()
+  if (query.from) params.set('from', query.from)
+  if (query.to) params.set('to', query.to)
+  const qs = params.toString()
+  return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes${qs ? `?${qs}` : ''}`)
 }
 
 /**
