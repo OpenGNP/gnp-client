@@ -22,13 +22,15 @@ import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { DemographicOverviewSection } from '../components/dashboard/DemographicOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
+import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
 import { TrendView } from '../components/dashboard/TrendView'
+import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
-import type { FormTrendAnalytics, TrendBucket } from '../data/dashboardAnalytics'
+import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
 import { useNow } from '../hooks/useNow'
 import { ApiError } from '../lib/api'
@@ -156,11 +158,27 @@ export function FormDashboardPage({
   const [trendPending, setTrendPending] = useState(false)
   const [themesPending, setThemesPending] = useState(false)
   const [bucket, setBucket] = useState<TrendBucket>('week')
+  const [rank, setRank] = useState<TrendRank>('movers')
+  // `null` = "let the server auto-pick the top lines for the current rank".
+  const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
   const themesLoadedRef = useRef(false)
 
   const changeBucket = (next: TrendBucket) => {
     setBucket(next)
+    setTrendPending(true)
+  }
+  const changeRank = (next: TrendRank) => {
+    setRank(next)
+    setTopicSel(null) // fall back to that rank's auto pick
+    setTrendPending(true)
+  }
+  const changeTopicSel = (ids: string[]) => {
+    setTopicSel(ids)
+    setTrendPending(true)
+  }
+  const resetTopicSel = () => {
+    setTopicSel(null)
     setTrendPending(true)
   }
   const changeRange = (next: { from: string; to: string }) => {
@@ -237,11 +255,26 @@ export function FormDashboardPage({
 
     let cancelled = false
 
-    getFormTrendAnalytics(formId, { from: range?.from, to: range?.to, bucket })
+    getFormTrendAnalytics(formId, {
+      from: range?.from,
+      to: range?.to,
+      bucket,
+      rank,
+      topics: topicSel ?? undefined,
+    })
       .then((data) => {
         if (cancelled) return
         setTrend(data)
         setTrendPending(false)
+        // Keep an explicit selection in sync with what the server actually charted
+        // (it drops ids with no mentions in the window, caps at the max) so the
+        // picker count + swatch colours stay aligned with the chart.
+        if (topicSel) {
+          const charted = data.topicVolumeSeries.map((s) => s.id)
+          if (charted.length !== topicSel.length || charted.some((id, i) => id !== topicSel[i])) {
+            setTopicSel(charted)
+          }
+        }
       })
       .catch(() => {
         if (cancelled) return
@@ -251,7 +284,7 @@ export function FormDashboardPage({
     return () => {
       cancelled = true
     }
-  }, [formId, hasValidId, bucket, range?.from, range?.to])
+  }, [formId, hasValidId, bucket, rank, topicSel, range?.from, range?.to])
 
   if (loadStatus !== 'ready' || !form || !responses || !themes) {
     return (
@@ -360,6 +393,18 @@ export function FormDashboardPage({
                         ))}
                       </div>
                     </div>
+                    {trend && trend.availableTopics.length > 0 ? (
+                      <TopicPicker
+                        max={TREND_SERIES_MAX}
+                        onRankChange={changeRank}
+                        onReset={resetTopicSel}
+                        onSelectionChange={changeTopicSel}
+                        pending={trendPending}
+                        rank={rank}
+                        selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
+                        topics={trend.availableTopics}
+                      />
+                    ) : null}
                     <DateRangeFilter
                       isDefault={range === null}
                       label={range === null ? (trend?.rangeLabel ?? 'All feedback') : undefined}

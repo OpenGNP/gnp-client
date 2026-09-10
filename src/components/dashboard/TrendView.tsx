@@ -19,9 +19,7 @@ import type {
   TrendTopicSeries,
   TrendVolumePoint,
 } from '../../data/dashboardAnalytics'
-
-// Line colors for the "Topic Trends (by volume)" chart, in series order (Figma).
-const TOPIC_TREND_COLORS = ['#7156F1', '#177CFD', '#51C66D', '#FEB535', '#F63B56']
+import { TOPIC_TREND_COLORS } from './trendColors'
 
 const SENTIMENT_AREA = {
   positive: '#B5E6B1',

@@ -3,6 +3,7 @@ import type {
   FormTrendAnalytics,
   TopicSentiment,
   TrendBucket,
+  TrendRank,
 } from '../data/dashboardAnalytics'
 import { apiGet } from '../lib/api'
 
@@ -60,7 +61,15 @@ export function getFormThemeAnalytics(
  * Real time series (`volumeSeries` / `sentimentSeries`) plus Rising/Declining vs the
  * previous equal-length window. `from`/`to` are ISO date strings.
  */
-export type TrendQuery = { from?: string; to?: string; bucket?: TrendBucket }
+export type TrendQuery = {
+  from?: string
+  to?: string
+  bucket?: TrendBucket
+  /** Orders `availableTopics` + auto-picks lines when `topics` is omitted. */
+  rank?: TrendRank
+  /** Explicit topic ids to chart (max 8). Omit to let the server pick by `rank`. */
+  topics?: string[]
+}
 
 export function getFormTrendAnalytics(
   formId: number,
@@ -70,6 +79,8 @@ export function getFormTrendAnalytics(
   if (query.from) params.set('from', query.from)
   if (query.to) params.set('to', query.to)
   if (query.bucket) params.set('bucket', query.bucket)
+  if (query.rank) params.set('rank', query.rank)
+  if (query.topics && query.topics.length > 0) params.set('topics', query.topics.join(','))
   const qs = params.toString()
   return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
 }

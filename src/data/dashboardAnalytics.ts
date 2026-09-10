@@ -75,6 +75,18 @@ export type TrendTopicSeries = {
   label: string
 }
 
+/** How the topic picker ranks its list + which topics the chart auto-picks. */
+export type TrendRank = 'movers' | 'mentioned' | 'severe'
+
+/** One row of the Trend topic picker — every in-window topic, ranked. */
+export type TrendAvailableTopic = {
+  id: string
+  label: string
+  mentions: number
+  volumeChange: number
+  severe: number
+}
+
 export type TopicMovement = {
   id: string
   label: string
@@ -112,6 +124,8 @@ export type TrendSentimentPoint = {
 
 export type FormTrendAnalytics = {
   bucket: TrendBucket
+  /** How `availableTopics` is ordered + how the chart auto-picked lines. */
+  rank: TrendRank
   /** The resolved window (ISO) — the auto default, or whatever the caller asked for. */
   from: string
   to: string
@@ -119,7 +133,10 @@ export type FormTrendAnalytics = {
   comparisonLabel: string
   /** Analysed mentions for this form across all time — "no data yet" vs "range too narrow". */
   totalMentions: number
+  /** The lines currently on the chart. */
   topicVolumeSeries: TrendTopicSeries[]
+  /** Every in-window topic, ranked — powers the topic picker. */
+  availableTopics: TrendAvailableTopic[]
   volumeSeries: TrendVolumePoint[]
   sentimentSeries: TrendSentimentPoint[]
   risingTopics: TopicMovement[]
