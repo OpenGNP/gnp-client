@@ -158,7 +158,7 @@ export function FormDashboardPage({
   const [trendPending, setTrendPending] = useState(false)
   const [themesPending, setThemesPending] = useState(false)
   const [bucket, setBucket] = useState<TrendBucket>('week')
-  const [rank, setRank] = useState<TrendRank>('movers')
+  const [rank, setRank] = useState<TrendRank>('mentioned')
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)

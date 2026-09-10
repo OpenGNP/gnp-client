@@ -76,14 +76,13 @@ export type TrendTopicSeries = {
 }
 
 /** How the topic picker ranks its list + which topics the chart auto-picks. */
-export type TrendRank = 'movers' | 'mentioned' | 'severe'
+export type TrendRank = 'mentioned' | 'severe'
 
 /** One row of the Trend topic picker — every in-window topic, ranked. */
 export type TrendAvailableTopic = {
   id: string
   label: string
   mentions: number
-  volumeChange: number
   severe: number
 }
 

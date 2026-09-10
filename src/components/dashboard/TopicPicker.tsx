@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown, ListFilter, Search, TriangleAlert } from 'lucide-react'
+import { ChevronDown, ListFilter, Search, TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { TrendAvailableTopic, TrendRank } from '../../data/dashboardAnalytics'
@@ -7,32 +7,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { TOPIC_TREND_COLORS } from './trendColors'
 
 const RANKS: { value: TrendRank; label: string; short: string }[] = [
-  { value: 'movers', label: 'Biggest movers', short: 'Movers' },
   { value: 'mentioned', label: 'Most mentioned', short: 'Mentioned' },
   { value: 'severe', label: 'Most severe', short: 'Severe' },
 ]
 
 /** Rows shown before "Show more" kicks in (search bypasses this). */
 const INITIAL_ROWS = 40
-
-function DeltaTag({ value }: { value: number }) {
-  if (value === 0) {
-    return <span className="w-12 shrink-0 text-right text-[11px] text-[#929292]">0%</span>
-  }
-  const up = value > 0
-  const Arrow = up ? ArrowUp : ArrowDown
-  return (
-    <span
-      className={cn(
-        'flex w-12 shrink-0 items-center justify-end gap-0.5 text-[11px] font-medium tabular-nums',
-        up ? 'text-[#0b842d]' : 'text-[#c0392b]',
-      )}
-    >
-      <Arrow size={11} />
-      {Math.abs(value)}%
-    </span>
-  )
-}
 
 export type TopicPickerProps = {
   /** Every in-window topic, already ranked by `rank` (server order). */
@@ -200,10 +180,9 @@ export function TopicPicker({
                         {topic.severe}
                       </span>
                     ) : null}
-                    <span className="w-8 shrink-0 text-right text-[11px] text-[#3f4045] tabular-nums">
+                    <span className="w-10 shrink-0 text-right text-[11px] text-[#3f4045] tabular-nums">
                       {topic.mentions}
                     </span>
-                    <DeltaTag value={topic.volumeChange} />
                   </button>
                 )
               })
