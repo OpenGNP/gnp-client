@@ -49,25 +49,10 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Local-dev convenience only: with VITE_DEV_EMAIL / VITE_DEV_PASSWORD set, sign in
- * automatically on startup instead of hitting the login page every reload. Gated to
- * `import.meta.env.DEV` so a production build never attempts it. Visiting /login
- * directly while this is configured will bounce you back once it resolves — unset
- * the vars locally if you need to exercise the login page itself.
- */
-async function devAutoLogin(): Promise<AuthUser | null> {
-  if (!import.meta.env.DEV) return null
-  const email = import.meta.env.VITE_DEV_EMAIL
-  const password = import.meta.env.VITE_DEV_PASSWORD
-  if (!email || !password) return null
-  return login(email, password)
-}
-
-/**
  * Resolves the session on startup: reuse a stored token (validated against
- * /users/me), else try dev auto-login, else resolve `null` — "not signed in", which
- * routes to /login. A *thrown* error means the API itself couldn't be reached, not
- * "not logged in" — that still surfaces as AppGate's retry card.
+ * /users/me), else resolve `null` — "not signed in", which routes to /login. A
+ * *thrown* error means the API itself couldn't be reached, not "not logged in" —
+ * that still surfaces as AppGate's retry card.
  */
 async function bootstrapSession(): Promise<AuthUser | null> {
   if (getAuthToken()) {
@@ -81,7 +66,7 @@ async function bootstrapSession(): Promise<AuthUser | null> {
     }
   }
 
-  return devAutoLogin()
+  return null
 }
 
 // Shared across the StrictMode double-mount so we only hit the API once.
