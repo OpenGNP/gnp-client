@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { AppGate } from './components/AppGate.tsx'
 import { AuthProvider } from './components/AuthProvider.tsx'
 import { PublicFormBySlugPage } from './pages/PublicFormBySlugPage.tsx'
+import { LoginPage } from './pages/LoginPage.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -22,9 +23,20 @@ createRoot(document.getElementById('root')!).render(
           path="*"
           element={
             <AuthProvider>
-              <AppGate>
-                <App />
-              </AppGate>
+              {/* /login sits inside AuthProvider (so it can call useAuth().login) but
+                  outside AppGate — AppGate redirects signed-out visitors *to* /login,
+                  so it can't also be the thing gating /login itself. */}
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  path="*"
+                  element={
+                    <AppGate>
+                      <App />
+                    </AppGate>
+                  }
+                />
+              </Routes>
             </AuthProvider>
           }
         />
