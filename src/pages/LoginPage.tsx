@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
@@ -12,6 +13,7 @@ export function LoginPage() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -69,15 +71,27 @@ export function LoginPage() {
 
           <label className="flex flex-col gap-1.5 text-left">
             <span className="text-[12px] font-medium text-[#3f4045]">Password</span>
-            <input
-              autoComplete="current-password"
-              className="h-10.5 rounded-[8px] border border-[#d7dbe6] px-3 text-[14px] text-[#14181f] outline-none transition-colors focus:border-[#1e55c5]"
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-              required
-              type="password"
-              value={password}
-            />
+            <div className="relative flex items-center">
+              <input
+                autoComplete="current-password"
+                className="h-10.5 w-full rounded-[8px] border border-[#d7dbe6] px-3 pr-10 text-[14px] text-[#14181f] outline-none transition-colors focus:border-[#1e55c5]"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+              />
+              <button
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute right-3 flex cursor-pointer items-center text-[#8b8e98] transition-colors hover:text-[#3f4045]"
+                onClick={() => setShowPassword((value) => !value)}
+                tabIndex={-1}
+                type="button"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </label>
 
           {error ? (
