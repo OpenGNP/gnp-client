@@ -8,175 +8,192 @@ import type {
   FormSection,
   FormStatus,
   UpdateFormPayload,
-} from '../api/forms'
-import type { Question } from '../components/forms/question-types'
+} from "../api/forms";
+import type { Question } from "../components/forms/question-types";
 import {
   defaultFormAccessSettings,
   type FormAccessSettings,
-} from '../hooks/useFormAccessSettings'
-import type { FormEditorModel } from '../hooks/useFormEditorModel'
+} from "../hooks/useFormAccessSettings";
+import type { FormEditorModel } from "../hooks/useFormEditorModel";
 
 // --- Question <-> API field -------------------------------------------------
 
 /** A question the author never actually filled in — dropped rather than saved. */
 function isQuestionEmpty(question: Question): boolean {
-  if (question.question.trim() !== '') return false
-  if (question.type === 'choice') return question.options.every((option) => option.trim() === '')
-  return true
+  if (question.question.trim() !== "") return false;
+  if (question.type === "choice")
+    return question.options.every((option) => option.trim() === "");
+  return true;
 }
 
-function questionToField(question: Question, section: FormSection, order: number): FormFieldPayload {
+function questionToField(
+  question: Question,
+  section: FormSection,
+  order: number,
+): FormFieldPayload {
   const base = {
-    fieldLabel: question.question.trim() || 'Untitled question',
+    fieldLabel: question.question.trim() || "Untitled question",
     section,
     isRequired: question.required,
     fieldOrder: order,
-  }
+  };
 
-  if (question.type === 'text') {
+  if (question.type === "text") {
     return {
       ...base,
-      fieldType: question.answerLength === 'long' ? 'textarea' : 'text',
+      fieldType: question.answerLength === "long" ? "textarea" : "text",
       // The Feedback section is what the AI pipeline analyses; Demographic is not.
-      analyzeWithAi: section === 'feedback',
+      analyzeWithAi: section === "feedback",
       allowOther: false,
-    }
+    };
   }
 
   const options: FieldOptionPayload[] = question.options
     .map((label) => label.trim())
     .filter((label) => label.length > 0)
-    .map((label, index) => ({ optionLabel: label, optionValue: label, optionOrder: index + 1 }))
+    .map((label, index) => ({
+      optionLabel: label,
+      optionValue: label,
+      optionOrder: index + 1,
+    }));
 
   return {
     ...base,
-    fieldType: question.allowMultiple ? 'checkbox' : 'radio',
+    fieldType: question.allowMultiple ? "checkbox" : "radio",
     analyzeWithAi: false,
     allowOther: question.hasOther,
     options,
-  }
+  };
 }
 
 function fieldToQuestion(field: ApiFormField): Question {
-  const id = String(field.id)
-  const label = field.fieldLabel ?? ''
-  const required = field.isRequired ?? false
+  const id = String(field.id);
+  const label = field.fieldLabel ?? "";
+  const required = field.isRequired ?? false;
 
-  if (field.fieldType === 'radio' || field.fieldType === 'checkbox') {
+  if (field.fieldType === "radio" || field.fieldType === "checkbox") {
     const options = field.fieldOptions
       .slice()
       .sort((a, b) => (a.optionOrder ?? 0) - (b.optionOrder ?? 0))
-      .map((option) => option.optionLabel ?? '')
+      .map((option) => option.optionLabel ?? "");
 
     return {
       id,
-      type: 'choice',
+      type: "choice",
       question: label,
-      options: options.length > 0 ? options : [''],
-      allowMultiple: field.fieldType === 'checkbox',
+      options: options.length > 0 ? options : [""],
+      allowMultiple: field.fieldType === "checkbox",
       hasOther: field.allowOther,
       required,
-    }
+    };
   }
 
   return {
     id,
-    type: 'text',
+    type: "text",
     question: label,
-    answerLength: field.fieldType === 'textarea' ? 'long' : 'short',
+    answerLength: field.fieldType === "textarea" ? "long" : "short",
     required,
-  }
+  };
 }
 
 /** Ordered field payloads for the whole form: demographic section first, then feedback. */
 export function buildFieldPayloads(model: FormEditorModel): FormFieldPayload[] {
-  const fields: FormFieldPayload[] = []
-  let order = 1
+  const fields: FormFieldPayload[] = [];
+  let order = 1;
 
   for (const question of model.demographic) {
-    if (isQuestionEmpty(question)) continue
-    fields.push(questionToField(question, 'demographic', order))
-    order += 1
+    if (isQuestionEmpty(question)) continue;
+    fields.push(questionToField(question, "demographic", order));
+    order += 1;
   }
   for (const question of model.feedback) {
-    if (isQuestionEmpty(question)) continue
-    fields.push(questionToField(question, 'feedback', order))
-    order += 1
+    if (isQuestionEmpty(question)) continue;
+    fields.push(questionToField(question, "feedback", order));
+    order += 1;
   }
 
-  return fields
+  return fields;
 }
 
 // --- Access settings <-> API ----------------------------------------------
 
 type AccessPayload = {
-  accessType: FormAccessType
-  acceptingResponses: boolean
-  recordName: boolean
-  oneResponsePerPerson: boolean
-  allowedEmails: string[]
-}
+  accessType: FormAccessType;
+  acceptingResponses: boolean;
+  recordName: boolean;
+  oneResponsePerPerson: boolean;
+  allowedEmails: string[];
+};
 
-export function accessSettingsToPayload(settings: FormAccessSettings): AccessPayload {
-  const byWhoCanFill = ((): Omit<AccessPayload, 'acceptingResponses'> => {
+export function accessSettingsToPayload(
+  settings: FormAccessSettings,
+): AccessPayload {
+  const byWhoCanFill = ((): Omit<AccessPayload, "acceptingResponses"> => {
     switch (settings.whoCanFill) {
-      case 'anyone':
+      case "anyone":
         return {
-          accessType: 'public',
+          accessType: "public",
           recordName: false,
           oneResponsePerPerson: settings.anyoneOneResponsePerPerson,
           allowedEmails: [],
-        }
-      case 'specific':
+        };
+      case "specific":
         return {
-          accessType: 'specific',
+          accessType: "specific",
           recordName: settings.specificRecordName,
           oneResponsePerPerson: settings.specificOneResponsePerPerson,
           allowedEmails: settings.specificEmails,
-        }
-      case 'organization':
+        };
+      case "organization":
       default:
         return {
-          accessType: 'organization',
+          accessType: "organization",
           recordName: settings.organizationRecordName,
           oneResponsePerPerson: settings.organizationOneResponsePerPerson,
           allowedEmails: [],
-        }
+        };
     }
-  })()
+  })();
 
-  return { ...byWhoCanFill, acceptingResponses: settings.acceptingResponses }
+  return { ...byWhoCanFill, acceptingResponses: settings.acceptingResponses };
 }
 
-export function accessSettingsFromForm(form: ApiFormDetail): FormAccessSettings {
-  const emails = form.formAllowedUsers.map((entry) => entry.user.email)
-  const recordName = form.recordName ?? false
-  const oneResponse = form.oneResponsePerPerson ?? false
+export function accessSettingsFromForm(
+  form: ApiFormDetail,
+): FormAccessSettings {
+  const emails = form.formAllowedUsers.map((entry) => entry.user.email);
+  const recordName = form.recordName ?? false;
+  const oneResponse = form.oneResponsePerPerson ?? false;
   const base: FormAccessSettings = {
     ...defaultFormAccessSettings,
     acceptingResponses: form.acceptingResponses,
     startDate: form.startDate,
     endDate: form.endDate,
     specificEmails: emails,
-  }
+  };
 
-  if (form.accessType === 'public') {
-    return { ...base, whoCanFill: 'anyone', anyoneOneResponsePerPerson: oneResponse }
-  }
-  if (form.accessType === 'specific') {
+  if (form.accessType === "public") {
     return {
       ...base,
-      whoCanFill: 'specific',
+      whoCanFill: "anyone",
+      anyoneOneResponsePerPerson: oneResponse,
+    };
+  }
+  if (form.accessType === "specific") {
+    return {
+      ...base,
+      whoCanFill: "specific",
       specificRecordName: recordName,
       specificOneResponsePerPerson: oneResponse,
-    }
+    };
   }
   return {
     ...base,
-    whoCanFill: 'organization',
+    whoCanFill: "organization",
     organizationRecordName: recordName,
     organizationOneResponsePerPerson: oneResponse,
-  }
+  };
 }
 
 // --- Model <-> request payloads ------------------------------------------
@@ -186,10 +203,11 @@ export function buildCreateFormPayload(
   settings: FormAccessSettings,
   options: { status: FormStatus; folderId?: number },
 ): CreateFormPayload {
-  const description = model.description.trim()
+  const description = model.description.trim();
   return {
-    formTitle: model.title.trim() || 'Untitled form',
+    formTitle: model.title.trim() || "Untitled form",
     formDescription: description || undefined,
+    coverImageUrl: model.coverImageUrl ?? undefined,
     status: options.status,
     folderId: options.folderId,
     // Create has nothing to clear, so a null (unchecked) date is just omitted.
@@ -197,7 +215,7 @@ export function buildCreateFormPayload(
     endDate: settings.endDate ?? undefined,
     ...accessSettingsToPayload(settings),
     fields: buildFieldPayloads(model),
-  }
+  };
 }
 
 export function buildUpdateFormPayload(
@@ -205,29 +223,35 @@ export function buildUpdateFormPayload(
   settings: FormAccessSettings,
   options: { status?: FormStatus; includeFields?: boolean } = {},
 ): UpdateFormPayload {
-  const { status, includeFields = true } = options
+  const { status, includeFields = true } = options;
   return {
-    formTitle: model.title.trim() || 'Untitled form',
+    formTitle: model.title.trim() || "Untitled form",
     formDescription: model.description.trim(),
+    // Sent as-is (string | null) so removing the cover actually clears it server-side.
+    coverImageUrl: model.coverImageUrl,
     // Sent as-is (string | null) so unchecking a date actually clears it server-side.
     startDate: settings.startDate,
     endDate: settings.endDate,
     ...(status ? { status } : {}),
     ...accessSettingsToPayload(settings),
     ...(includeFields ? { fields: buildFieldPayloads(model) } : {}),
-  }
+  };
 }
 
 export function formDetailToModel(detail: ApiFormDetail): FormEditorModel {
   const sorted = detail.formFields
     .slice()
-    .sort((a, b) => (a.fieldOrder ?? 0) - (b.fieldOrder ?? 0))
+    .sort((a, b) => (a.fieldOrder ?? 0) - (b.fieldOrder ?? 0));
 
   return {
-    title: detail.formTitle ?? 'Untitled form',
-    description: detail.formDescription ?? '',
+    title: detail.formTitle ?? "Untitled form",
+    description: detail.formDescription ?? "",
     coverImageUrl: detail.coverImageUrl ?? null,
-    demographic: sorted.filter((field) => field.section === 'demographic').map(fieldToQuestion),
-    feedback: sorted.filter((field) => field.section !== 'demographic').map(fieldToQuestion),
-  }
+    demographic: sorted
+      .filter((field) => field.section === "demographic")
+      .map(fieldToQuestion),
+    feedback: sorted
+      .filter((field) => field.section !== "demographic")
+      .map(fieldToQuestion),
+  };
 }

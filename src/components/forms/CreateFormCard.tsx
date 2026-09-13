@@ -1,4 +1,4 @@
-import type { DragEndEvent } from '@dnd-kit/core'
+import type { DragEndEvent } from "@dnd-kit/core";
 import {
   DndContext,
   KeyboardSensor,
@@ -6,37 +6,40 @@ import {
   closestCenter,
   useSensor,
   useSensors,
-} from '@dnd-kit/core'
+} from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { Circle, Type } from 'lucide-react'
-import { useEffect } from 'react'
+} from "@dnd-kit/sortable";
+import { Circle, Type } from "lucide-react";
 
-import type { FormEditorModel } from '../../hooks/useFormEditorModel'
-import { AddQuestionButton } from './AddQuestionButton'
-import { CoverImageField } from './CoverImageField'
-import { createQuestion } from './question-types'
-import type { Question, QuestionTypeOption, QuestionTypeValue } from './question-types'
-import { SortableQuestionCard } from './SortableQuestionCard'
+import type { FormEditorModel } from "../../hooks/useFormEditorModel";
+import { AddQuestionButton } from "./AddQuestionButton";
+import { CoverImageField } from "./CoverImageField";
+import { createQuestion } from "./question-types";
+import type {
+  Question,
+  QuestionTypeOption,
+  QuestionTypeValue,
+} from "./question-types";
+import { SortableQuestionCard } from "./SortableQuestionCard";
 
 type FormSectionProps = {
-  title: string
-  questionTypes: QuestionTypeOption[]
-  showAiAnalyze?: boolean
-  questions: Question[]
-  onQuestionsChange: (questions: Question[]) => void
-}
+  title: string;
+  questionTypes: QuestionTypeOption[];
+  showAiAnalyze?: boolean;
+  questions: Question[];
+  onQuestionsChange: (questions: Question[]) => void;
+};
 
-const dividerClass = 'h-px w-full bg-[#e8eaf1]'
+const dividerClass = "h-px w-full bg-[#e8eaf1]";
 
 const demographicQuestionTypes: QuestionTypeOption[] = [
   {
-    value: 'choice',
-    label: 'Choice',
+    value: "choice",
+    label: "Choice",
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-[#1e55c5] bg-transparent text-[#1e55c5]">
         <Circle className="fill-current" size={10} strokeWidth={0} />
@@ -44,27 +47,27 @@ const demographicQuestionTypes: QuestionTypeOption[] = [
     ),
   },
   {
-    value: 'text',
-    label: 'Text',
+    value: "text",
+    label: "Text",
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-transparent text-[#1e55c5]">
         <Type size={14} strokeWidth={3} />
       </span>
     ),
   },
-]
+];
 
 const feedbackQuestionTypes: QuestionTypeOption[] = [
   {
-    value: 'text',
-    label: 'Text',
+    value: "text",
+    label: "Text",
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-white text-[#1e55c5]">
         <Type size={14} strokeWidth={3} />
       </span>
     ),
   },
-]
+];
 
 function FormSection({
   title,
@@ -75,35 +78,44 @@ function FormSection({
 }: FormSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const addQuestion = (type: QuestionTypeValue) => {
-    onQuestionsChange([...questions, createQuestion(type, crypto.randomUUID())])
-  }
+    onQuestionsChange([
+      ...questions,
+      createQuestion(type, crypto.randomUUID()),
+    ]);
+  };
 
   const updateQuestion = (updated: Question) => {
     onQuestionsChange(
-      questions.map((question) => (question.id === updated.id ? updated : question)),
-    )
-  }
+      questions.map((question) =>
+        question.id === updated.id ? updated : question,
+      ),
+    );
+  };
 
   const removeQuestion = (id: string) => {
-    onQuestionsChange(questions.filter((question) => question.id !== id))
-  }
+    onQuestionsChange(questions.filter((question) => question.id !== id));
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
+    const { active, over } = event;
     if (!over || active.id === over.id) {
-      return
+      return;
     }
-    const oldIndex = questions.findIndex((question) => question.id === active.id)
-    const newIndex = questions.findIndex((question) => question.id === over.id)
+    const oldIndex = questions.findIndex(
+      (question) => question.id === active.id,
+    );
+    const newIndex = questions.findIndex((question) => question.id === over.id);
     if (oldIndex === -1 || newIndex === -1) {
-      return
+      return;
     }
-    onQuestionsChange(arrayMove(questions, oldIndex, newIndex))
-  }
+    onQuestionsChange(arrayMove(questions, oldIndex, newIndex));
+  };
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby={`${title}-title`}>
@@ -115,7 +127,11 @@ function FormSection({
       </h2>
 
       {questions.length > 0 ? (
-        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          sensors={sensors}
+        >
           <SortableContext
             items={questions.map((question) => question.id)}
             strategy={verticalListSortingStrategy}
@@ -135,27 +151,42 @@ function FormSection({
         </DndContext>
       ) : null}
 
-      <AddQuestionButton onAddQuestion={addQuestion} questionTypes={questionTypes} />
+      <AddQuestionButton
+        onAddQuestion={addQuestion}
+        questionTypes={questionTypes}
+      />
     </section>
-  )
+  );
 }
 
 export type CreateFormCardProps = {
-  value: FormEditorModel
-  onChange: (partial: Partial<FormEditorModel>) => void
+  value: FormEditorModel;
+  onChange: (partial: Partial<FormEditorModel>) => void;
+};
+
+const MAX_COVER_IMAGE_BYTES = 3 * 1024 * 1024;
+
+/** No file-hosting backend exists, so the cover is stored inline as a data URL. */
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
-  const { coverImageUrl } = value
+  const { coverImageUrl } = value;
 
-  useEffect(() => {
-    return () => {
-      // Only object URLs we minted here need revoking; a cover loaded from the API is a real URL.
-      if (coverImageUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(coverImageUrl)
-      }
+  const handleSelectImage = async (file: File) => {
+    if (file.size > MAX_COVER_IMAGE_BYTES) {
+      window.alert("Please choose an image under 3MB.");
+      return;
     }
-  }, [coverImageUrl])
+    const dataUrl = await readFileAsDataUrl(file);
+    onChange({ coverImageUrl: dataUrl });
+  };
 
   return (
     <section
@@ -166,7 +197,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
         <CoverImageField
           imageUrl={coverImageUrl}
           onRemoveImage={() => onChange({ coverImageUrl: null })}
-          onSelectImage={(file) => onChange({ coverImageUrl: URL.createObjectURL(file) })}
+          onSelectImage={handleSelectImage}
         />
 
         <div className="flex flex-col gap-3">
@@ -190,7 +221,9 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
         <div className={dividerClass} />
 
         <FormSection
-          onQuestionsChange={(questions) => onChange({ demographic: questions })}
+          onQuestionsChange={(questions) =>
+            onChange({ demographic: questions })
+          }
           questions={value.demographic}
           questionTypes={demographicQuestionTypes}
           title="Demographic"
@@ -207,5 +240,5 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
         />
       </div>
     </section>
-  )
+  );
 }
