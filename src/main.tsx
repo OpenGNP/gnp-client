@@ -7,6 +7,7 @@ import { AppGate } from './components/AppGate.tsx'
 import { AuthProvider } from './components/AuthProvider.tsx'
 import { PublicFormBySlugPage } from './pages/PublicFormBySlugPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
+import { PublicFormBySlugPage } from './pages/PublicFormBySlugPage.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
