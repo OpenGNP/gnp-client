@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { AuthContext, resolveSession, type AuthStatus, type AuthUser } from '../lib/auth'
+import {
+  AuthContext,
+  login as loginRequest,
+  logout as logoutRequest,
+  resolveSession,
+  type AuthStatus,
+  type AuthUser,
+} from '../lib/auth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -16,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((resolvedUser) => {
         if (cancelled) return
         setUser(resolvedUser)
-        setStatus('ready')
+        setStatus(resolvedUser ? 'ready' : 'unauthenticated')
       })
       .catch((bootstrapError: unknown) => {
         if (cancelled) return
@@ -37,7 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAttempt((value) => value + 1)
   }
 
+  // Doesn't catch — the caller (the login form) shows the failure inline.
+  async function login(email: string, password: string) {
+    const loggedInUser = await loginRequest(email, password)
+    setUser(loggedInUser)
+    setStatus('ready')
+  }
+
+  async function logout() {
+    await logoutRequest()
+    setUser(null)
+    setStatus('unauthenticated')
+  }
+
   return (
-    <AuthContext.Provider value={{ user, status, error, retry }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, status, error, retry, login, logout }}>
+      {children}
+    </AuthContext.Provider>
   )
 }

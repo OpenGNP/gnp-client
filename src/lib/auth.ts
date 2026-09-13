@@ -16,23 +16,60 @@ type LoginResponse = {
   token: string
 }
 
-export type AuthStatus = 'loading' | 'ready' | 'error'
+export type AuthStatus = 'loading' | 'ready' | 'unauthenticated' | 'error'
 
 export type AuthContextValue = {
   user: AuthUser | null
   status: AuthStatus
   error: string | null
   retry: () => void
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
+/** POSTs to /auth/login, stores the returned token, and resolves the signed-in user. */
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const { user, token } = await apiPost<LoginResponse>('/auth/login', { email, password })
+  setAuthToken(token)
+  return user
+}
+
+/** Clears the server-side auth cookie (best-effort) and the local token either way. */
+export async function logout(): Promise<void> {
+  try {
+    await apiPost('/auth/logout')
+  } catch {
+    // Still drop the local token even if the request fails (e.g. offline) — a
+    // reachable-but-stale session should never keep the client "logged in".
+  } finally {
+    setAuthToken(null)
+  }
+}
+
 /**
- * Dev auto-login. There is no login screen yet, so on startup the client either
- * reuses a stored token (validated against /users/me) or signs in with the
- * VITE_DEV_* credentials from .env. Replace this with a real auth flow later.
+ * Local-dev convenience only: with VITE_DEV_EMAIL / VITE_DEV_PASSWORD set, sign in
+ * automatically on startup instead of hitting the login page every reload. Gated to
+ * `import.meta.env.DEV` so a production build never attempts it. Visiting /login
+ * directly while this is configured will bounce you back once it resolves — unset
+ * the vars locally if you need to exercise the login page itself.
  */
-async function bootstrapSession(): Promise<AuthUser> {
+async function devAutoLogin(): Promise<AuthUser | null> {
+  if (!import.meta.env.DEV) return null
+  const email = import.meta.env.VITE_DEV_EMAIL
+  const password = import.meta.env.VITE_DEV_PASSWORD
+  if (!email || !password) return null
+  return login(email, password)
+}
+
+/**
+ * Resolves the session on startup: reuse a stored token (validated against
+ * /users/me), else try dev auto-login, else resolve `null` — "not signed in", which
+ * routes to /login. A *thrown* error means the API itself couldn't be reached, not
+ * "not logged in" — that still surfaces as AppGate's retry card.
+ */
+async function bootstrapSession(): Promise<AuthUser | null> {
   if (getAuthToken()) {
     try {
       return await apiGet<AuthUser>('/users/me')
@@ -44,23 +81,13 @@ async function bootstrapSession(): Promise<AuthUser> {
     }
   }
 
-  const email = import.meta.env.VITE_DEV_EMAIL
-  const password = import.meta.env.VITE_DEV_PASSWORD
-  if (!email || !password) {
-    throw new Error(
-      'Not signed in, and VITE_DEV_EMAIL / VITE_DEV_PASSWORD are not set in gnp-client/.env.',
-    )
-  }
-
-  const { user, token } = await apiPost<LoginResponse>('/auth/login', { email, password })
-  setAuthToken(token)
-  return user
+  return devAutoLogin()
 }
 
-// Shared across the StrictMode double-mount so we only hit /auth/login once.
-let sessionPromise: Promise<AuthUser> | null = null
+// Shared across the StrictMode double-mount so we only hit the API once.
+let sessionPromise: Promise<AuthUser | null> | null = null
 
-export function resolveSession(forceRefresh: boolean): Promise<AuthUser> {
+export function resolveSession(forceRefresh: boolean): Promise<AuthUser | null> {
   if (forceRefresh) {
     sessionPromise = null
   }

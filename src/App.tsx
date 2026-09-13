@@ -34,7 +34,7 @@ import {
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user: authUser } = useAuth()
+  const { user: authUser, logout } = useAuth()
   const workspace = useWorkspaceTree()
   const {
     projects,
@@ -87,6 +87,12 @@ function App() {
   function handleGoFiles() {
     setIsCreateFormSettingsOpen(false)
     navigate('/files')
+  }
+
+  // No navigate() needed — AppGate reacts to the status flip and swaps <App/> for
+  // the /login redirect on its own.
+  function handleLogout() {
+    void logout()
   }
 
   function handleCreateForm() {
@@ -433,6 +439,7 @@ function App() {
           onCreateForm={handleCreateForm}
           onGoFiles={handleGoFiles}
           onGoHome={handleGoHome}
+          onLogout={handleLogout}
           onMoveProject={handleMoveProject}
           onSearchChange={setSearchTerm}
           onSelectProject={handleSelectProject}
