@@ -14,6 +14,18 @@ function coverImageSrc(path: string, updatedAt: string | null): string {
   return `${API_URL}${path}${version}`;
 }
 
+/**
+ * Cover images are served through a gated endpoint, never a direct storage URL —
+ * `path` is `coverImageUrl` from the server (an internal object key) truthy-checked
+ * by the caller, this just builds the URL that actually fetches it. `?v=` busts the
+ * browser cache when a cover is replaced (the endpoint's own Cache-Control is a
+ * private 5-minute TTL, keyed only by form id).
+ */
+function coverImageSrc(path: string, updatedAt: string | null): string {
+  const version = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : "";
+  return `${API_URL}${path}${version}`;
+}
+
 export type FormStatus = "draft" | "active" | "closed" | "archived";
 export type FormAccessType = "public" | "organization" | "specific";
 export type FormFieldType = "text" | "textarea" | "radio" | "checkbox";
