@@ -253,7 +253,10 @@ export function PublicFormBySlugPage() {
         if (cancelled) return;
         setForm(data);
         setAnswers(initialAnswers(data.fields));
-        setStatus("ready");
+        // Already responded (one-response-per-person, and we know who they are) —
+        // skip straight to the thank-you screen instead of a form that would just
+        // 409 on submit.
+        setStatus(data.alreadyResponded ? "submitted" : "ready");
       })
       .catch((error: unknown) => {
         if (cancelled) return;
