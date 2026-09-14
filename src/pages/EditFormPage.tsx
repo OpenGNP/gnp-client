@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { getForm, updateForm } from '../api/forms'
+import { getForm, removeFormCoverImage, updateForm, uploadFormCoverImage } from '../api/forms'
 import { CreateFormCard } from '../components/forms/CreateFormCard'
 import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
@@ -62,6 +62,10 @@ export function EditFormPage({
   // Snapshot of the fields as loaded — lets a settings-only save skip sending
   // `fields` (which the server refuses once a form has responses).
   const loadedFieldsRef = useRef('')
+  // Whether the form had a cover when loaded — so handleSave knows a null
+  // `model.coverImageUrl` at save time means "the user removed it" and needs a
+  // DELETE call, not "there was never one".
+  const initialHadCoverRef = useRef(false)
 
   // Any saved form has a dashboard (the Response tab reads live data; the page shows
   // its own empty state when there are no submissions yet).
@@ -85,6 +89,7 @@ export function EditFormPage({
         setPublicToken(detail.publicToken)
         setIsPublished(detail.status === 'active')
         loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
+        initialHadCoverRef.current = Boolean(nextModel.coverImageUrl)
         setLoadStatus('ready')
       })
       .catch((error: unknown) => {
@@ -125,6 +130,14 @@ export function EditFormPage({
       )
       if (includeFields) {
         loadedFieldsRef.current = currentFields
+      }
+      if (model.coverImageFile) {
+        await uploadFormCoverImage(formId, model.coverImageFile)
+        update({ coverImageFile: null })
+        initialHadCoverRef.current = true
+      } else if (model.coverImageUrl === null && initialHadCoverRef.current) {
+        await removeFormCoverImage(formId)
+        initialHadCoverRef.current = false
       }
       if (publish) {
         setIsPublished(true)

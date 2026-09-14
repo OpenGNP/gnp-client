@@ -1,5 +1,17 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { API_URL, apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { asUtcIso } from "../lib/apiTimestamp";
+
+/**
+ * Cover images are served through a gated endpoint, never a direct storage URL —
+ * `path` is `coverImageUrl` from the server (an internal object key) truthy-checked
+ * by the caller, this just builds the URL that actually fetches it. `?v=` busts the
+ * browser cache when a cover is replaced (the endpoint's own Cache-Control is a
+ * private 5-minute TTL, keyed only by form id).
+ */
+function coverImageSrc(path: string, updatedAt: string | null): string {
+  const version = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : "";
+  return `${API_URL}${path}${version}`;
+}
 
 export type FormStatus = "draft" | "active" | "closed" | "archived";
 export type FormAccessType = "public" | "organization" | "specific";
@@ -85,6 +97,7 @@ export type ApiPublicForm = {
   oneResponsePerPerson: boolean | null;
   startDate: string | null;
   endDate: string | null;
+  updatedAt: string | null;
   fields: ApiFormField[];
 };
 
@@ -98,6 +111,9 @@ export async function getPublicFormByToken(
     ...form,
     startDate: asUtcIso(form.startDate),
     endDate: asUtcIso(form.endDate),
+    coverImageUrl: form.coverImageUrl
+      ? coverImageSrc(`/forms/public/${encodeURIComponent(token)}/cover-image`, form.updatedAt)
+      : null,
   };
 }
 
@@ -112,6 +128,9 @@ export async function getPublicFormBySlug(
     ...form,
     startDate: asUtcIso(form.startDate),
     endDate: asUtcIso(form.endDate),
+    coverImageUrl: form.coverImageUrl
+      ? coverImageSrc(`/forms/slug/${encodeURIComponent(slug)}/cover-image`, form.updatedAt)
+      : null,
   };
 }
 
@@ -136,7 +155,6 @@ export type CreateFormPayload = {
   folderId?: number;
   formTitle: string;
   formDescription?: string;
-  coverImageUrl?: string;
   status?: FormStatus;
   accessType?: FormAccessType;
   acceptingResponses?: boolean;
@@ -152,8 +170,6 @@ export type UpdateFormPayload = {
   folderId?: number | null;
   formTitle?: string;
   formDescription?: string;
-  // Nullable so a save can explicitly clear a previously-set cover image.
-  coverImageUrl?: string | null;
   status?: FormStatus;
   accessType?: FormAccessType;
   acceptingResponses?: boolean;
@@ -184,13 +200,29 @@ export async function listForms(folderId?: number): Promise<ApiForm[]> {
 
 export async function getForm(id: number): Promise<ApiFormDetail> {
   const form = await apiGet<ApiFormDetail>(`/forms/${id}`);
+  const updatedAt = asUtcIso(form.updatedAt);
   return {
     ...form,
     createdAt: asUtcIso(form.createdAt),
-    updatedAt: asUtcIso(form.updatedAt),
+    updatedAt,
     startDate: asUtcIso(form.startDate),
     endDate: asUtcIso(form.endDate),
+    // `form.coverImageUrl` here is the raw server value (an internal MinIO object
+    // key, or null) — only its truthiness matters; the actual src is this form's
+    // gated cover-image endpoint.
+    coverImageUrl: form.coverImageUrl ? coverImageSrc(`/forms/${id}/cover-image`, updatedAt) : null,
   };
+}
+
+/** Uploads (or replaces) a form's cover image. Returns the server's internal object key — most callers should just re-fetch the form rather than use it directly. */
+export function uploadFormCoverImage(id: number, file: File): Promise<{ coverImageUrl: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiPost<{ coverImageUrl: string }>(`/forms/${id}/cover-image`, formData);
+}
+
+export function removeFormCoverImage(id: number): Promise<null> {
+  return apiDelete<null>(`/forms/${id}/cover-image`);
 }
 
 /** `POST /api/forms` returns the raw inserted row; callers only need its id. */

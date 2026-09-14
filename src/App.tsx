@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
-import { createForm, deleteForm, reorderForms, updateForm } from './api/forms'
+import { createForm, deleteForm, reorderForms, updateForm, uploadFormCoverImage } from './api/forms'
 import { createFolder, deleteFolder, reorderFolders, updateFolder } from './api/folders'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
@@ -126,6 +126,16 @@ function App() {
       })
       const created = await createForm(payload)
       const idStr = String(created.id)
+
+      if (createFormModel.coverImageFile) {
+        try {
+          await uploadFormCoverImage(created.id, createFormModel.coverImageFile)
+        } catch {
+          window.alert(
+            'The form was saved, but the cover image failed to upload. You can try again from the editor.',
+          )
+        }
+      }
 
       addProject(folderId, {
         id: formNodeId(idStr),

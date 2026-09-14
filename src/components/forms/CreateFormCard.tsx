@@ -164,28 +164,37 @@ export type CreateFormCardProps = {
   onChange: (partial: Partial<FormEditorModel>) => void;
 };
 
-const MAX_COVER_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_COVER_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
-/** No file-hosting backend exists, so the cover is stored inline as a data URL. */
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+function revokeIfBlobUrl(url: string | null) {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   const { coverImageUrl } = value;
 
-  const handleSelectImage = async (file: File) => {
-    if (file.size > MAX_COVER_IMAGE_BYTES) {
-      window.alert("Please choose an image under 3MB.");
+  // The actual upload happens on save (see App.tsx / EditFormPage.tsx) — a
+  // brand-new form has no id yet to upload against, so selecting a file here just
+  // stages it and previews it locally.
+  const handleSelectImage = (file: File) => {
+    if (!ALLOWED_COVER_IMAGE_TYPES.includes(file.type)) {
+      window.alert("Please choose a PNG, JPEG, WEBP, or GIF image.");
       return;
     }
-    const dataUrl = await readFileAsDataUrl(file);
-    onChange({ coverImageUrl: dataUrl });
+    if (file.size > MAX_COVER_IMAGE_BYTES) {
+      window.alert("Please choose an image under 5MB.");
+      return;
+    }
+    revokeIfBlobUrl(coverImageUrl);
+    onChange({ coverImageUrl: URL.createObjectURL(file), coverImageFile: file });
+  };
+
+  const handleRemoveImage = () => {
+    revokeIfBlobUrl(coverImageUrl);
+    onChange({ coverImageUrl: null, coverImageFile: null });
   };
 
   return (
@@ -196,7 +205,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
       <div className="flex w-full flex-col gap-5">
         <CoverImageField
           imageUrl={coverImageUrl}
-          onRemoveImage={() => onChange({ coverImageUrl: null })}
+          onRemoveImage={handleRemoveImage}
           onSelectImage={handleSelectImage}
         />
 
