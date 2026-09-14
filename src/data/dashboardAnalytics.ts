@@ -88,10 +88,22 @@ export type TrendAvailableTopic = {
   severe: number
 }
 
+export type TopicMovementStatus = 'existing' | 'new' | 'inactive'
+
 export type TopicMovement = {
   id: string
   label: string
-  volumeChange: number
+  currentMentions: number
+  /** This topic's average mentions per bucket, over its history up to (not
+   *  including) the latest bucket — NOT just the single bucket right before it. */
+  previousMentions: number
+  /** Cumulative mentions across ALL topics up to the latest bucket — same value on
+   *  every row. */
+  previousTotalMentions: number
+  /** `null` when there's no historical baseline to compare against (status "new"
+   *  or "inactive") — the UI shows "New"/"—" instead of a percentage then. */
+  changePercent: number | null
+  status: TopicMovementStatus
   positiveChange: number
   negativeChange: number
 }
