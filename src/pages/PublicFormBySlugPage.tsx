@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
 import {
-  getPublicFormByToken,
+  getPublicFormBySlug,
   type ApiFormField,
   type ApiPublicForm,
 } from "../api/forms";
@@ -18,15 +18,10 @@ import { ApiError } from "../lib/api";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
 import { cn } from "../lib/utils";
 
-const OTHER_VALUE = "__other__";
 const TEXTAREA_MAX_LENGTH = 2000;
 
 type TextAnswer = { kind: "text"; value: string };
-type ChoiceAnswer = {
-  kind: "choice";
-  optionIds: number[];
-  other: string | null;
-};
+type ChoiceAnswer = { kind: "choice"; optionIds: number[] };
 type Answer = TextAnswer | ChoiceAnswer;
 
 function isChoice(field: ApiFormField) {
@@ -37,7 +32,7 @@ function initialAnswers(fields: ApiFormField[]): Record<number, Answer> {
   const answers: Record<number, Answer> = {};
   for (const field of fields) {
     answers[field.id] = isChoice(field)
-      ? { kind: "choice", optionIds: [], other: null }
+      ? { kind: "choice", optionIds: [] }
       : { kind: "text", value: "" };
   }
   return answers;
@@ -45,11 +40,9 @@ function initialAnswers(fields: ApiFormField[]): Record<number, Answer> {
 
 function isAnswered(answer: Answer | undefined): boolean {
   if (!answer) return false;
-  if (answer.kind === "text") return answer.value.trim() !== "";
-  return (
-    answer.optionIds.length > 0 ||
-    (answer.other !== null && answer.other.trim() !== "")
-  );
+  return answer.kind === "text"
+    ? answer.value.trim() !== ""
+    : answer.optionIds.length > 0;
 }
 
 function buildAnswerPayload(
@@ -74,14 +67,6 @@ function buildAnswerPayload(
     for (const optionId of answer.optionIds) {
       payload.push({ fieldId: field.id, answerOptionId: optionId });
     }
-    if (answer.other !== null) {
-      const text = answer.other.trim();
-      if (text)
-        payload.push({
-          fieldId: field.id,
-          answerText: text.slice(0, TEXTAREA_MAX_LENGTH),
-        });
-    }
   }
   return payload;
 }
@@ -97,7 +82,7 @@ function describeLoadError(error: unknown): { title: string; body: string } {
   if (status === 401) {
     return {
       title: "Sign-in required",
-      body: "This form is limited to a specific organization. Open the link while signed in to respond.",
+      body: "Open this link while signed in to respond.",
     };
   }
   if (status === 403) {
@@ -180,61 +165,25 @@ function ChoiceField({
           >
             <Checkbox
               checked={answer.optionIds.includes(option.id)}
-              onCheckedChange={(value) => toggle(option.id, value === true)}
+              onCheckedChange={(checked) => toggle(option.id, checked === true)}
             />
             <span className="text-sm text-foreground">
               {option.optionLabel}
             </span>
           </label>
         ))}
-        {field.allowOther ? (
-          <div className="flex flex-col gap-2">
-            <label className="flex cursor-pointer items-center gap-3">
-              <Checkbox
-                checked={answer.other !== null}
-                onCheckedChange={(value) =>
-                  onChange({
-                    ...answer,
-                    other: value === true ? (answer.other ?? "") : null,
-                  })
-                }
-              />
-              <span className="text-sm text-foreground">Other</span>
-            </label>
-            {answer.other !== null ? (
-              <input
-                aria-label={`${field.fieldLabel ?? "Question"} — other`}
-                className={cn(inputClass, "ml-8 max-w-[calc(100%-2rem)]")}
-                onChange={(event) =>
-                  onChange({ ...answer, other: event.target.value })
-                }
-                placeholder="Your answer"
-                value={answer.other}
-              />
-            ) : null}
-          </div>
-        ) : null}
       </div>
     );
   }
 
-  const value =
-    answer.other !== null
-      ? OTHER_VALUE
-      : answer.optionIds[0] !== undefined
-        ? String(answer.optionIds[0])
-        : "";
-
   return (
     <RadioGroup
       onValueChange={(next) =>
-        onChange(
-          next === OTHER_VALUE
-            ? { ...answer, optionIds: [], other: answer.other ?? "" }
-            : { ...answer, optionIds: [Number(next)], other: null },
-        )
+        onChange({ ...answer, optionIds: [Number(next)] })
       }
-      value={value}
+      value={
+        answer.optionIds[0] !== undefined ? String(answer.optionIds[0]) : ""
+      }
     >
       {options.map((option) => (
         <label
@@ -245,38 +194,19 @@ function ChoiceField({
           <span className="text-sm text-foreground">{option.optionLabel}</span>
         </label>
       ))}
-      {field.allowOther ? (
-        <div className="flex flex-col gap-2">
-          <label className="flex cursor-pointer items-center gap-3">
-            <RadioGroupItem value={OTHER_VALUE} />
-            <span className="text-sm text-foreground">Other</span>
-          </label>
-          {answer.other !== null ? (
-            <input
-              aria-label={`${field.fieldLabel ?? "Question"} — other`}
-              className={cn(inputClass, "ml-8 max-w-[calc(100%-2rem)]")}
-              onChange={(event) =>
-                onChange({ ...answer, other: event.target.value })
-              }
-              placeholder="Your answer"
-              value={answer.other}
-            />
-          ) : null}
-        </div>
-      ) : null}
     </RadioGroup>
   );
 }
 
-export function PublicFormPage() {
-  const { token } = useParams();
-  const hasToken = typeof token === "string" && token.length > 0;
+export function PublicFormBySlugPage() {
+  const { slug } = useParams();
+  const hasSlug = typeof slug === "string" && slug.length > 0;
 
   const [status, setStatus] = useState<
     "loading" | "error" | "ready" | "submitted"
-  >(hasToken ? "loading" : "error");
+  >(hasSlug ? "loading" : "error");
   const [loadError, setLoadError] = useState<{ title: string; body: string }>(
-    hasToken
+    hasSlug
       ? { title: "", body: "" }
       : {
           title: "This form isn't available",
@@ -286,10 +216,7 @@ export function PublicFormPage() {
   const now = useNow(15_000);
   const [form, setForm] = useState<ApiPublicForm | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
-  // Once someone starts answering, a window boundary passing keeps the form on screen
-  // (with a banner) rather than yanking their work — see the gate below.
   const [hasInteracted, setHasInteracted] = useState(false);
-
   const [submitState, setSubmitState] = useState<"idle" | "submitting">("idle");
   const [submitError, setSubmitError] = useState("");
 
@@ -301,13 +228,10 @@ export function PublicFormPage() {
   };
 
   useEffect(() => {
-    if (!hasToken) {
-      return;
-    }
-
+    if (!hasSlug) return;
     let cancelled = false;
 
-    getPublicFormByToken(token)
+    getPublicFormBySlug(slug)
       .then((data) => {
         if (cancelled) return;
         setForm(data);
@@ -323,7 +247,7 @@ export function PublicFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, hasToken]);
+  }, [slug, hasSlug]);
 
   if (status === "loading") {
     return (
@@ -382,8 +306,8 @@ export function PublicFormPage() {
     );
   }
 
-  // Recomputed on every `useNow` tick, so the form opens/closes on its own as the
-  // start/end time passes — no reload needed.
+  // Recomputed on every `useNow` tick so the form opens/closes on its own as the
+  // start/end date passes — matches the token-based public page's behavior.
   const responseState = deriveResponseState(
     {
       isPublished: true,

@@ -8,6 +8,7 @@ import {
   FolderPlus,
   HardDrive,
   Home,
+  LogOut,
   MoreHorizontal,
   PlusCircle,
   Search,
@@ -59,6 +60,7 @@ export type SidebarProps = {
   onCreateForm: () => void
   onGoFiles: () => void
   onGoHome: () => void
+  onLogout: () => void
   onMoveProject: (projectId: string, target: MoveTarget) => void
   onSearchChange: (value: string) => void
   onSelectProject: (item: ProjectTreeItem) => void
@@ -484,7 +486,7 @@ function ProjectNavigation({
   onToggleFolder,
 }: Omit<
   SidebarProps,
-  'brand' | 'user' | 'isCollapsed' | 'onGoFiles' | 'onGoHome' | 'onToggleCollapse'
+  'brand' | 'user' | 'isCollapsed' | 'onGoFiles' | 'onGoHome' | 'onLogout' | 'onToggleCollapse'
 >) {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
@@ -632,7 +634,7 @@ function ProjectNavigation({
   )
 }
 
-function UserProfile({ user }: { user: SidebarUser }) {
+function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => void }) {
   return (
     <div className="flex h-20.75 items-center gap-2.5 border-t border-[#eef1f5] pr-5.75 pl-7.25">
       <div className="flex size-7.75 shrink-0 items-center justify-center rounded-full bg-[#4c71f7] text-white">
@@ -646,14 +648,24 @@ function UserProfile({ user }: { user: SidebarUser }) {
           {user.email}
         </span>
       </div>
-      <Button
-        className="size-10 text-[#3f4045]"
-        aria-label="Profile options"
-        size="icon"
-        variant="ghost"
-      >
-        <MoreHorizontal className="size-6" />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="size-10 text-[#3f4045]"
+            aria-label="Profile options"
+            size="icon"
+            variant="ghost"
+          >
+            <MoreHorizontal className="size-6" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-35">
+          <DropdownMenuItem onSelect={onLogout}>
+            <LogOut size={14} />
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
@@ -670,6 +682,7 @@ export function Sidebar({
   onCreateForm,
   onGoFiles,
   onGoHome,
+  onLogout,
   onMoveProject,
   onSearchChange,
   onSelectProject,
@@ -712,7 +725,7 @@ export function Sidebar({
             onSelectProject={onSelectProject}
             onToggleFolder={onToggleFolder}
           />
-          <UserProfile user={user} />
+          <UserProfile onLogout={onLogout} user={user} />
         </>
       ) : null}
     </aside>

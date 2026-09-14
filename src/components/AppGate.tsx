@@ -1,13 +1,29 @@
 import type { ReactNode } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../lib/auth'
 
-/** Holds the app back until the dev session resolves; shows a retry card if the API is unreachable. */
+/**
+ * Holds the app back until the session resolves: sends signed-out visitors to
+ * /login (preserving where they were headed), shows a retry card if the API is
+ * unreachable, else renders the app.
+ */
 export function AppGate({ children }: { children: ReactNode }) {
   const { status, error, retry } = useAuth()
+  const location = useLocation()
 
   if (status === 'ready') {
     return <>{children}</>
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <Navigate
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+        to="/login"
+      />
+    )
   }
 
   return (
