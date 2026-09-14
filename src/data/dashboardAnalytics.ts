@@ -100,8 +100,13 @@ export type TopicMovement = {
   /** Cumulative mentions across ALL topics up to the latest bucket — same value on
    *  every row. */
   previousTotalMentions: number
-  /** `null` when there's no historical baseline to compare against (status "new"
-   *  or "inactive") — the UI shows "New"/"—" instead of a percentage then. */
+  /** currentMentions − previousMentions, rounded. The PRIMARY signal — this is what
+   *  ranks and labels rising/declining, not changePercent (dividing by a tiny/
+   *  fractional average produces meaningless numbers like "+1900%"). */
+  delta: number
+  /** Secondary context only (e.g. a tooltip) — never used for ranking/display as
+   *  the primary indicator. `null` when there's no baseline (status "new" or
+   *  "inactive") or the baseline is too small for a percentage to mean anything. */
   changePercent: number | null
   status: TopicMovementStatus
   positiveChange: number
