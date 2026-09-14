@@ -14,6 +14,8 @@ export type FeedbackDemographic = {
 export type FeedbackPoint = {
   id: string
   sentiment: FeedbackSentiment
+  /** Flagged by the AI pipeline as reporting a legal, ethical or moral breach. */
+  severe?: boolean
   quote: string
   originalFeedback: string
   submittedAt: string

@@ -1,4 +1,4 @@
-import { ChevronDown, Filter, MessageSquareText } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Filter, MessageSquareText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
@@ -58,14 +58,26 @@ function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
 
   return (
     <div className="flex flex-col gap-2.5 rounded-[10px] border border-[#e9eaed] p-4">
-      <span
-        className={cn(
-          'w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize',
-          SENTIMENT_BADGE_CLASSES[point.sentiment],
-        )}
-      >
-        {point.sentiment}
-      </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className={cn(
+            'w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize',
+            SENTIMENT_BADGE_CLASSES[point.sentiment],
+          )}
+        >
+          {point.sentiment}
+        </span>
+
+        {point.severe ? (
+          <span
+            className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset"
+            title="Reported conduct breach — flagged by the AI pipeline"
+          >
+            <AlertTriangle size={11} />
+            Violation
+          </span>
+        ) : null}
+      </div>
 
       <p className="m-0 text-[13px] leading-[1.6] text-[#14181f]">“{point.quote}”</p>
 
