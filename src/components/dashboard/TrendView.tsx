@@ -6,9 +6,11 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import type { TooltipContentProps } from 'recharts'
 
 import type {
   EmergingIssue,
@@ -82,6 +84,69 @@ function ChartCard({
   )
 }
 
+function TrendTooltipCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-2 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
+      {children}
+    </div>
+  )
+}
+
+function TopicTrendsTooltip({ active, label, payload }: TooltipContentProps) {
+  if (!active || !payload?.length) {
+    return null
+  }
+
+  return (
+    <TrendTooltipCard>
+      <span className="font-medium text-[#14181f]">{label}</span>
+      <div className="flex flex-col gap-1">
+        {payload.map((entry, index) => (
+          <div className="flex items-center gap-2" key={index}>
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="ml-auto pl-3 font-medium text-[#14181f]">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </TrendTooltipCard>
+  )
+}
+
+function SentimentTrendTooltip({ active, label, payload }: TooltipContentProps) {
+  if (!active || !payload?.length) {
+    return null
+  }
+
+  const byKey = new Map(payload.map((entry) => [entry.dataKey, entry]))
+
+  return (
+    <TrendTooltipCard>
+      <span className="font-medium text-[#14181f]">{label}</span>
+      <div className="flex flex-col gap-1">
+        {(['negative', 'neutral', 'positive'] as const).map((key) => {
+          const entry = byKey.get(key)
+          if (!entry) {
+            return null
+          }
+          return (
+            <div className="flex items-center gap-2" key={key}>
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: SENTIMENT_DOT[key] }}
+              />
+              <span className="text-[#404040]">{key[0].toUpperCase() + key.slice(1)}</span>
+              <span className="ml-auto pl-3 font-medium text-[#14181f]">{entry.value}%</span>
+            </div>
+          )
+        })}
+      </div>
+    </TrendTooltipCard>
+  )
+}
+
 function TopicTrendsCard({
   series,
   data,
@@ -119,12 +184,15 @@ function TopicTrendsCard({
           tickLine={false}
           width={36}
         />
+        <Tooltip content={TopicTrendsTooltip} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
         {series.map((entry, index) => (
           <Line
+            activeDot={{ r: 4 }}
             dataKey={entry.id}
             dot={false}
             isAnimationActive={false}
             key={entry.id}
+            name={entry.label}
             stroke={TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]}
             strokeWidth={2}
             type="monotone"
@@ -167,7 +235,9 @@ function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
           ticks={[0, 25, 50, 75, 100]}
           width={44}
         />
+        <Tooltip content={SentimentTrendTooltip} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
         <Area
+          activeDot={{ r: 4 }}
           dataKey="positive"
           fill={SENTIMENT_AREA.positive}
           fillOpacity={1}
@@ -177,6 +247,7 @@ function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
           type="monotone"
         />
         <Area
+          activeDot={{ r: 4 }}
           dataKey="neutral"
           fill={SENTIMENT_AREA.neutral}
           fillOpacity={1}
@@ -186,6 +257,7 @@ function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
           type="monotone"
         />
         <Area
+          activeDot={{ r: 4 }}
           dataKey="negative"
           fill={SENTIMENT_AREA.negative}
           fillOpacity={1}
