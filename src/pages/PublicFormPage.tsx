@@ -86,9 +86,11 @@ function buildAnswerPayload(
   return payload;
 }
 
-function describeLoadError(
-  error: unknown,
-): { title: string; body: string; canSignIn?: boolean } {
+function describeLoadError(error: unknown): {
+  title: string;
+  body: string;
+  canSignIn?: boolean;
+} {
   const status = error instanceof ApiError ? error.status : 0;
   if (status === 404) {
     return {
@@ -121,7 +123,14 @@ function describeLoadError(
 const inputClass =
   "w-full rounded-lg border border-input bg-white px-3.5 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary";
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  recordsName = false,
+}: {
+  children: React.ReactNode;
+  /** True when the form's `recordName` setting attributes responses to the respondent. */
+  recordsName?: boolean;
+}) {
   return (
     <div className="min-h-screen bg-[#f5f9ff]">
       <div className="sticky top-0 z-10 flex justify-center bg-[#f5f9ff] px-3 pt-6 pb-3 sm:px-4 sm:pt-10">
@@ -136,7 +145,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
             <ShieldCheck className="size-3.5" />
-            Your feedback is anonymous and confidential.
+            {recordsName
+              ? "Your name has been collected but won't be shared publicly."
+              : "Your feedback is anonymous and confidential."}
           </p>
         </div>
       </div>
@@ -381,7 +392,7 @@ export function PublicFormPage() {
     const canSubmitAnother = !form?.oneResponsePerPerson;
 
     return (
-      <Shell>
+      <Shell recordsName={form?.recordName ?? false}>
         <div className="flex flex-col items-center gap-4 p-10 text-center">
           <div className="flex size-24 items-center justify-center rounded-full bg-primary">
             <Check className="size-11 text-white" strokeWidth={3} />
@@ -432,7 +443,7 @@ export function PublicFormPage() {
   if (!isOpen && !hasInteracted) {
     if (responseState === "scheduled") {
       return (
-        <Shell>
+        <Shell recordsName={form.recordName ?? false}>
           <Notice
             body={
               form.startDate
@@ -448,7 +459,7 @@ export function PublicFormPage() {
     // "accepting responses" toggle being off (endDate, if any, may not be reached
     // yet) — only claim a specific close date when the window actually ended.
     return (
-      <Shell>
+      <Shell recordsName={form.recordName ?? false}>
         <Notice
           body={
             form.endDate && now > Date.parse(form.endDate)
@@ -522,7 +533,7 @@ export function PublicFormPage() {
   };
 
   return (
-    <Shell>
+    <Shell recordsName={form.recordName ?? false}>
       <img
         alt=""
         className="h-44 w-full object-cover"
