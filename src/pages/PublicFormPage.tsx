@@ -1,6 +1,6 @@
 import { Check, Send, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
 import {
@@ -86,7 +86,9 @@ function buildAnswerPayload(
   return payload;
 }
 
-function describeLoadError(error: unknown): { title: string; body: string } {
+function describeLoadError(
+  error: unknown,
+): { title: string; body: string; canSignIn?: boolean } {
   const status = error instanceof ApiError ? error.status : 0;
   if (status === 404) {
     return {
@@ -97,7 +99,8 @@ function describeLoadError(error: unknown): { title: string; body: string } {
   if (status === 401) {
     return {
       title: "Sign-in required",
-      body: "This form is limited to a specific organization. Open the link while signed in to respond.",
+      body: "This form is limited to a specific organization. Sign in to respond.",
+      canSignIn: true,
     };
   }
   if (status === 403) {
@@ -141,11 +144,20 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Notice({ title, body }: { title: string; body: string }) {
+function Notice({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="p-10 text-center">
       <p className="text-base font-semibold text-foreground">{title}</p>
       <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }
@@ -270,12 +282,17 @@ function ChoiceField({
 
 export function PublicFormPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const hasToken = typeof token === "string" && token.length > 0;
 
   const [status, setStatus] = useState<
     "loading" | "error" | "ready" | "submitted"
   >(hasToken ? "loading" : "error");
-  const [loadError, setLoadError] = useState<{ title: string; body: string }>(
+  const [loadError, setLoadError] = useState<{
+    title: string;
+    body: string;
+    canSignIn?: boolean;
+  }>(
     hasToken
       ? { title: "", body: "" }
       : {
@@ -338,7 +355,21 @@ export function PublicFormPage() {
   if (status === "error") {
     return (
       <Shell>
-        <Notice body={loadError.body} title={loadError.title} />
+        <Notice
+          action={
+            loadError.canSignIn ? (
+              <Button
+                onClick={() =>
+                  navigate("/login", { state: { from: `/f/${token}` } })
+                }
+              >
+                Sign in
+              </Button>
+            ) : undefined
+          }
+          body={loadError.body}
+          title={loadError.title}
+        />
       </Shell>
     );
   }
