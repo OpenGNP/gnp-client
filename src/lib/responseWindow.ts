@@ -5,10 +5,11 @@ import { formatRelativeTime } from './formatRelativeTime'
  * published, the optional start/end window, and the manual "open for responses"
  * toggle. This collapses them into one state the UI can show as a single pill.
  *
- * Precedence: draft → closed → scheduled → paused → open. The window is a hard
- * boundary; the manual toggle only decides things *inside* it.
+ * Precedence: draft → closed → scheduled → open. The window is a hard boundary; the
+ * manual toggle only decides things *inside* it, and folds into 'closed' too — from
+ * a respondent's perspective "not accepting responses" and "closed" look the same.
  */
-export type ResponseState = 'draft' | 'scheduled' | 'open' | 'paused' | 'closed'
+export type ResponseState = 'draft' | 'scheduled' | 'open' | 'closed'
 
 export type ResponseWindowInputs = {
   isPublished: boolean
@@ -21,7 +22,7 @@ export function deriveResponseState(inputs: ResponseWindowInputs, now: number): 
   if (!inputs.isPublished) return 'draft'
   if (inputs.endDate && now > Date.parse(inputs.endDate)) return 'closed'
   if (inputs.startDate && now < Date.parse(inputs.startDate)) return 'scheduled'
-  if (!inputs.acceptingResponses) return 'paused'
+  if (!inputs.acceptingResponses) return 'closed'
   return 'open'
 }
 
@@ -54,6 +55,7 @@ export type ResponseStateBadge = {
 export function describeResponseState(
   state: ResponseState,
   inputs: ResponseWindowInputs,
+  now: number,
 ): ResponseStateBadge {
   switch (state) {
     case 'draft':
@@ -67,17 +69,19 @@ export function describeResponseState(
           : 'Opens later',
         tone: 'warning',
       }
-    case 'closed':
+    case 'closed': {
+      // Two different causes land here: the window actually ending, or the manual
+      // "accepting responses" toggle being off (the form is otherwise still live).
+      const windowEnded = Boolean(inputs.endDate) && now > Date.parse(inputs.endDate as string)
       return {
         state,
         label: 'Closed',
-        detail: inputs.endDate
+        detail: windowEnded
           ? `Ended ${formatDateTime(inputs.endDate)} (${formatRelativeTime(inputs.endDate)})`
-          : 'Response window ended',
+          : 'Not accepting responses',
         tone: 'danger',
       }
-    case 'paused':
-      return { state, label: 'Paused', detail: 'Not accepting responses', tone: 'warning' }
+    }
     case 'open':
     default:
       return {
@@ -94,9 +98,9 @@ export function describeResponseState(
 /**
  * Badge for the raw `forms.status` lifecycle enum (`draft | active | closed |
  * archived`). For an `active` form it defers to the live response state (so a
- * scheduled/paused active form reads correctly); the other statuses map straight
- * across. Same `ResponseStateBadge` shape / `ResponseStateChip` design used in the
- * form editor.
+ * scheduled or toggled-off active form reads correctly); the other statuses map
+ * straight across. Same `ResponseStateBadge` shape / `ResponseStateChip` design used
+ * in the form editor.
  */
 export function formStatusBadge(
   status: string | null,
@@ -113,7 +117,7 @@ export function formStatusBadge(
     return { state: 'draft', label: 'Draft', detail: 'Not published yet', tone: 'neutral' }
   }
   const inputs: ResponseWindowInputs = { ...window, isPublished: true }
-  return describeResponseState(deriveResponseState(inputs, now), inputs)
+  return describeResponseState(deriveResponseState(inputs, now), inputs, now)
 }
 
 /** Compact one-liner describing the optional start/end window for the Publish popover. */

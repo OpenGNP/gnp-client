@@ -1,4 +1,12 @@
-import { CalendarClock, Eye, Link2, MessageSquareText, PencilLine, TriangleAlert } from 'lucide-react'
+import {
+  CalendarClock,
+  Eye,
+  Link2,
+  MessageSquareText,
+  PencilLine,
+  TriangleAlert,
+  Unlock,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
@@ -10,12 +18,7 @@ import {
 } from '../../hooks/useFormAccessSettings'
 import { useNow } from '../../hooks/useNow'
 import { cn } from '../../lib/utils'
-import {
-  deriveResponseState,
-  describeResponseState,
-  formatDateTime,
-  scheduleSummary,
-} from '../../lib/responseWindow'
+import { formatDateTime, formStatusBadge, scheduleSummary } from '../../lib/responseWindow'
 import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
 import { PopoverClose } from '../ui/popover'
@@ -94,6 +97,14 @@ export type PublishModalProps = {
   shareUrl?: string
   /** Opens the Settings panel to the "Response window" section. */
   onEditSchedule?: () => void
+  /**
+   * The raw `forms.status` lifecycle value (`draft | active | closed | archived`),
+   * drives the chip via `formStatusBadge` and whether Reopen shows. Omitted in
+   * create mode, where there's no saved form yet to have a status.
+   */
+  status?: string | null
+  /** Reopens a manually-closed form (status → 'active'); shown only when `status === 'closed'`. */
+  onReopenForm?: () => void
 }
 
 export function PublishModal({
@@ -104,6 +115,8 @@ export function PublishModal({
   savedAccessSettings,
   shareUrl,
   onEditSchedule,
+  status = null,
+  onReopenForm,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
   const now = useNow()
@@ -111,13 +124,21 @@ export function PublishModal({
   // Every readout derives from the saved snapshot; controls still bind to `settings`.
   const saved = savedAccessSettings ?? settings
   const windowInputs = {
-    isPublished,
     acceptingResponses: saved.acceptingResponses,
     startDate: saved.startDate,
     endDate: saved.endDate,
   }
-  const state = deriveResponseState(windowInputs, now)
-  const badge = describeResponseState(state, windowInputs)
+  const badge = formStatusBadge(status, windowInputs, now)
+  const state = badge.state
+  // `status === 'closed'` (e.g. from an API call, or before this UI dropped the
+  // "Close form" button), as opposed to the response window (endDate) simply having
+  // passed — different copy, and only the former offers a "Reopen form" way back.
+  const isManuallyClosed = status === 'closed'
+  // The other non-manual way `state` reads 'closed': the schedule's end date has
+  // actually passed. Distinguishes that from the "accepting responses" toggle being
+  // off, which also folds into 'closed' but needs different copy (the link still
+  // works; there's no schedule to "reopen").
+  const windowEnded = Boolean(saved.endDate) && now > Date.parse(saved.endDate as string)
   // Edit mode: something in the modal has been changed but not yet saved.
   const hasUnsavedChanges =
     savedAccessSettings != null && formAccessSettingsChanged(savedAccessSettings, settings)
@@ -136,11 +157,13 @@ export function PublishModal({
   const shareHeading =
     state === 'scheduled'
       ? `Opens ${formatDateTime(saved.startDate)} — share the link now`
-      : state === 'paused'
-        ? 'Paused — the link still works'
-        : state === 'closed'
-          ? 'Response window ended'
-          : 'Your form is live — share this link'
+      : state === 'closed'
+        ? isManuallyClosed
+          ? 'This form is closed — the link no longer works'
+          : windowEnded
+            ? 'Response window ended'
+            : 'Not accepting responses — the link still works'
+        : 'Your form is live — share this link'
 
   return (
     <div className="flex w-[400px] max-w-[calc(100vw-32px)] flex-col gap-4 rounded-[10px] border border-[#d2d8e5] bg-white p-6 text-black shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
@@ -176,7 +199,7 @@ export function PublishModal({
                 <span className="text-[11px] leading-4 text-[#b7791f]">
                   This applies once the form opens.
                 </span>
-              ) : state === 'closed' ? (
+              ) : state === 'closed' && !isManuallyClosed && windowEnded ? (
                 <span className="text-[11px] leading-4 text-[#b7791f]">
                   Window ended — edit the schedule to reopen.
                 </span>
@@ -333,32 +356,48 @@ export function PublishModal({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-end gap-2">
-        <PopoverClose asChild>
-          <Button
-            className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#726f6f]"
-            variant="ghost"
-          >
-            {isPublished ? 'Close' : 'Cancel'}
-          </Button>
-        </PopoverClose>
-        {isPublished ? (
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          {status === 'closed' && onReopenForm ? (
+            <PopoverClose asChild>
+              <Button
+                className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
+                onClick={onReopenForm}
+                variant="ghost"
+              >
+                <Unlock size={14} />
+                Reopen form
+              </Button>
+            </PopoverClose>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
           <PopoverClose asChild>
+            <Button
+              className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#726f6f]"
+              variant="ghost"
+            >
+              {isPublished ? 'Done' : 'Cancel'}
+            </Button>
+          </PopoverClose>
+          {isPublished ? (
+            <PopoverClose asChild>
+              <Button
+                className="rounded-[5px] px-4 text-[13px] font-semibold tracking-[0.13px]"
+                onClick={onPublish}
+              >
+                Save
+              </Button>
+            </PopoverClose>
+          ) : (
             <Button
               className="rounded-[5px] px-4 text-[13px] font-semibold tracking-[0.13px]"
               onClick={onPublish}
             >
-              Save
+              Publish
             </Button>
-          </PopoverClose>
-        ) : (
-          <Button
-            className="rounded-[5px] px-4 text-[13px] font-semibold tracking-[0.13px]"
-            onClick={onPublish}
-          >
-            Publish
-          </Button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
