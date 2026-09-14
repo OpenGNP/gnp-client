@@ -1,5 +1,6 @@
 import { API_URL, apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { asUtcIso } from "../lib/apiTimestamp";
+import { getRespondentDeviceId } from "../lib/respondentDevice";
 
 /**
  * Cover images are served through a gated endpoint, never a direct storage URL —
@@ -107,8 +108,10 @@ export type ApiPublicForm = {
 export async function getPublicFormByToken(
   token: string,
 ): Promise<ApiPublicForm> {
+  const deviceId = getRespondentDeviceId();
   const form = await apiGet<ApiPublicForm>(
     `/forms/public/${encodeURIComponent(token)}`,
+    deviceId ? { params: { deviceId } } : undefined,
   );
   return {
     ...form,
@@ -124,8 +127,10 @@ export async function getPublicFormByToken(
 export async function getPublicFormBySlug(
   slug: string,
 ): Promise<ApiPublicForm> {
+  const deviceId = getRespondentDeviceId();
   const form = await apiGet<ApiPublicForm>(
     `/forms/slug/${encodeURIComponent(slug)}`,
+    deviceId ? { params: { deviceId } } : undefined,
   );
   return {
     ...form,
