@@ -211,11 +211,16 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
       }
       return true
     })
-    return [...filtered].sort((a, b) =>
-      sortOption === 'newest'
+    // Flagged points float to the top whichever way the list is sorted — a
+    // reported breach should not be buried by date. Within each group the
+    // chosen newest/oldest order still applies.
+    return [...filtered].sort((a, b) => {
+      const flagged = Number(Boolean(b.severe)) - Number(Boolean(a.severe))
+      if (flagged !== 0) return flagged
+      return sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)
-        : a.submittedAt.localeCompare(b.submittedAt),
-    )
+        : a.submittedAt.localeCompare(b.submittedAt)
+    })
   }, [feedbackSegment, selectedSentiments, selectedDemos, sortOption])
 
   return (
