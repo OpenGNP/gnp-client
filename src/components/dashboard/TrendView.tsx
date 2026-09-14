@@ -303,12 +303,7 @@ function SentimentDelta({
 }
 
 function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
-  // No historical average to compare against — previousMentions rounds to 0 either
-  // because the topic is genuinely new (status "new") or its average-per-bucket to
-  // date is negligible (status "existing", changePercent null). Both read the same
-  // to a viewer ("appeared this period out of nowhere"), so they get the same badge
-  // treatment; only the label differs since one actually is new.
-  if (row.previousMentions === 0 && row.currentMentions > 0) {
+  if (row.status === 'new') {
     // Optional secondary context (spec: "may still calculate... display only as
     // secondary context") — surfaced as a tooltip since the row has no room for a
     // second line. Only shown when there's a cumulative total-to-date to divide by.
@@ -320,7 +315,6 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
       shareOfPrevious !== null
         ? `${row.currentMentions} mention${row.currentMentions === 1 ? '' : 's'} · ${shareOfPrevious}% of all mentions to date`
         : undefined
-    const label = row.status === 'new' ? 'New' : 'Back'
 
     return (
       <span
@@ -328,7 +322,7 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
         title={title}
       >
         <Sparkle size={13} />
-        {label}
+        New
       </span>
     )
   }
@@ -337,27 +331,38 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
     return <span className="text-[12px] font-semibold tracking-[0.12px] text-[#929292]">—</span>
   }
 
-  // status === 'existing' with a real adjacent-bucket baseline (previousMentions > 0)
-  // from here on, so changePercent is never null.
-  const change = row.changePercent ?? 0
-  if (change === 0) {
+  // status === 'existing': `delta` (mentions vs. this topic's own typical baseline)
+  // is the primary signal here, not `changePercent` — dividing by a small/fractional
+  // baseline produces meaningless numbers (e.g. "+1900%"), so the percentage is only
+  // secondary tooltip context, and only when the server considered the baseline
+  // large enough to bother with (changePercent is null otherwise).
+  const title =
+    row.changePercent !== null
+      ? `${row.currentMentions} this period vs ~${row.previousMentions} typical (${row.changePercent > 0 ? '+' : ''}${row.changePercent}%)`
+      : `${row.currentMentions} this period vs ~${row.previousMentions} typical`
+
+  if (row.delta === 0) {
     return (
-      <span className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#929292]">
+      <span
+        className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#929292]"
+        title={title}
+      >
         <Minus size={15} />
-        0%
+        0
       </span>
     )
   }
 
-  const Arrow = change > 0 ? ArrowUp : ArrowDown
-  const tone = change > 0 ? 'text-[#269d42]' : 'text-[#f63b56]'
+  const Arrow = row.delta > 0 ? ArrowUp : ArrowDown
+  const tone = row.delta > 0 ? 'text-[#269d42]' : 'text-[#f63b56]'
   return (
     <span
       className={`flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] ${tone}`}
+      title={title}
     >
       <Arrow size={15} />
-      {change > 0 ? '+' : ''}
-      {change}%
+      {row.delta > 0 ? '+' : ''}
+      {row.delta}
     </span>
   )
 }
