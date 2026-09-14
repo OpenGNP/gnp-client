@@ -207,7 +207,6 @@ export function buildCreateFormPayload(
   return {
     formTitle: model.title.trim() || "Untitled form",
     formDescription: description || undefined,
-    coverImageUrl: model.coverImageUrl ?? undefined,
     status: options.status,
     folderId: options.folderId,
     // Create has nothing to clear, so a null (unchecked) date is just omitted.
@@ -227,8 +226,6 @@ export function buildUpdateFormPayload(
   return {
     formTitle: model.title.trim() || "Untitled form",
     formDescription: model.description.trim(),
-    // Sent as-is (string | null) so removing the cover actually clears it server-side.
-    coverImageUrl: model.coverImageUrl,
     // Sent as-is (string | null) so unchecking a date actually clears it server-side.
     startDate: settings.startDate,
     endDate: settings.endDate,
@@ -247,6 +244,7 @@ export function formDetailToModel(detail: ApiFormDetail): FormEditorModel {
     title: detail.formTitle ?? "Untitled form",
     description: detail.formDescription ?? "",
     coverImageUrl: detail.coverImageUrl ?? null,
+    coverImageFile: null,
     demographic: sorted
       .filter((field) => field.section === "demographic")
       .map(fieldToQuestion),

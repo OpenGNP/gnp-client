@@ -10,7 +10,12 @@ import type { Question } from '../components/forms/question-types'
 export type FormEditorModel = {
   title: string
   description: string
+  /** What to show in the cover `<img>` right now — the server's URL for an existing
+   *  cover, or a local `URL.createObjectURL` preview while `coverImageFile` is staged. */
   coverImageUrl: string | null
+  /** A newly-picked cover not yet uploaded — the form needs an id first (on create),
+   *  so the actual upload happens on save, not on file selection. */
+  coverImageFile: File | null
   demographic: Question[]
   feedback: Question[]
 }
@@ -19,6 +24,7 @@ export const emptyFormEditorModel: FormEditorModel = {
   title: '',
   description: '',
   coverImageUrl: null,
+  coverImageFile: null,
   demographic: [],
   feedback: [],
 }
