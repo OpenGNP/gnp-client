@@ -368,25 +368,18 @@ export function PublicFormBySlugPage() {
         </Shell>
       );
     }
-    if (responseState === "closed") {
-      return (
-        <Shell>
-          <Notice
-            body={
-              form.endDate
-                ? `This form closed on ${formatDateTime(form.endDate)}.`
-                : "This form is closed."
-            }
-            title="This form is closed"
-          />
-        </Shell>
-      );
-    }
+    // Two different causes land here: the schedule's end date passing, or the
+    // "accepting responses" toggle being off (endDate, if any, may not be reached
+    // yet) — only claim a specific close date when the window actually ended.
     return (
       <Shell>
         <Notice
-          body="The owner has paused new responses for now."
-          title="Not accepting responses"
+          body={
+            form.endDate && now > Date.parse(form.endDate)
+              ? `This form closed on ${formatDateTime(form.endDate)}.`
+              : "This form is closed."
+          }
+          title="This form is closed"
         />
       </Shell>
     );
@@ -405,13 +398,9 @@ export function PublicFormBySlugPage() {
   };
 
   const closedNotice =
-    responseState === "closed"
-      ? "This form just closed — you can no longer submit a response."
-      : responseState === "scheduled"
-        ? "This form isn't open for responses yet."
-        : responseState === "paused"
-          ? "The owner has paused new responses."
-          : "";
+    responseState === "scheduled"
+      ? "This form isn't open for responses yet."
+      : "This form just closed — you can no longer submit a response.";
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

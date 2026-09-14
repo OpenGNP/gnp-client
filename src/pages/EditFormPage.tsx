@@ -47,6 +47,9 @@ export function EditFormPage({
   const [reloadKey, setReloadKey] = useState(0)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isPublished, setIsPublished] = useState(false)
+  // Raw forms.status ('draft' | 'active' | 'closed' | 'archived') — drives the
+  // editor's status chip (via formStatusBadge) and the Close/Reopen action.
+  const [formStatus, setFormStatus] = useState<string | null>(null)
   // The form's unguessable public token, for the respondent-facing share link.
   const [publicToken, setPublicToken] = useState('')
 
@@ -87,7 +90,11 @@ export function EditFormPage({
         setSettings(nextSettings)
         setSavedSettings(nextSettings)
         setPublicToken(detail.publicToken)
-        setIsPublished(detail.status === 'active')
+        setFormStatus(detail.status)
+        // "Published" (Save-flow UI, share link) covers both active and closed —
+        // a closed form was published at some point and can be reopened, it
+        // shouldn't fall back to the pre-publish "Publish for the first time" UI.
+        setIsPublished(detail.status === 'active' || detail.status === 'closed')
         loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
         initialHadCoverRef.current = Boolean(nextModel.coverImageUrl)
         setLoadStatus('ready')
@@ -118,13 +125,18 @@ export function EditFormPage({
 
     const currentFields = JSON.stringify(buildFieldPayloads(model))
     const includeFields = currentFields !== loadedFieldsRef.current
+    // The modal's Save/Publish button always calls this with publish=true, whether
+    // the form is a fresh draft or already active/closed — only force status to
+    // 'active' on a genuine first publish (draft → active). Otherwise a plain Save
+    // must never silently reopen a form the admin closed on purpose.
+    const nextStatus = publish && formStatus === 'draft' ? 'active' : undefined
 
     setSaveStatus('saving')
     try {
       await updateForm(
         formId,
         buildUpdateFormPayload(model, settings, {
-          status: publish ? 'active' : undefined,
+          status: nextStatus,
           includeFields,
         }),
       )
@@ -139,8 +151,9 @@ export function EditFormPage({
         await removeFormCoverImage(formId)
         initialHadCoverRef.current = false
       }
-      if (publish) {
+      if (nextStatus) {
         setIsPublished(true)
+        setFormStatus(nextStatus)
       }
       // Only now do the modal's readouts / reminder catch up to the edits.
       setSavedSettings(settings)
@@ -149,6 +162,19 @@ export function EditFormPage({
       setSaveStatus('error')
       window.alert(
         error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
+      )
+    }
+  }
+
+  async function handleReopenForm() {
+    if (!hasValidId) return
+    try {
+      await updateForm(formId, { status: 'active' })
+      setFormStatus('active')
+      setIsPublished(true)
+    } catch (error) {
+      window.alert(
+        error instanceof ApiError ? error.message : 'Could not reopen the form. Please try again.',
       )
     }
   }
@@ -165,12 +191,14 @@ export function EditFormPage({
           <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
             <FormActionBar
               defaultPublished={isPublished}
+              defaultStatus={formStatus}
               formAccessSettings={settings}
               isSettingsOpen={isSettingsOpen}
               mode="edit"
               onEditSchedule={() => setIsSettingsOpen(true)}
               onMove={onMove}
               onPublish={() => handleSave(true)}
+              onReopenForm={handleReopenForm}
               onSaveDraft={() => handleSave(false)}
               onToggleSettings={() => setIsSettingsOpen((open) => !open)}
               onUpdateFormAccessSettings={updateSettings}

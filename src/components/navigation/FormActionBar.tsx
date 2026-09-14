@@ -14,7 +14,7 @@ import { forwardRef, useState } from 'react'
 import type { FormAccessSettings } from '../../hooks/useFormAccessSettings'
 import { useNow } from '../../hooks/useNow'
 import { cn } from '../../lib/utils'
-import { deriveResponseState, describeResponseState } from '../../lib/responseWindow'
+import { formStatusBadge } from '../../lib/responseWindow'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { PublishModal } from './PublishModal'
@@ -26,10 +26,14 @@ export type FormActionBarProps = {
   isSettingsOpen: boolean
   onToggleSettings: () => void
   defaultPublished?: boolean
+  /** The raw `forms.status` as last loaded/saved — drives the chip + Reopen. */
+  defaultStatus?: string | null
   mode?: 'create' | 'edit'
   onSaveDraft?: () => void
   onPublish?: () => void | Promise<void>
   onMove?: () => void
+  /** Reopens a manually-closed form (status → 'active'). Omitted in create mode. */
+  onReopenForm?: () => void | Promise<void>
   saveStatus?: SaveStatus
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
@@ -69,10 +73,12 @@ export function FormActionBar({
   isSettingsOpen,
   onToggleSettings,
   defaultPublished = false,
+  defaultStatus = null,
   mode = 'create',
   onSaveDraft,
   onPublish,
   onMove,
+  onReopenForm,
   saveStatus = 'idle',
   formAccessSettings,
   onUpdateFormAccessSettings,
@@ -81,16 +87,21 @@ export function FormActionBar({
   onEditSchedule,
 }: FormActionBarProps) {
   const [isPublished, setIsPublished] = useState(defaultPublished)
+  const [status, setStatus] = useState(defaultStatus)
   const now = useNow()
 
   const savedWindow = savedAccessSettings ?? formAccessSettings
   const responseWindow = {
-    isPublished,
     acceptingResponses: savedWindow.acceptingResponses,
     startDate: savedWindow.startDate,
     endDate: savedWindow.endDate,
   }
-  const responseBadge = describeResponseState(deriveResponseState(responseWindow, now), responseWindow)
+  const responseBadge = formStatusBadge(status, responseWindow, now)
+
+  const handleReopenForm = async () => {
+    setStatus('active')
+    await onReopenForm?.()
+  }
 
   return (
     <div className="flex shrink-0 items-center gap-2.5">
@@ -142,13 +153,16 @@ export function FormActionBar({
         <PopoverContent align="end" className="z-40" sideOffset={8} side="bottom">
           <PublishModal
             isPublished={isPublished}
+            onReopenForm={onReopenForm ? handleReopenForm : undefined}
             savedAccessSettings={savedAccessSettings}
+            status={status}
             onPublish={() => {
               // In edit mode `onPublish` saves immediately, so reflect that right away.
               // In create mode it just opens the destination picker — nothing is
               // published yet, so flipping this now would lie if the user cancels it.
               if (mode === 'edit') {
                 setIsPublished(true)
+                setStatus('active')
               }
               void onPublish?.()
             }}

@@ -1,4 +1,4 @@
-import { CircleCheck, CirclePause, CircleSlash, Clock, PencilLine, type LucideIcon } from 'lucide-react'
+import { CircleCheck, CircleSlash, Clock, PencilLine, type LucideIcon } from 'lucide-react'
 
 import type { ResponseState, ResponseStateBadge } from '../../lib/responseWindow'
 import { cn } from '../../lib/utils'
@@ -16,7 +16,6 @@ const ICON: Record<ResponseState, LucideIcon> = {
   draft: PencilLine,
   scheduled: Clock,
   open: CircleCheck,
-  paused: CirclePause,
   closed: CircleSlash,
 }
 

@@ -316,7 +316,7 @@ export function FormSettingsPanel({
               onUpdateSettings(
                 // Setting a window boundary means "run the form on this schedule", so
                 // switch the manual "Open for answer" toggle on — otherwise the form
-                // would just flip to Paused the moment the window opens. Clearing a
+                // would just read as Closed the moment the window opens. Clearing a
                 // date leaves the toggle as-is.
                 value ? { startDate: value, acceptingResponses: true } : { startDate: value },
               )
