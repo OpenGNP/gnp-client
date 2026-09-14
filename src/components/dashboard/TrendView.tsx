@@ -1,4 +1,13 @@
-import { ArrowDown, ArrowUp, Frown, Smile, TrendingDown, TrendingUp } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Frown,
+  Minus,
+  Smile,
+  Sparkle,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -293,19 +302,74 @@ function SentimentDelta({
   )
 }
 
-function TopicMovementRow({ row }: { row: TopicMovement }) {
-  const VolumeArrow = row.volumeChange >= 0 ? ArrowUp : ArrowDown
+function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
+  // No historical average to compare against — previousMentions rounds to 0 either
+  // because the topic is genuinely new (status "new") or its average-per-bucket to
+  // date is negligible (status "existing", changePercent null). Both read the same
+  // to a viewer ("appeared this period out of nowhere"), so they get the same badge
+  // treatment; only the label differs since one actually is new.
+  if (row.previousMentions === 0 && row.currentMentions > 0) {
+    // Optional secondary context (spec: "may still calculate... display only as
+    // secondary context") — surfaced as a tooltip since the row has no room for a
+    // second line. Only shown when there's a cumulative total-to-date to divide by.
+    const shareOfPrevious =
+      row.previousTotalMentions > 0
+        ? Math.round((row.currentMentions / row.previousTotalMentions) * 1000) / 10
+        : null
+    const title =
+      shareOfPrevious !== null
+        ? `${row.currentMentions} mention${row.currentMentions === 1 ? '' : 's'} · ${shareOfPrevious}% of all mentions to date`
+        : undefined
+    const label = row.status === 'new' ? 'New' : 'Back'
 
+    return (
+      <span
+        className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#1e55c5]"
+        title={title}
+      >
+        <Sparkle size={13} />
+        {label}
+      </span>
+    )
+  }
+
+  if (row.status === 'inactive') {
+    return <span className="text-[12px] font-semibold tracking-[0.12px] text-[#929292]">—</span>
+  }
+
+  // status === 'existing' with a real adjacent-bucket baseline (previousMentions > 0)
+  // from here on, so changePercent is never null.
+  const change = row.changePercent ?? 0
+  if (change === 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#929292]">
+        <Minus size={15} />
+        0%
+      </span>
+    )
+  }
+
+  const Arrow = change > 0 ? ArrowUp : ArrowDown
+  const tone = change > 0 ? 'text-[#269d42]' : 'text-[#f63b56]'
+  return (
+    <span
+      className={`flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] ${tone}`}
+    >
+      <Arrow size={15} />
+      {change > 0 ? '+' : ''}
+      {change}%
+    </span>
+  )
+}
+
+function TopicMovementRow({ row }: { row: TopicMovement }) {
   return (
     <div className="flex items-center gap-2 py-2.5 pr-1 pl-2.5">
       <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-[0.12px] text-black">
         {row.label}
       </span>
       <div className="flex w-36 shrink-0 items-center justify-between">
-        <span className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-black">
-          <VolumeArrow size={15} />
-          {Math.abs(row.volumeChange)}%
-        </span>
+        <VolumeChangeIndicator row={row} />
         <div className="flex items-center gap-1">
           <SentimentDelta face="positive" value={row.positiveChange} />
           <SentimentDelta face="negative" value={row.negativeChange} />
