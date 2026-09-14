@@ -95,6 +95,9 @@ export type ApiPublicForm = {
   acceptingResponses: boolean;
   recordName: boolean | null;
   oneResponsePerPerson: boolean | null;
+  // Only meaningful when oneResponsePerPerson is true — false whenever the viewer
+  // isn't identifiable (no session), since a fully anonymous visitor can't be deduped.
+  alreadyResponded: boolean;
   startDate: string | null;
   endDate: string | null;
   updatedAt: string | null;
