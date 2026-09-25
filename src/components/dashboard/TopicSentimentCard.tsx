@@ -12,7 +12,16 @@ import {
 import { Pagination } from './Pagination'
 import { SentimentBar } from './SentimentBar'
 
-const AXIS_MAX = 50
+const AXIS_STEP = 10
+const AXIS_MIN = 10
+
+function computeAxisMax(topics: TopicSentiment[]): number {
+  const highestCount = topics.reduce(
+    (max, topic) => Math.max(max, topic.negative + topic.neutral + topic.positive),
+    0,
+  )
+  return Math.max(AXIS_MIN, Math.ceil(highestCount / AXIS_STEP) * AXIS_STEP)
+}
 
 type SortOption = 'priority-desc' | 'priority-asc' | 'sentiment-pos-neg' | 'sentiment-neg-pos'
 
@@ -44,10 +53,12 @@ const SORT_OPTIONS: {
 ]
 
 function TopicRow({
+  axisMax,
   isSelected,
   onSelect,
   topic,
 }: {
+  axisMax: number
   isSelected: boolean
   onSelect?: (topicId: string) => void
   topic: TopicSentiment
@@ -72,7 +83,7 @@ function TopicRow({
       </div>
       <SentimentBar
         className="w-60 shrink-0"
-        maxValue={AXIS_MAX}
+        maxValue={axisMax}
         negative={topic.negative}
         neutral={topic.neutral}
         positive={topic.positive}
@@ -84,7 +95,7 @@ function TopicRow({
   )
 }
 
-function FeedbackPointsAxis() {
+function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
   return (
     <div className="flex h-6.25 w-full items-center gap-4 px-7.5 max-[900px]:hidden">
       <span className="min-w-0 flex-1 text-[12px] font-medium text-[#929292]">
@@ -92,7 +103,7 @@ function FeedbackPointsAxis() {
       </span>
       <div className="flex w-60 shrink-0 items-center justify-between text-[12px] font-medium text-[#929292]">
         <span>0</span>
-        <span>{AXIS_MAX}</span>
+        <span>{axisMax}</span>
       </div>
       <span aria-hidden="true" className="w-12 shrink-0" />
     </div>
@@ -131,6 +142,8 @@ export function TopicSentimentCard({
   const visibleTopics = pageSize
     ? sortedTopics.slice((page - 1) * pageSize, page * pageSize)
     : sortedTopics
+
+  const axisMax = useMemo(() => computeAxisMax(topics), [topics])
 
   return (
     <section className="flex w-full flex-col gap-3.25 rounded-[10px] border border-[#e9eaed] bg-white pt-7.25 pb-7.75">
@@ -175,9 +188,10 @@ export function TopicSentimentCard({
       </div>
 
       <div className="flex flex-col">
-        <FeedbackPointsAxis />
+        <FeedbackPointsAxis axisMax={axisMax} />
         {visibleTopics.map((topic) => (
           <TopicRow
+            axisMax={axisMax}
             isSelected={selectedTopicId === topic.id}
             key={topic.id}
             onSelect={onSelectTopic}
