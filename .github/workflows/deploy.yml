@@ -52,6 +52,6 @@ jobs:
           script_stop: true
           script: |
             set -e
-            cd /opt/gnp
+            cd /home/deploy/gnp
             docker compose pull gnp-client
             docker compose up -d gnp-client
