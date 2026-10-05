@@ -9,7 +9,7 @@ import {
   type ApiPublicForm,
 } from "../api/forms";
 import formArchitecture from "../assets/form-architecture.png";
-import logoGnp from "../assets/Logo_OpenGNP_Remove.png";
+import logoGnp from "../assets/logo.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";

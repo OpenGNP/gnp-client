@@ -9,7 +9,7 @@ import {
   type ApiPublicForm,
 } from "../api/forms";
 import formArchitecture from "../assets/form-architecture.png";
-import logoGnp from "../assets/Logo_OpenGNP_Remove.png";
+import logoGnp from "../assets/logo.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
@@ -71,11 +71,9 @@ function buildAnswerPayload(
   return payload;
 }
 
-function describeLoadError(error: unknown): {
-  title: string;
-  body: string;
-  canSignIn?: boolean;
-} {
+function describeLoadError(
+  error: unknown,
+): { title: string; body: string; canSignIn?: boolean } {
   const status = error instanceof ApiError ? error.status : 0;
   if (status === 404) {
     return {
