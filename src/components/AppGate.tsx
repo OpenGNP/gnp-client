@@ -1,15 +1,15 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../lib/auth'
 
 /**
  * Holds the app back until the session resolves: sends signed-out visitors to
- * /login (preserving where they were headed), shows a retry card if the API is
+ * /login (preserving where they were headed), shows a back-to-login card if the API is
  * unreachable, else renders the app.
  */
 export function AppGate({ children }: { children: ReactNode }) {
-  const { status, error, retry } = useAuth()
+  const { status, error } = useAuth()
   const location = useLocation()
 
   if (status === 'ready') {
@@ -33,15 +33,15 @@ export function AppGate({ children }: { children: ReactNode }) {
           <p className="m-0 text-[14px] text-[#8b8e98]">Connecting to the server…</p>
         ) : (
           <>
-            <p className="m-0 mb-1 text-[15px] font-semibold text-[#3f4045]">Can’t reach the API</p>
+            <p className="m-0 mb-1 text-[15px] font-semibold text-[#3f4045]">Unable to connect to the server</p>
             <p className="m-0 mb-5 text-[12px] leading-4 text-[#8b8e98]">{error}</p>
-            <button
-              className="h-9 w-full cursor-pointer rounded-[6px] bg-[#1e55c5] text-[13px] font-semibold text-white transition-colors hover:bg-[#1a49aa]"
-              onClick={retry}
-              type="button"
+            <Link
+              className="inline-flex h-9 w-full items-center justify-center rounded-[6px] bg-[#1e55c5] text-[13px] font-semibold text-white no-underline transition-colors hover:bg-[#1a49aa]"
+              state={{ from: `${location.pathname}${location.search}` }}
+              to="/login"
             >
-              Try again
-            </button>
+              Back to login
+            </Link>
           </>
         )}
       </div>
