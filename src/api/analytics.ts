@@ -52,6 +52,7 @@ export type FormThemeAnalytics = {
   responderDeltaLabel: string
   /** One group per demographic question on the form — options come from all answers, so they stay put while filtering. */
   demographicFilters: { label: string; options: string[] }[]
+  /** 0–5 score (see sentimentScore) plus raw feedback-point counts per sentiment. */
   sentiment: { score: number; outOf: number; negative: number; neutral: number; positive: number }
   highIntenseTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]

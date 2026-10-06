@@ -87,6 +87,7 @@ function TopicRow({
         negative={topic.negative}
         neutral={topic.neutral}
         positive={topic.positive}
+        title={topic.label}
       />
       <span className="w-12 shrink-0 text-right text-[14px] text-[#14181f]">
         {topic.percentOfTotal}%

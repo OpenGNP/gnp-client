@@ -22,6 +22,7 @@ import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
+import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
@@ -332,6 +333,8 @@ export function FormDashboardPage({
       : null
 
   const noResponses = responses.totalResponses === 0
+  const sentimentTotal =
+    themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
 
   const activeDemoCount = Object.values(demoSel).reduce((sum, values) => sum + values.length, 0)
   const demoFilterControl =
@@ -517,24 +520,25 @@ export function FormDashboardPage({
                           outOf={themes.sentiment.outOf}
                           positive={themes.sentiment.positive}
                           score={themes.sentiment.score}
+                          width={80}
                         />
                         <div className="flex flex-col gap-2 text-[12px]">
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(236,102,131,0.8)]" />
                             <span className="text-[#929292]">
-                              Negative: <span className="text-[#14181f]">{themes.sentiment.negative}%</span>
+                              Negative: <span className="text-[#14181f]">{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
                             </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(253,210,118,0.8)]" />
                             <span className="text-[#929292]">
-                              Neutral: <span className="text-[#14181f]">{themes.sentiment.neutral}%</span>
+                              Neutral: <span className="text-[#14181f]">{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
                             </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <span className="size-1.75 shrink-0 rounded-full bg-[rgba(156,221,153,0.8)]" />
                             <span className="text-[#929292]">
-                              Positive: <span className="text-[#14181f]">{themes.sentiment.positive}%</span>
+                              Positive: <span className="text-[#14181f]">{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
                             </span>
                           </span>
                         </div>
