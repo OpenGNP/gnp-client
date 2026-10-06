@@ -4,6 +4,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } fro
 
 import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
+import type { DemographicFilterGroup } from './FeedbackFilter'
 import { FeedbackSegmentSection } from './FeedbackSegmentSection'
 import { SentimentGauge } from './SentimentGauge'
 import { SENTIMENT_COLORS } from './sentimentColors'
@@ -51,11 +52,20 @@ function getTopOffset() {
 
 export type TopicDetailPanelProps = {
   topic: TopicSentiment
+  /** All demographic questions/answers on the form, plus the page-level selection (see FeedbackSegmentSection). */
+  demographicFilters?: DemographicFilterGroup[]
+  mainDemoSelection?: Record<string, string[]>
   onClose: () => void
   width: number | null
 }
 
-export function TopicDetailPanel({ topic, onClose, width }: TopicDetailPanelProps) {
+export function TopicDetailPanel({
+  topic,
+  onClose,
+  width,
+  demographicFilters,
+  mainDemoSelection,
+}: TopicDetailPanelProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [topOffset, setTopOffset] = useState(getTopOffset)
 
@@ -226,7 +236,12 @@ export function TopicDetailPanel({ topic, onClose, width }: TopicDetailPanelProp
         </div>
       </div>
 
-      <FeedbackSegmentSection feedbackSegment={topic.feedbackSegment} />
+      <FeedbackSegmentSection
+        demographicFilters={demographicFilters}
+        feedbackSegment={topic.feedbackSegment}
+        key={JSON.stringify(mainDemoSelection ?? {})}
+        mainDemoSelection={mainDemoSelection}
+      />
     </aside>
   )
 }

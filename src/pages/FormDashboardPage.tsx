@@ -19,7 +19,8 @@ import {
 } from '../api/analytics'
 import { getForm, type ApiFormDetail } from '../api/forms'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
-import { DemographicOverviewSection } from '../components/dashboard/DemographicOverviewSection'
+import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
+import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
@@ -162,6 +163,8 @@ export function FormDashboardPage({
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  // Themes-tab demographic filter: question label → chosen answers (server-side).
+  const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
   const themesLoadedRef = useRef(false)
 
   const changeBucket = (next: TrendBucket) => {
@@ -184,6 +187,20 @@ export function FormDashboardPage({
   const changeRange = (next: { from: string; to: string }) => {
     setRange(next)
     setTrendPending(true)
+    setThemesPending(true)
+  }
+  const toggleDemo = (label: string, value: string) => {
+    setDemoSel((prev) => {
+      const current = prev[label] ?? []
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value]
+      return { ...prev, [label]: next }
+    })
+    setThemesPending(true)
+  }
+  const clearDemo = () => {
+    setDemoSel({})
     setThemesPending(true)
   }
   const resetRange = () => {
@@ -227,7 +244,7 @@ export function FormDashboardPage({
 
     let cancelled = false
 
-    getFormThemeAnalytics(formId, { from: range?.from, to: range?.to })
+    getFormThemeAnalytics(formId, { from: range?.from, to: range?.to, demo: demoSel })
       .then((data) => {
         if (cancelled) return
         themesLoadedRef.current = true
@@ -246,7 +263,7 @@ export function FormDashboardPage({
     return () => {
       cancelled = true
     }
-  }, [formId, hasValidId, range?.from, range?.to])
+  }, [formId, hasValidId, range?.from, range?.to, demoSel])
 
   useEffect(() => {
     if (!hasValidId) {
@@ -311,6 +328,21 @@ export function FormDashboardPage({
       : null
 
   const noResponses = responses.totalResponses === 0
+
+  const activeDemoCount = Object.values(demoSel).reduce((sum, values) => sum + values.length, 0)
+  const demoFilterControl =
+    themes.demographicFilters.length > 0 ? (
+      <FeedbackFilter
+        activeFilterCount={activeDemoCount}
+        demographicFilters={themes.demographicFilters}
+        onClear={clearDemo}
+        onToggleDemo={toggleDemo}
+        variant="labeled"
+        selectedDemos={Object.fromEntries(
+          Object.entries(demoSel).map(([label, values]) => [label, new Set(values)]),
+        )}
+      />
+    ) : null
 
   return (
     <div>
@@ -421,7 +453,7 @@ export function FormDashboardPage({
               themes.aiDiscoveredTopics.length === 0 ? (
                 <>
                   {themes.totalMentions > 0 ? (
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-end gap-3">
                       <DateRangeFilter
                         isDefault={range === null}
                         label={range === null ? themes.rangeLabel : undefined}
@@ -429,19 +461,37 @@ export function FormDashboardPage({
                         onReset={resetRange}
                         value={range ?? { from: themes.from, to: themes.to }}
                       />
+                      {demoFilterControl}
                       {themesPending ? (
-                        <span className="text-[11px] font-medium text-[#929292]">Updating…</span>
+                        <span className="self-center text-[11px] font-medium text-[#929292]">
+                          Updating…
+                        </span>
                       ) : null}
                     </div>
                   ) : null}
                   <EmptyNote>
                     {themes.totalMentions === 0
                       ? 'No themes yet — the AI pipeline hasn’t analysed this form’s feedback into topics.'
-                      : `This form has analysed feedback, but none falls in ${themes.rangeLabel}. Try “All feedback” or a wider date range.`}
+                      : `This form has analysed feedback, but none falls in ${themes.rangeLabel}${activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try “All feedback”, a wider date range${activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.`}
                   </EmptyNote>
                 </>
               ) : (
                 <>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <DateRangeFilter
+                      isDefault={range === null}
+                      label={range === null ? themes.rangeLabel : undefined}
+                      onChange={changeRange}
+                      onReset={resetRange}
+                      value={range ?? { from: themes.from, to: themes.to }}
+                    />
+                    {demoFilterControl}
+                    {themesPending ? (
+                      <span className="self-center text-[11px] font-medium text-[#929292]">
+                          Updating…
+                        </span>
+                    ) : null}
+                  </div>
                   <div className="flex flex-wrap items-center gap-4">
                     <StatCard
                       deltaClassName="text-[#0b842d]"
@@ -497,19 +547,6 @@ export function FormDashboardPage({
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <DateRangeFilter
-                      isDefault={range === null}
-                      label={range === null ? themes.rangeLabel : undefined}
-                      onChange={changeRange}
-                      onReset={resetRange}
-                      value={range ?? { from: themes.from, to: themes.to }}
-                    />
-                    {themesPending ? (
-                      <span className="text-[11px] font-medium text-[#929292]">Updating…</span>
-                    ) : null}
-                  </div>
-
                   {themes.highIntenseTopics.length > 0 ? (
                     <TopicSentimentCard
                       onSelectTopic={setSelectedTopicId}
@@ -553,11 +590,11 @@ export function FormDashboardPage({
                   </div>
                 ) : (
                   <>
-                    <DemographicOverviewSection
+                    <ResponseOverviewSection
                       breakdowns={responses.demographic}
                       title="Demographic Overview"
                     />
-                    <DemographicOverviewSection
+                    <ResponseOverviewSection
                       breakdowns={responses.feedback}
                       title="Feedback Overview"
                     />
@@ -589,7 +626,9 @@ export function FormDashboardPage({
 
       {selectedTopic ? (
         <TopicDetailPanel
+          demographicFilters={themes.demographicFilters}
           key={selectedTopic.id}
+          mainDemoSelection={demoSel}
           onClose={() => setSelectedTopicId(null)}
           topic={selectedTopic}
           width={detailPanelWidth}

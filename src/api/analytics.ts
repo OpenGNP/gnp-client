@@ -38,12 +38,19 @@ export type FormThemeAnalytics = {
   totalMentions: number
   totalResponders: number
   responderDeltaLabel: string
+  /** One group per demographic question on the form — options come from all answers, so they stay put while filtering. */
+  demographicFilters: { label: string; options: string[] }[]
   sentiment: { score: number; outOf: number; negative: number; neutral: number; positive: number }
   highIntenseTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]
 }
 
-export type ThemeQuery = { from?: string; to?: string }
+export type ThemeQuery = {
+  from?: string
+  to?: string
+  /** Demographic question label → chosen answers; respondents must match every non-empty entry. */
+  demo?: Record<string, string[]>
+}
 
 export function getFormThemeAnalytics(
   formId: number,
@@ -52,6 +59,8 @@ export function getFormThemeAnalytics(
   const params = new URLSearchParams()
   if (query.from) params.set('from', query.from)
   if (query.to) params.set('to', query.to)
+  const demo = Object.fromEntries(Object.entries(query.demo ?? {}).filter(([, v]) => v.length > 0))
+  if (Object.keys(demo).length > 0) params.set('demo', JSON.stringify(demo))
   const qs = params.toString()
   return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes${qs ? `?${qs}` : ''}`)
 }
