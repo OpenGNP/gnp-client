@@ -35,7 +35,12 @@ export const LOCAL_TIMEZONE: string = (() => {
   }
 })()
 
-const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' }
+// Always 24-hour (`hourCycle: 'h23'`), whatever the viewer's locale would default to.
+const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  hourCycle: 'h23',
+}
 
 /** `new Date(iso)` with an argument is deterministic, so this is safe to call in render. */
 export function formatDateTime(iso: string | null): string {

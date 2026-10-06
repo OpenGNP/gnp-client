@@ -8,6 +8,18 @@ import type {
 import { apiGet } from '../lib/api'
 
 /**
+ * The viewer's IANA time zone (e.g. "Asia/Bangkok"). Sent with the themes/trend
+ * requests so the server buckets by, and labels dates in, the viewer's own days.
+ */
+function viewerTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Per-field answer breakdown for one form — the Dashboard's Response tab.
  * `demographic` / `feedback` split by the field's `section`; each entry is a
  * `single-choice` (pie), `multi-choice` (bar) or `text` (response list) breakdown,
@@ -61,6 +73,8 @@ export function getFormThemeAnalytics(
   if (query.to) params.set('to', query.to)
   const demo = Object.fromEntries(Object.entries(query.demo ?? {}).filter(([, v]) => v.length > 0))
   if (Object.keys(demo).length > 0) params.set('demo', JSON.stringify(demo))
+  const tz = viewerTimeZone()
+  if (tz) params.set('tz', tz)
   const qs = params.toString()
   return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes${qs ? `?${qs}` : ''}`)
 }
@@ -90,6 +104,8 @@ export function getFormTrendAnalytics(
   if (query.bucket) params.set('bucket', query.bucket)
   if (query.rank) params.set('rank', query.rank)
   if (query.topics && query.topics.length > 0) params.set('topics', query.topics.join(','))
+  const tz = viewerTimeZone()
+  if (tz) params.set('tz', tz)
   const qs = params.toString()
   return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
 }
