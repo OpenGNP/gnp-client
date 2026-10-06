@@ -37,6 +37,8 @@ export type TopicSentiment = {
   aiSummary: string
   keywords: TopicKeyword[]
   feedbackSegment: FeedbackPoint[]
+  /** Mentions per time bucket over the page's selected window + filters (4–8 points). */
+  volumeSeries?: { label: string; value: number }[]
 }
 
 export type DemographicOption = {
