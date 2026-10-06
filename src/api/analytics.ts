@@ -49,6 +49,8 @@ export type FormThemeAnalytics = {
   /** Analysed mentions across ALL time — distinguishes "none yet" from "none in range". */
   totalMentions: number
   totalResponders: number
+  /** Responders in the window's last 7 days (filters applied); `responderDeltaLabel` words it. */
+  responderDelta: number
   responderDeltaLabel: string
   /** One group per demographic question on the form — options come from all answers, so they stay put while filtering. */
   demographicFilters: { label: string; options: string[] }[]
