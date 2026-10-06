@@ -18,7 +18,7 @@ export function formatRelativeTime(value: string | number | Date | null | undefi
     return '—'
   }
 
-  // A bare string is likely a zone-less API timestamp — read it as UTC, not local
+  // A bare string is likely an API timestamp — normalise it so it is read as the right instant, not local
   // time, or "N hours ago" is off by the viewer's offset.
   const normalized = typeof value === 'string' ? (asUtcIso(value) ?? value) : value
   const date = normalized instanceof Date ? normalized : new Date(normalized)

@@ -40,10 +40,6 @@ type SidebarBrand = {
 
 export type MoveTarget = { folderId: string | null; beforeId?: string | null }
 
-// A drop can land in one of three zones on a row: the top strip reorders the dragged
-// item to just above it, the bottom strip to just below it, and (folders only) the
-// middle band moves it inside. The sentinel id lets the same state double as "hovering
-// empty space below the list", so dropping there moves the item back to root.
 type DropZone = 'before' | 'after' | 'into'
 type DragOverTarget = { id: string; zone: DropZone } | null
 const ROOT_DROP_ID = '__root__'
@@ -265,11 +261,6 @@ function ProjectItem({
 
     const draggedProjectId = event.dataTransfer.getData('text/plain')
     const resolvedZone = zone ?? (isFolder ? 'into' : 'after')
-    // Don't wait on the dragged row's own `dragend` to clear its dimmed state — when a
-    // drop actually moves it, React can unmount/remount that DOM node during the
-    // resulting re-render before the browser gets to dispatch `dragend` on it, leaving
-    // it stuck dimmed. Clearing here, from the *target's* handler, doesn't have that
-    // problem (this element isn't the one being moved).
     onDragEnd()
 
     if (!draggedProjectId || draggedProjectId === item.id || rejectsDraggedItem) {
@@ -281,10 +272,6 @@ function ProjectItem({
       return
     }
 
-    // "After this row" means "before whichever sibling currently follows it" — but if
-    // that follower happens to be the dragged item itself (dropping on the row right
-    // above where it already sits), skip forward to the next one, or it would resolve
-    // to "before itself", not be found once removed, and silently append at the end.
     let beforeId: string | null = item.id
     if (resolvedZone === 'after') {
       beforeId = null
@@ -508,10 +495,6 @@ function ProjectNavigation({
     setDragOverTarget(null)
   }
 
-  // Fires only when a drag is over genuine empty space — every row's own drag handlers
-  // call stopPropagation, so this never runs while hovering a row (nested or not).
-  // That's what makes it double as the "drag a file out of its folder, back to root"
-  // target: leaving every folder's contents still means leaving this section's rows.
   function handleRootDragOver(event: DragEvent<HTMLElement>) {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
@@ -521,8 +504,6 @@ function ProjectNavigation({
   function handleRootDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault()
     const draggedProjectId = event.dataTransfer.getData('text/plain')
-    // See the comment on ProjectItem's handleDrop — clear here rather than waiting on
-    // the dragged row's own `dragend`, which can get lost if the move unmounts it.
     handleDragEnd()
 
     if (draggedProjectId) {

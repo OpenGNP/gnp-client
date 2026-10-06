@@ -149,6 +149,8 @@ export type FieldOptionPayload = {
 };
 
 export type FormFieldPayload = {
+  /** Existing question's id when editing — lets the server keep its collected answers. */
+  id?: number;
   fieldLabel: string;
   fieldType: FormFieldType;
   section: FormSection;
@@ -195,7 +197,7 @@ export async function listForms(folderId?: number): Promise<ApiForm[]> {
   const forms = await apiGet<ApiForm[]>("/forms", {
     params: folderId === undefined ? undefined : { folderId },
   });
-  // Normalise the zone-less DB timestamps to UTC so "last updated" / date sorts use
+  // Normalise the DB timestamps to strict ISO so "last updated" / date sorts use
   // the right instant (see asUtcIso).
   return forms.map((form) => ({
     ...form,
