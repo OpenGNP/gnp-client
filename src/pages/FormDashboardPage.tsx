@@ -39,7 +39,11 @@ import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formatDateTime, formStatusBadge, type ResponseStateBadge } from '../lib/responseWindow'
 import { cn } from '../lib/utils'
 
-const BUCKETS: { value: TrendBucket; label: string }[] = [
+type BucketChoice = TrendBucket | 'auto'
+
+// 'auto' lets the server size the buckets so the charts get 6–12 x-axis points.
+const BUCKETS: { value: BucketChoice; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
   { value: 'day', label: 'Daily' },
   { value: 'week', label: 'Weekly' },
   { value: 'month', label: 'Monthly' },
@@ -158,7 +162,7 @@ export function FormDashboardPage({
   const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
   const [trendPending, setTrendPending] = useState(false)
   const [themesPending, setThemesPending] = useState(false)
-  const [bucket, setBucket] = useState<TrendBucket>('week')
+  const [bucket, setBucket] = useState<BucketChoice>('auto')
   const [rank, setRank] = useState<TrendRank>('mentioned')
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
@@ -167,7 +171,7 @@ export function FormDashboardPage({
   const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
   const themesLoadedRef = useRef(false)
 
-  const changeBucket = (next: TrendBucket) => {
+  const changeBucket = (next: BucketChoice) => {
     setBucket(next)
     setTrendPending(true)
   }
@@ -275,7 +279,7 @@ export function FormDashboardPage({
     getFormTrendAnalytics(formId, {
       from: range?.from,
       to: range?.to,
-      bucket,
+      bucket: bucket === 'auto' ? undefined : bucket,
       rank,
       topics: topicSel ?? undefined,
     })

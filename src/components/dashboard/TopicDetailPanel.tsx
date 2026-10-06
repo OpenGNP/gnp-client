@@ -9,33 +9,6 @@ import { FeedbackSegmentSection } from './FeedbackSegmentSection'
 import { SentimentGauge } from './SentimentGauge'
 import { SENTIMENT_COLORS } from './sentimentColors'
 
-function hashString(value: string) {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) | 0
-  }
-  return Math.abs(hash)
-}
-
-function seededRandom(seed: number) {
-  let state = seed
-  return () => {
-    state = (state * 9301 + 49297) % 233280
-    return state / 233280
-  }
-}
-
-function buildTrend(topicId: string, baseline: number) {
-  const random = seededRandom(hashString(topicId))
-  let value = Math.max(8, baseline * 0.6)
-  const points: { day: string; value: number }[] = []
-  for (let day = 1; day <= 31; day += 1) {
-    value = Math.min(100, Math.max(3, value + (random() - 0.42) * 10))
-    points.push({ day: `Jan ${day}`, value: Math.round(value) })
-  }
-  return points
-}
-
 const KEYWORD_SIZE_CLASSES: Record<TopicKeyword['weight'], string> = {
   1: 'text-[12px] font-medium text-[#7c93d6]',
   2: 'text-[15px] font-semibold text-[#3f6bd1]',
@@ -98,10 +71,6 @@ export function TopicDetailPanel({
     const total = feedbackPoints || 1
     return Math.round(((topic.positive * 5 + topic.neutral * 2.5) / total) * 10) / 10
   }, [feedbackPoints, topic.positive, topic.neutral])
-  const trend = useMemo(
-    () => buildTrend(topic.id, topic.percentOfTotal * 4),
-    [topic.id, topic.percentOfTotal],
-  )
 
   return (
     <aside
@@ -207,25 +176,24 @@ export function TopicDetailPanel({
         <p className="m-0 text-[12px] font-medium text-[#929292]">Topic Trends (by volume)</p>
         <div className="h-45 w-full">
           <ResponsiveContainer height="100%" width="100%">
-            <LineChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+            <LineChart data={topic.volumeSeries ?? []} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
               <CartesianGrid stroke="#f0f1f4" vertical={false} />
               <XAxis
                 axisLine={false}
-                dataKey="day"
-                interval={5}
+                dataKey="label"
+                interval={0}
                 tick={{ fill: '#929292', fontSize: 11 }}
                 tickLine={false}
               />
               <YAxis
                 axisLine={false}
-                domain={[0, 100]}
+                allowDecimals={false}
                 tick={{ fill: '#929292', fontSize: 11 }}
                 tickLine={false}
-                ticks={[0, 25, 50, 75, 100]}
               />
               <Line
                 dataKey="value"
-                dot={false}
+                dot={{ r: 3, fill: '#1e55c5', strokeWidth: 0 }}
                 isAnimationActive={false}
                 stroke="#1e55c5"
                 strokeWidth={2}
