@@ -31,7 +31,10 @@ function questionToField(
   section: FormSection,
   order: number,
 ): FormFieldPayload {
+  // Loaded questions use their database id as the editor id (see fieldToQuestion);
+  // new ones get a random UUID and are sent without an id.
   const base = {
+    ...(/^\d+$/.test(question.id) ? { id: Number(question.id) } : {}),
     fieldLabel: question.question.trim() || "Untitled question",
     section,
     isRequired: question.required,

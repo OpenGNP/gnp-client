@@ -63,7 +63,7 @@ export function EditFormPage({
   const hasUnsavedChanges = formAccessSettingsChanged(savedSettings, settings)
 
   // Snapshot of the fields as loaded — lets a settings-only save skip sending
-  // `fields` (which the server refuses once a form has responses).
+  // `fields` (once a form has responses, the server edits them in place).
   const loadedFieldsRef = useRef('')
   // Whether the form had a cover when loaded — so handleSave knows a null
   // `model.coverImageUrl` at save time means "the user removed it" and needs a
@@ -158,6 +158,12 @@ export function EditFormPage({
       // Only now do the modal's readouts / reminder catch up to the edits.
       setSavedSettings(settings)
       setSaveStatus('saved')
+      // Newly added questions only get their database ids on the server. Re-read the
+      // form (without the loading state) so the next save sends those ids and edits
+      // them in place, rather than treating them as new and replacing them.
+      if (includeFields) {
+        setReloadKey((key) => key + 1)
+      }
     } catch (error) {
       setSaveStatus('error')
       window.alert(
