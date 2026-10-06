@@ -114,6 +114,19 @@ function StatCard({
   )
 }
 
+function UpdatingIndicator() {
+  return (
+    <span
+      aria-live="polite"
+      className="inline-flex h-11.25 shrink-0 items-center gap-1.5 self-end text-[13px] font-medium tracking-[0.13px] text-[#726f6f]"
+      role="status"
+    >
+      <RefreshCw className="animate-spin" size={16} />
+      Updating…
+    </span>
+  )
+}
+
 function EmptyNote({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-60 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-12 text-center">
@@ -411,9 +424,7 @@ export function FormDashboardPage({
                 {activeView === 'trend' ? (
                   <div className="flex flex-wrap items-end gap-3">
                     {trendPending ? (
-                      <span className="self-center text-[11px] font-medium text-[#929292]">
-                        Updating…
-                      </span>
+                      <UpdatingIndicator />
                     ) : null}
                     <div className="flex flex-col items-start gap-2">
                       <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
@@ -473,9 +484,7 @@ export function FormDashboardPage({
                       />
                       {demoFilterControl}
                       {themesPending ? (
-                        <span className="self-center text-[11px] font-medium text-[#929292]">
-                          Updating…
-                        </span>
+                        <UpdatingIndicator />
                       ) : null}
                     </div>
                   ) : null}
@@ -497,9 +506,7 @@ export function FormDashboardPage({
                     />
                     {demoFilterControl}
                     {themesPending ? (
-                      <span className="self-center text-[11px] font-medium text-[#929292]">
-                          Updating…
-                        </span>
+                      <UpdatingIndicator />
                     ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-4">
