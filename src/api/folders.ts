@@ -24,7 +24,7 @@ export type UpdateFolderPayload = {
 
 export async function listFolders(): Promise<ApiFolder[]> {
   const folders = await apiGet<ApiFolder[]>('/folders')
-  // Zone-less DB timestamps → UTC, so "date modified/created" sorts use the right instant.
+  // DB timestamps → strict ISO, so "date modified/created" sorts use the right instant.
   return folders.map((folder) => ({
     ...folder,
     createdAt: asUtcIso(folder.createdAt),
