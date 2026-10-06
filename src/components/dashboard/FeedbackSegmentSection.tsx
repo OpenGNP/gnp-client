@@ -1,18 +1,16 @@
-import { AlertTriangle, ChevronDown, Filter, MessageSquareText } from 'lucide-react'
+import { AlertTriangle, ChevronDown, MessageSquareText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
-import { Checkbox } from '../ui/checkbox'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
 
 type SortOption = 'newest' | 'oldest'
 
@@ -21,18 +19,10 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'oldest', label: 'Oldest' },
 ]
 
-const SENTIMENT_OPTIONS: FeedbackSentiment[] = ['negative', 'neutral', 'positive']
-
 const SENTIMENT_BADGE_CLASSES: Record<FeedbackSentiment, string> = {
   negative: 'bg-[#f9eaea] text-[#e12b0c]',
   neutral: 'bg-[#fdf3e0] text-[#b7791f]',
   positive: 'bg-[#eaf9ec] text-[#08882c]',
-}
-
-const SENTIMENT_DOT_CLASSES: Record<FeedbackSentiment, string> = {
-  negative: 'bg-[#e12b0c]',
-  neutral: 'bg-[#b7791f]',
-  positive: 'bg-[#08882c]',
 }
 
 function formatFeedbackDate(iso: string) {
@@ -120,74 +110,58 @@ function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
   )
 }
 
-function FilterSection({
-  label,
-  defaultOpen = false,
-  options,
-  selected,
-  onToggle,
-  renderOption,
-}: {
-  label: string
-  defaultOpen?: boolean
-  options: string[]
-  selected: Set<string>
-  onToggle: (value: string) => void
-  renderOption?: (value: string) => React.ReactNode
-}) {
-  return (
-    <Collapsible className="border-b border-[#eef0f4] last:border-b-0" defaultOpen={defaultOpen}>
-      <CollapsibleTrigger className="group flex w-full cursor-pointer items-center justify-between py-2.5 text-[13px] font-medium text-[#3f4045] outline-none">
-        {label}
-        <ChevronDown
-          className="text-[#929292] transition-transform group-data-[state=open]:rotate-180"
-          size={16}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="flex flex-col gap-2.5 overflow-hidden pb-3 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-        {options.map((option) => (
-          <label
-            className="flex cursor-pointer items-center gap-2.5 pl-0.5 text-[13px] text-[#14181f]"
-            key={option}
-          >
-            <Checkbox
-              checked={selected.has(option)}
-              onCheckedChange={() => onToggle(option)}
-            />
-            {renderOption ? renderOption(option) : option}
-          </label>
-        ))}
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
-
 export type FeedbackSegmentSectionProps = {
   feedbackSegment: FeedbackPoint[]
+  /** Every demographic question + answer on the form. Falls back to what the segment's data contains. */
+  demographicFilters?: DemographicFilterGroup[]
+  /**
+   * The page-level demographic filter. It seeds this filter's selection, and for those
+   * questions only the chosen answers are offered — the data is already narrowed to them.
+   */
+  mainDemoSelection?: Record<string, string[]>
 }
 
-export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSectionProps) {
+export function FeedbackSegmentSection({
+  feedbackSegment,
+  demographicFilters: allDemographicFilters,
+  mainDemoSelection,
+}: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
   // Keyed by the form's demographic question label — whatever questions the form has.
-  const [selectedDemos, setSelectedDemos] = useState<Record<string, Set<string>>>({})
+  const [selectedDemos, setSelectedDemos] = useState<Record<string, Set<string>>>(() =>
+    Object.fromEntries(
+      Object.entries(mainDemoSelection ?? {})
+        .filter(([, values]) => values.length > 0)
+        .map(([label, values]) => [label, new Set(values)]),
+    ),
+  )
 
-  // The demographic filter groups come from the data: one per distinct question label,
-  // with its distinct answer values.
+  // Offer every answer the form has (not just the ones present in this segment), except
+  // that a question already narrowed by the page-level filter only offers its chosen answers.
   const demographicFilters = useMemo(() => {
-    const byLabel = new Map<string, Set<string>>()
-    for (const point of feedbackSegment) {
-      for (const demo of point.demographics) {
-        const values = byLabel.get(demo.label) ?? new Set<string>()
-        values.add(demo.value)
-        byLabel.set(demo.label, values)
+    let groups = allDemographicFilters
+    if (!groups) {
+      const byLabel = new Map<string, Set<string>>()
+      for (const point of feedbackSegment) {
+        for (const demo of point.demographics) {
+          const values = byLabel.get(demo.label) ?? new Set<string>()
+          values.add(demo.value)
+          byLabel.set(demo.label, values)
+        }
       }
+      groups = [...byLabel.entries()].map(([label, values]) => ({
+        label,
+        options: [...values].sort(),
+      }))
     }
-    return [...byLabel.entries()].map(([label, values]) => ({
-      label,
-      options: [...values].sort(),
-    }))
-  }, [feedbackSegment])
+    return groups.map((group) => {
+      const locked = mainDemoSelection?.[group.label]
+      return locked && locked.length > 0
+        ? { ...group, options: group.options.filter((option) => locked.includes(option)) }
+        : group
+    })
+  }, [allDemographicFilters, feedbackSegment, mainDemoSelection])
 
   const activeFilterCount =
     selectedSentiments.size +
@@ -256,71 +230,18 @@ export function FeedbackSegmentSection({ feedbackSegment }: FeedbackSegmentSecti
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                className="h-8.75 gap-1.75 rounded-[10px] border-[#e6e7eb] px-2.5 text-[12px] text-black"
-                variant="outline"
-              >
-                <Filter size={14} />
-                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-                <ChevronDown size={14} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              className="max-h-(--radix-popover-content-available-height) w-64 overflow-y-auto rounded-[10px] border border-[#e8eaf1] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.14)]"
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[14px] font-bold text-black">
-                  <Filter size={16} />
-                  Filter
-                </span>
-                {activeFilterCount > 0 ? (
-                  <button
-                    className="cursor-pointer text-[12px] font-medium text-[#1e55c5]"
-                    onClick={() => {
-                      setSelectedSentiments(new Set())
-                      setSelectedDemos({})
-                    }}
-                    type="button"
-                  >
-                    Clear all
-                  </button>
-                ) : null}
-              </div>
-
-              <FilterSection
-                defaultOpen
-                label="Sentiment"
-                onToggle={(value) => setSelectedSentiments((prev) => toggleInSet(prev, value))}
-                options={SENTIMENT_OPTIONS}
-                renderOption={(value) => (
-                  <span className="flex items-center gap-1.5 capitalize">
-                    <span
-                      className={cn(
-                        'size-1.75 shrink-0 rounded-full',
-                        SENTIMENT_DOT_CLASSES[value as FeedbackSentiment],
-                      )}
-                    />
-                    {value}
-                  </span>
-                )}
-                selected={selectedSentiments}
-              />
-
-              {demographicFilters.map((group, index) => (
-                <FilterSection
-                  defaultOpen={index === 0}
-                  key={group.label}
-                  label={group.label}
-                  onToggle={(value) => toggleDemo(group.label, value)}
-                  options={group.options}
-                  selected={selectedDemos[group.label] ?? new Set<string>()}
-                />
-              ))}
-            </PopoverContent>
-          </Popover>
+          <FeedbackFilter
+            activeFilterCount={activeFilterCount}
+            demographicFilters={demographicFilters}
+            onClear={() => {
+              setSelectedSentiments(new Set())
+              setSelectedDemos({})
+            }}
+            onToggleDemo={toggleDemo}
+            onToggleSentiment={(value) => setSelectedSentiments((prev) => toggleInSet(prev, value))}
+            selectedDemos={selectedDemos}
+            selectedSentiments={selectedSentiments}
+          />
         </div>
       </div>
 
