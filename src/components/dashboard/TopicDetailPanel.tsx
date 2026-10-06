@@ -1,13 +1,30 @@
 import { MessageCircle, Sparkles, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { useEffect, useState } from 'react'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { TooltipContentProps } from 'recharts'
 
 import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
 import type { DemographicFilterGroup } from './FeedbackFilter'
 import { FeedbackSegmentSection } from './FeedbackSegmentSection'
 import { SentimentGauge } from './SentimentGauge'
+import { percentOf, SENTIMENT_SCORE_OUT_OF, sentimentScore } from './sentimentScore'
 import { SENTIMENT_COLORS } from './sentimentColors'
+
+function VolumeTooltip({ active, label, payload }: TooltipContentProps) {
+  if (!active || !payload?.length) {
+    return null
+  }
+  const value = Number(payload[0]?.value ?? 0)
+  return (
+    <div className="flex flex-col gap-1 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-2 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
+      <span className="text-[#929292]">{label}</span>
+      <span className="font-medium text-[#14181f]">
+        {value} {value === 1 ? 'mention' : 'mentions'}
+      </span>
+    </div>
+  )
+}
 
 const KEYWORD_SIZE_CLASSES: Record<TopicKeyword['weight'], string> = {
   1: 'text-[12px] font-medium text-[#7c93d6]',
@@ -67,10 +84,7 @@ export function TopicDetailPanel({
   }, [])
 
   const feedbackPoints = topic.negative + topic.neutral + topic.positive
-  const sentimentScore = useMemo(() => {
-    const total = feedbackPoints || 1
-    return Math.round(((topic.positive * 5 + topic.neutral * 2.5) / total) * 10) / 10
-  }, [feedbackPoints, topic.positive, topic.neutral])
+  const score = sentimentScore(topic)
 
   return (
     <aside
@@ -115,9 +129,9 @@ export function TopicDetailPanel({
             <SentimentGauge
               negative={topic.negative}
               neutral={topic.neutral}
-              outOf={5}
+              outOf={SENTIMENT_SCORE_OUT_OF}
               positive={topic.positive}
-              score={sentimentScore}
+              score={score}
             />
             <div className="flex flex-col gap-1.5 text-[12px]">
               <span className="flex items-center gap-1.5">
@@ -128,7 +142,7 @@ export function TopicDetailPanel({
                 <span className="text-[#929292]">
                   Negative:{' '}
                   <span className="text-[#14181f]">
-                    {feedbackPoints ? Math.round((topic.negative / feedbackPoints) * 100) : 0}%
+                    {percentOf(topic.negative, feedbackPoints)}%
                   </span>
                 </span>
               </span>
@@ -140,7 +154,7 @@ export function TopicDetailPanel({
                 <span className="text-[#929292]">
                   Neutral:{' '}
                   <span className="text-[#14181f]">
-                    {feedbackPoints ? Math.round((topic.neutral / feedbackPoints) * 100) : 0}%
+                    {percentOf(topic.neutral, feedbackPoints)}%
                   </span>
                 </span>
               </span>
@@ -152,7 +166,7 @@ export function TopicDetailPanel({
                 <span className="text-[#929292]">
                   Positive:{' '}
                   <span className="text-[#14181f]">
-                    {feedbackPoints ? Math.round((topic.positive / feedbackPoints) * 100) : 0}%
+                    {percentOf(topic.positive, feedbackPoints)}%
                   </span>
                 </span>
               </span>
@@ -191,7 +205,13 @@ export function TopicDetailPanel({
                 tick={{ fill: '#929292', fontSize: 11 }}
                 tickLine={false}
               />
+              <Tooltip
+                content={VolumeTooltip}
+                cursor={{ stroke: '#d2d8e5', strokeDasharray: '3 3' }}
+                isAnimationActive={false}
+              />
               <Line
+                activeDot={{ r: 5, fill: '#1e55c5', stroke: '#fff', strokeWidth: 2 }}
                 dataKey="value"
                 dot={{ r: 3, fill: '#1e55c5', strokeWidth: 0 }}
                 isAnimationActive={false}
