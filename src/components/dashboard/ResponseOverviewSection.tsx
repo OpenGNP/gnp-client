@@ -19,7 +19,7 @@ function BreakdownCard({ breakdown }: { breakdown: DemographicBreakdown }) {
   }
 }
 
-export function DemographicOverviewSection({
+export function ResponseOverviewSection({
   title,
   breakdowns,
 }: DemographicOverviewSectionProps) {
