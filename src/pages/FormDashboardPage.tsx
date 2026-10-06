@@ -89,7 +89,8 @@ function StatCard({
   iconBgClassName: string
   label: string
   value: number | string
-  deltaLabel: string
+  /** Omit to hide the delta line entirely. */
+  deltaLabel?: string
   deltaClassName: string
 }) {
   return (
@@ -102,10 +103,12 @@ function StatCard({
       <div className="flex min-w-0 flex-col gap-2.5">
         <p className="m-0 truncate text-[12px] font-medium text-[#929292]">{label}</p>
         <p className="m-0 text-[20px] font-bold text-[#14181f]">{value}</p>
-        <div className={`flex items-center gap-0.5 text-[12px] font-medium ${deltaClassName}`}>
-          <ArrowUp size={15} />
-          {deltaLabel}
-        </div>
+        {deltaLabel ? (
+          <div className={`flex items-center gap-0.5 text-[12px] font-medium ${deltaClassName}`}>
+            <ArrowUp size={15} />
+            {deltaLabel}
+          </div>
+        ) : null}
       </div>
     </div>
   )
@@ -502,7 +505,9 @@ export function FormDashboardPage({
                   <div className="flex flex-wrap items-center gap-4">
                     <StatCard
                       deltaClassName="text-[#0b842d]"
-                      deltaLabel={themes.responderDeltaLabel}
+                      deltaLabel={
+                        themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined
+                      }
                       icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#edf2fd]"
                       label="Total Responder"
@@ -547,7 +552,9 @@ export function FormDashboardPage({
 
                     <StatCard
                       deltaClassName="text-[#881921]"
-                      deltaLabel="needs attention"
+                      deltaLabel={
+                        themes.highIntenseTopics.length > 0 ? 'needs attention' : undefined
+                      }
                       icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#ffeaeb]"
                       label="High Intense Topic"
