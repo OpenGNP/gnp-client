@@ -92,27 +92,19 @@ export type TrendAvailableTopic = {
 
 export type TopicMovementStatus = 'existing' | 'new' | 'inactive'
 
+/** Mention COUNTS over two rolling windows ending at the filter's last day:
+ *  current = the last N days, previous = the N days before. */
 export type TopicMovement = {
   id: string
   label: string
   currentMentions: number
-  /** This topic's average mentions per bucket, over its history up to (not
-   *  including) the latest bucket — NOT just the single bucket right before it. */
   previousMentions: number
-  /** Cumulative mentions across ALL topics up to the latest bucket — same value on
-   *  every row. */
-  previousTotalMentions: number
-  /** currentMentions − previousMentions, rounded. The PRIMARY signal — this is what
-   *  ranks and labels rising/declining, not changePercent (dividing by a tiny/
-   *  fractional average produces meaningless numbers like "+1900%"). */
+  /** currentMentions − previousMentions. */
   delta: number
-  /** Secondary context only (e.g. a tooltip) — never used for ranking/display as
-   *  the primary indicator. `null` when there's no baseline (status "new" or
-   *  "inactive") or the baseline is too small for a percentage to mean anything. */
-  changePercent: number | null
   status: TopicMovementStatus
-  positiveChange: number
-  negativeChange: number
+  /** Positive / negative mentions: current count − previous count. */
+  positiveDelta: number
+  negativeDelta: number
 }
 
 export type EmergingIssue = {
