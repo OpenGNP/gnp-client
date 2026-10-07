@@ -60,6 +60,12 @@ export type FormThemeAnalytics = {
   aiDiscoveredTopics: TopicSentiment[]
 }
 
+/** Adds the demographic filter as `demo` JSON, skipping questions with nothing chosen. */
+function setDemoParam(params: URLSearchParams, demo: Record<string, string[]> | undefined) {
+  const chosen = Object.fromEntries(Object.entries(demo ?? {}).filter(([, v]) => v.length > 0))
+  if (Object.keys(chosen).length > 0) params.set('demo', JSON.stringify(chosen))
+}
+
 export type ThemeQuery = {
   from?: string
   to?: string
@@ -74,8 +80,7 @@ export function getFormThemeAnalytics(
   const params = new URLSearchParams()
   if (query.from) params.set('from', query.from)
   if (query.to) params.set('to', query.to)
-  const demo = Object.fromEntries(Object.entries(query.demo ?? {}).filter(([, v]) => v.length > 0))
-  if (Object.keys(demo).length > 0) params.set('demo', JSON.stringify(demo))
+  setDemoParam(params, query.demo)
   const tz = viewerTimeZone()
   if (tz) params.set('tz', tz)
   const qs = params.toString()
@@ -95,6 +100,8 @@ export type TrendQuery = {
   rank?: TrendRank
   /** Explicit topic ids to chart (max 8). Omit to let the server pick by `rank`. */
   topics?: string[]
+  /** Same demographic filter as ThemeQuery.demo. */
+  demo?: Record<string, string[]>
 }
 
 export function getFormTrendAnalytics(
@@ -107,6 +114,7 @@ export function getFormTrendAnalytics(
   if (query.bucket) params.set('bucket', query.bucket)
   if (query.rank) params.set('rank', query.rank)
   if (query.topics && query.topics.length > 0) params.set('topics', query.topics.join(','))
+  setDemoParam(params, query.demo)
   const tz = viewerTimeZone()
   if (tz) params.set('tz', tz)
   const qs = params.toString()
