@@ -288,7 +288,7 @@ function SentimentDelta({
   value: number
 }) {
   const Face = face === 'positive' ? Smile : Frown
-  const Arrow = value >= 0 ? ArrowUp : ArrowDown
+  const Arrow = value > 0 ? ArrowUp : value < 0 ? ArrowDown : Minus
   const tone = face === 'positive' ? 'text-[#269d42]' : 'text-[#f63b56]'
 
   return (
@@ -296,26 +296,16 @@ function SentimentDelta({
       <Face className={`${tone}`} size={15} />
       <span className={`flex items-center gap-0.5 text-[10px] font-medium tracking-[0.1px] ${tone}`}>
         <Arrow size={12} />
-        {Math.abs(value)}%
+        {Math.abs(value)}
       </span>
     </div>
   )
 }
 
 function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
-  if (row.status === 'new') {
-    // Optional secondary context (spec: "may still calculate... display only as
-    // secondary context") — surfaced as a tooltip since the row has no room for a
-    // second line. Only shown when there's a cumulative total-to-date to divide by.
-    const shareOfPrevious =
-      row.previousTotalMentions > 0
-        ? Math.round((row.currentMentions / row.previousTotalMentions) * 1000) / 10
-        : null
-    const title =
-      shareOfPrevious !== null
-        ? `${row.currentMentions} mention${row.currentMentions === 1 ? '' : 's'} · ${shareOfPrevious}% of all mentions to date`
-        : undefined
+  const title = `${row.currentMentions} now vs ${row.previousMentions} before`
 
+  if (row.status === 'new') {
     return (
       <span
         className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#1e55c5]"
@@ -330,16 +320,6 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
   if (row.status === 'inactive') {
     return <span className="text-[12px] font-semibold tracking-[0.12px] text-[#929292]">—</span>
   }
-
-  // status === 'existing': `delta` (mentions vs. this topic's own typical baseline)
-  // is the primary signal here, not `changePercent` — dividing by a small/fractional
-  // baseline produces meaningless numbers (e.g. "+1900%"), so the percentage is only
-  // secondary tooltip context, and only when the server considered the baseline
-  // large enough to bother with (changePercent is null otherwise).
-  const title =
-    row.changePercent !== null
-      ? `${row.currentMentions} this period vs ~${row.previousMentions} typical (${row.changePercent > 0 ? '+' : ''}${row.changePercent}%)`
-      : `${row.currentMentions} this period vs ~${row.previousMentions} typical`
 
   if (row.delta === 0) {
     return (
@@ -376,8 +356,8 @@ function TopicMovementRow({ row }: { row: TopicMovement }) {
       <div className="flex w-36 shrink-0 items-center justify-between">
         <VolumeChangeIndicator row={row} />
         <div className="flex items-center gap-1">
-          <SentimentDelta face="positive" value={row.positiveChange} />
-          <SentimentDelta face="negative" value={row.negativeChange} />
+          <SentimentDelta face="positive" value={row.positiveDelta} />
+          <SentimentDelta face="negative" value={row.negativeDelta} />
         </div>
       </div>
     </div>
@@ -472,7 +452,7 @@ function TimelineCard({ events }: { events: TrendTimelineEvent[] }) {
               <div className="flex shrink-0 flex-col items-end">
                 <span className="flex items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#f63b56]">
                   <ArrowUp size={15} />
-                  {event.change}%
+                  {event.change}
                 </span>
                 <span className="text-[10px] tracking-[0.1px] text-[#73777e]">
                   {event.metricLabel}
