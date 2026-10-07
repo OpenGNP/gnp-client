@@ -219,10 +219,12 @@ export function FormDashboardPage({
       return { ...prev, [label]: next }
     })
     setThemesPending(true)
+    setTrendPending(true)
   }
   const clearDemo = () => {
     setDemoSel({})
     setThemesPending(true)
+    setTrendPending(true)
   }
   const resetRange = () => {
     setRange(null)
@@ -299,6 +301,7 @@ export function FormDashboardPage({
       bucket: bucket === 'auto' ? undefined : bucket,
       rank,
       topics: topicSel ?? undefined,
+      demo: demoSel,
     })
       .then((data) => {
         if (cancelled) return
@@ -322,7 +325,7 @@ export function FormDashboardPage({
     return () => {
       cancelled = true
     }
-  }, [formId, hasValidId, bucket, rank, topicSel, range?.from, range?.to])
+  }, [formId, hasValidId, bucket, rank, topicSel, range?.from, range?.to, demoSel])
 
   if (loadStatus !== 'ready' || !form || !responses || !themes) {
     return (
@@ -421,52 +424,6 @@ export function FormDashboardPage({
                         : 'Response Overview'}
                   </h1>
                 </div>
-                {activeView === 'trend' ? (
-                  <div className="flex flex-wrap items-end gap-3">
-                    {trendPending ? (
-                      <UpdatingIndicator />
-                    ) : null}
-                    <div className="flex flex-col items-start gap-2">
-                      <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
-                      <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
-                        {BUCKETS.map((option) => (
-                          <button
-                            className={cn(
-                              'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
-                              option.value === bucket
-                                ? 'bg-[#1e55c5] text-white'
-                                : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
-                            )}
-                            key={option.value}
-                            onClick={() => changeBucket(option.value)}
-                            type="button"
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {trend && trend.availableTopics.length > 0 ? (
-                      <TopicPicker
-                        max={TREND_SERIES_MAX}
-                        onRankChange={changeRank}
-                        onReset={resetTopicSel}
-                        onSelectionChange={changeTopicSel}
-                        pending={trendPending}
-                        rank={rank}
-                        selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
-                        topics={trend.availableTopics}
-                      />
-                    ) : null}
-                    <DateRangeFilter
-                      isDefault={range === null}
-                      label={range === null ? (trend?.rangeLabel ?? 'All feedback') : undefined}
-                      onChange={changeRange}
-                      onReset={resetRange}
-                      value={range ?? (trend ? { from: trend.from, to: trend.to } : undefined)}
-                    />
-                  </div>
-                ) : null}
               </div>
             </div>
 
@@ -626,6 +583,52 @@ export function FormDashboardPage({
             ) : null}
 
             {activeView === 'trend' ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <DateRangeFilter
+                  isDefault={range === null}
+                  label={range === null ? (trend?.rangeLabel ?? 'All feedback') : undefined}
+                  onChange={changeRange}
+                  onReset={resetRange}
+                  value={range ?? (trend ? { from: trend.from, to: trend.to } : undefined)}
+                />
+                {demoFilterControl}
+                <div className="flex flex-col items-start gap-2">
+                  <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
+                  <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
+                    {BUCKETS.map((option) => (
+                      <button
+                        className={cn(
+                          'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
+                          option.value === bucket
+                            ? 'bg-[#1e55c5] text-white'
+                            : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
+                        )}
+                        key={option.value}
+                        onClick={() => changeBucket(option.value)}
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {trend && trend.availableTopics.length > 0 ? (
+                  <TopicPicker
+                    max={TREND_SERIES_MAX}
+                    onRankChange={changeRank}
+                    onReset={resetTopicSel}
+                    onSelectionChange={changeTopicSel}
+                    pending={trendPending}
+                    rank={rank}
+                    selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
+                    topics={trend.availableTopics}
+                  />
+                ) : null}
+                {trendPending ? <UpdatingIndicator /> : null}
+              </div>
+            ) : null}
+
+            {activeView === 'trend' ? (
               !trend ? (
                 <EmptyNote>Loading trend…</EmptyNote>
               ) : trend.topicVolumeSeries.length > 0 ? (
@@ -637,8 +640,9 @@ export function FormDashboardPage({
                 </EmptyNote>
               ) : (
                 <EmptyNote>
-                  This form has analysed feedback, but none falls in {trend.rangeLabel}. Try a wider
-                  date range.
+                  This form has analysed feedback, but none falls in {trend.rangeLabel}
+                  {activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try a wider date
+                  range{activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.
                 </EmptyNote>
               )
             ) : null}
