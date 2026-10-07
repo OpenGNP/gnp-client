@@ -1,4 +1,4 @@
-import { ChevronDown, Filter, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Filter } from 'lucide-react'
 
 import type { FeedbackSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
