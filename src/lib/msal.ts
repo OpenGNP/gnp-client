@@ -24,8 +24,12 @@ export const msalInstance = clientId
     })
   : null
 
-/** Only an ID token is needed — the server verifies it and issues its own session. */
+/**
+ * The ID token is what the server verifies to sign in. `User.Read` (user-consentable)
+ * additionally yields a Graph access token the server uses to read the tenant's
+ * display name when it creates a new organization.
+ */
 export const microsoftLoginRequest: PopupRequest = {
-  scopes: ['openid', 'profile', 'email'],
+  scopes: ['openid', 'profile', 'email', 'User.Read'],
   prompt: 'select_account',
 }
