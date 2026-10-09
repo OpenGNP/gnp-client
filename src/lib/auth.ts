@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 
 import { ApiError, apiGet, apiPost, getAuthToken, setAuthToken } from './api'
+import { msalInstance } from './msal'
 
 export type AuthUser = {
   id: number
@@ -24,6 +25,7 @@ export type AuthContextValue = {
   error: string | null
   retry: () => void
   login: (email: string, password: string) => Promise<void>
+  loginWithMicrosoft: (idToken: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -32,6 +34,13 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 /** POSTs to /auth/login, stores the returned token, and resolves the signed-in user. */
 export async function login(email: string, password: string): Promise<AuthUser> {
   const { user, token } = await apiPost<LoginResponse>('/auth/login', { email, password })
+  setAuthToken(token)
+  return user
+}
+
+/** Exchanges a Microsoft ID token (from MSAL) for an app session, like `login`. */
+export async function loginWithMicrosoft(idToken: string): Promise<AuthUser> {
+  const { user, token } = await apiPost<LoginResponse>('/auth/microsoft', { idToken })
   setAuthToken(token)
   return user
 }
@@ -45,6 +54,9 @@ export async function logout(): Promise<void> {
     // reachable-but-stale session should never keep the client "logged in".
   } finally {
     setAuthToken(null)
+    // Forget the cached Microsoft account locally (without signing it out of
+    // Microsoft everywhere), so the next sign-in shows the account picker cleanly.
+    await msalInstance?.clearCache().catch(() => undefined)
   }
 }
 

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import {
   AuthContext,
   login as loginRequest,
+  loginWithMicrosoft as loginWithMicrosoftRequest,
   logout as logoutRequest,
   resolveSession,
   type AuthStatus,
@@ -51,6 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('ready')
   }
 
+  async function loginWithMicrosoft(idToken: string) {
+    const loggedInUser = await loginWithMicrosoftRequest(idToken)
+    setUser(loggedInUser)
+    setStatus('ready')
+  }
+
   async function logout() {
     await logoutRequest()
     setUser(null)
@@ -58,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, status, error, retry, login, logout }}>
+    <AuthContext.Provider value={{ user, status, error, retry, login, loginWithMicrosoft, logout }}>
       {children}
     </AuthContext.Provider>
   )
