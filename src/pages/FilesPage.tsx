@@ -237,7 +237,6 @@ export function FilesPage({
               </DropdownMenu>
 
               <button
-                aria-label={sortDir === 'asc' ? 'Ascending — switch to descending' : 'Descending — switch to ascending'}
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#e0e2e7] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
                 onClick={() => setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'))}
                 title={sortDir === 'asc' ? 'Ascending' : 'Descending'}

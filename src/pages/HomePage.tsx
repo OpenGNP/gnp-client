@@ -145,7 +145,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
           </div>
         ) : forms.length === 0 ? (
           <p className="mt-6.5 text-[14px] text-[#8b8e98]">
-            No forms yet — create your first form to get started.
+            No forms yet. Create your first form to get started.
           </p>
         ) : (
           <div className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">

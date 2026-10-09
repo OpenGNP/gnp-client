@@ -61,7 +61,7 @@ function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
         {point.severe ? (
           <span
             className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset"
-            title="Reported conduct breach — flagged by the AI pipeline"
+            title="Flagged by AI for review"
           >
             <AlertTriangle size={11} />
             Violation

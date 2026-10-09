@@ -207,7 +207,7 @@ export function FormSettingsPanel({
         <div className="mt-5 flex items-start gap-2 rounded-[6px] bg-[#fff8ec] px-3 py-2 text-[12px] leading-4 text-[#b7791f]">
           <TriangleAlert className="mt-px shrink-0" size={13} strokeWidth={2.2} />
           <span>
-            You have unsaved changes — click <span className="font-semibold">Save</span> at the top of
+            You have unsaved changes. Click <span className="font-semibold">Save</span> at the top of
             the page to apply them.
           </span>
         </div>
