@@ -11,6 +11,11 @@ COPY . .
 # the Docker network, so a relative path works with no domain needed.
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
+# Microsoft sign-in — baked in at build time; empty CLIENT_ID hides the button.
+ARG VITE_MSAL_CLIENT_ID=
+ARG VITE_MSAL_TENANT_ID=common
+ENV VITE_MSAL_CLIENT_ID=$VITE_MSAL_CLIENT_ID
+ENV VITE_MSAL_TENANT_ID=$VITE_MSAL_TENANT_ID
 RUN bun run build
 
 # ---- serve ----

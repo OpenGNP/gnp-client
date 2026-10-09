@@ -3,10 +3,12 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
+import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { msalInstance } from '../lib/msal'
 
 export function LoginPage() {
   const { login, status, user } = useAuth()
@@ -16,6 +18,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [microsoftBusy, setMicrosoftBusy] = useState(false)
 
   // Already signed in (e.g. dev auto-login resolved, or a direct visit while a
   // session is live) — bounce to wherever AppGate sent us from, or home.
@@ -26,7 +29,7 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitting) return
+    if (submitting || microsoftBusy) return
     setError('')
     setSubmitting(true)
     try {
@@ -53,6 +56,21 @@ export function LoginPage() {
             </p>
           </div>
         </div>
+
+        {msalInstance ? (
+          <>
+            <MicrosoftSignInButton
+              disabled={submitting}
+              onBusyChange={setMicrosoftBusy}
+              onError={setError}
+            />
+            <div className="my-5 flex items-center gap-3 text-[12px] text-[#8b8e98]">
+              <span className="h-px flex-1 bg-[#e8eaf1]" />
+              or sign in with email
+              <span className="h-px flex-1 bg-[#e8eaf1]" />
+            </div>
+          </>
+        ) : null}
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <label className="flex flex-col gap-1.5 text-left">
@@ -105,7 +123,7 @@ export function LoginPage() {
 
           <Button
             className="h-10.5 w-full justify-center rounded-[8px] text-[14px] font-semibold"
-            disabled={submitting}
+            disabled={submitting || microsoftBusy}
             type="submit"
           >
             {submitting ? 'Signing in…' : 'Sign in'}
