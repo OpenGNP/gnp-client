@@ -25,7 +25,7 @@ export type AuthContextValue = {
   error: string | null
   retry: () => void
   login: (email: string, password: string) => Promise<void>
-  loginWithMicrosoft: (idToken: string) => Promise<void>
+  loginWithMicrosoft: (idToken: string, accessToken?: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -39,8 +39,11 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 }
 
 /** Exchanges a Microsoft ID token (from MSAL) for an app session, like `login`. */
-export async function loginWithMicrosoft(idToken: string): Promise<AuthUser> {
-  const { user, token } = await apiPost<LoginResponse>('/auth/microsoft', { idToken })
+export async function loginWithMicrosoft(idToken: string, accessToken?: string): Promise<AuthUser> {
+  const { user, token } = await apiPost<LoginResponse>('/auth/microsoft', {
+    idToken,
+    accessToken: accessToken || undefined,
+  })
   setAuthToken(token)
   return user
 }

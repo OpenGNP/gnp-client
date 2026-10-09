@@ -52,8 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('ready')
   }
 
-  async function loginWithMicrosoft(idToken: string) {
-    const loggedInUser = await loginWithMicrosoftRequest(idToken)
+  async function loginWithMicrosoft(idToken: string, accessToken?: string) {
+    const loggedInUser = await loginWithMicrosoftRequest(idToken, accessToken)
     setUser(loggedInUser)
     setStatus('ready')
   }

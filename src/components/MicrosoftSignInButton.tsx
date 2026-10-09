@@ -36,7 +36,7 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
     onBusyChange(true)
     try {
       const result = await instance.loginPopup(microsoftLoginRequest)
-      await loginWithMicrosoft(result.idToken)
+      await loginWithMicrosoft(result.idToken, result.accessToken)
     } catch (error) {
       // Closing the popup / double-clicking isn't an error worth showing.
       const silent =
