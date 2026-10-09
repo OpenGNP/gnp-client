@@ -156,14 +156,14 @@ export function PublishModal({
 
   const shareHeading =
     state === 'scheduled'
-      ? `Opens ${formatDateTime(saved.startDate)} — share the link now`
+      ? `Opens ${formatDateTime(saved.startDate)}. Share the link now`
       : state === 'closed'
         ? isManuallyClosed
-          ? 'This form is closed — the link no longer works'
+          ? 'This form is closed. The link no longer works'
           : windowEnded
             ? 'Response window ended'
-            : 'Not accepting responses — the link still works'
-        : 'Your form is live — share this link'
+            : 'Not accepting responses. The link still works'
+        : 'Your form is live. Share this link'
 
   return (
     <div className="flex w-[400px] max-w-[calc(100vw-32px)] flex-col gap-4 rounded-[10px] border border-[#d2d8e5] bg-white p-6 text-black shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
@@ -201,7 +201,7 @@ export function PublishModal({
                 </span>
               ) : state === 'closed' && !isManuallyClosed && windowEnded ? (
                 <span className="text-[11px] leading-4 text-[#b7791f]">
-                  Window ended — edit the schedule to reopen.
+                  Window ended. Edit the schedule to reopen.
                 </span>
               ) : null}
               {onEditSchedule ? (
@@ -349,7 +349,7 @@ export function PublishModal({
         <div className="flex items-start gap-1.5 rounded-[6px] bg-[#fff8ec] px-2.5 py-2 text-[11px] leading-4 text-[#b7791f]">
           <TriangleAlert className="mt-px shrink-0" size={12} strokeWidth={2.2} />
           <span>
-            Not applied yet — click{' '}
+            Not applied yet. Click{' '}
             <span className="font-semibold">{isPublished ? 'Save' : 'Publish'}</span> to apply your
             changes.
           </span>

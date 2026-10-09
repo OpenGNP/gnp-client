@@ -447,7 +447,7 @@ export function FormDashboardPage({
                   ) : null}
                   <EmptyNote>
                     {themes.totalMentions === 0
-                      ? 'No themes yet — the AI pipeline hasn’t analysed this form’s feedback into topics.'
+                      ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
                       : `This form has analysed feedback, but none falls in ${themes.rangeLabel}${activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try “All feedback”, a wider date range${activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.`}
                   </EmptyNote>
                 </>
@@ -635,7 +635,7 @@ export function FormDashboardPage({
                 <TrendView trend={trend} />
               ) : trend.totalMentions === 0 ? (
                 <EmptyNote>
-                  No feedback has been analysed for this form yet — the AI pipeline runs once
+                  No feedback has been analysed for this form yet. The AI pipeline runs once
                   responses start coming in.
                 </EmptyNote>
               ) : (

@@ -411,7 +411,7 @@ export function PublicFormBySlugPage() {
   const closedNotice =
     responseState === "scheduled"
       ? "This form isn't open for responses yet."
-      : "This form just closed — you can no longer submit a response.";
+      : "This form just closed. You can no longer submit a response.";
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

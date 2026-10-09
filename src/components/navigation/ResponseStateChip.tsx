@@ -30,7 +30,7 @@ export function ResponseStateChip({
   iconOnly?: boolean
 }) {
   const Icon = ICON[badge.state]
-  const tooltip = `${badge.label} — ${badge.detail}`
+  const tooltip = `${badge.label}: ${badge.detail}`
 
   if (iconOnly) {
     return (

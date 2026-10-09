@@ -226,7 +226,7 @@ function ChoiceField({
             </label>
             {answer.other !== null ? (
               <input
-                aria-label={`${field.fieldLabel ?? "Question"} — other`}
+                aria-label={`${field.fieldLabel ?? "Question"} Other`}
                 className={cn(inputClass, "ml-8 max-w-[calc(100%-2rem)]")}
                 onChange={(event) =>
                   onChange({ ...answer, other: event.target.value })
@@ -276,7 +276,7 @@ function ChoiceField({
           </label>
           {answer.other !== null ? (
             <input
-              aria-label={`${field.fieldLabel ?? "Question"} — other`}
+              aria-label={`${field.fieldLabel ?? "Question"} Other`}
               className={cn(inputClass, "ml-8 max-w-[calc(100%-2rem)]")}
               onChange={(event) =>
                 onChange({ ...answer, other: event.target.value })
