@@ -2,6 +2,7 @@ import { CalendarClock, Eye, TriangleAlert, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { FormAccessSettings, WhoCanFillValue } from "../../hooks/useFormAccessSettings";
+import { useHasOrganization } from "../../lib/auth";
 import { formatRelativeTime } from "../../lib/formatRelativeTime";
 import { LOCAL_TIMEZONE } from "../../lib/responseWindow";
 import { cn } from "../../lib/utils";
@@ -174,6 +175,9 @@ export function FormSettingsPanel({
   onClose,
   hasUnsavedChanges = false,
 }: FormSettingsPanelProps) {
+  // Still shown if a loaded form already uses it, so the radio group isn't left blank.
+  const showOrganizationOption =
+    useHasOrganization() || settings.whoCanFill === "organization";
   const scheduleError =
     settings.startDate &&
     settings.endDate &&
@@ -238,32 +242,34 @@ export function FormSettingsPanel({
             ) : null}
           </RadioOption>
 
-          <RadioOption
-            value="organization"
-            title="Only people in my organization can respond"
-            description="Sign-in required to validate access with organization"
-          >
-            {settings.whoCanFill === "organization" ? (
-              <div className="mt-3 flex flex-col gap-3">
-                <CheckboxField
-                  checked={settings.organizationRecordName}
-                  label="Record name"
-                  onCheckedChange={(checked) =>
-                    onUpdateSettings({ organizationRecordName: checked })
-                  }
-                />
-                <CheckboxField
-                  checked={settings.organizationOneResponsePerPerson}
-                  label="One response per person"
-                  onCheckedChange={(checked) =>
-                    onUpdateSettings({
-                      organizationOneResponsePerPerson: checked,
-                    })
-                  }
-                />
-              </div>
-            ) : null}
-          </RadioOption>
+          {showOrganizationOption ? (
+            <RadioOption
+              value="organization"
+              title="Only people in my organization can respond"
+              description="Sign-in required to validate access with organization"
+            >
+              {settings.whoCanFill === "organization" ? (
+                <div className="mt-3 flex flex-col gap-3">
+                  <CheckboxField
+                    checked={settings.organizationRecordName}
+                    label="Record name"
+                    onCheckedChange={(checked) =>
+                      onUpdateSettings({ organizationRecordName: checked })
+                    }
+                  />
+                  <CheckboxField
+                    checked={settings.organizationOneResponsePerPerson}
+                    label="One response per person"
+                    onCheckedChange={(checked) =>
+                      onUpdateSettings({
+                        organizationOneResponsePerPerson: checked,
+                      })
+                    }
+                  />
+                </div>
+              ) : null}
+            </RadioOption>
+          ) : null}
 
           <RadioOption
             value="specific"

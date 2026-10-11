@@ -100,6 +100,14 @@ export function resolveSession(forceRefresh: boolean): Promise<AuthUser | null> 
   return sessionPromise
 }
 
+/**
+ * False for accounts with no organization (e.g. a personal Microsoft account) —
+ * they can't limit a form to "people in my organization".
+ */
+export function useHasOrganization(): boolean {
+  return useAuth().user?.organizationId != null
+}
+
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext)
   if (!context) {

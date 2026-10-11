@@ -17,6 +17,7 @@ import {
   type WhoCanFillValue,
 } from '../../hooks/useFormAccessSettings'
 import { useNow } from '../../hooks/useNow'
+import { useHasOrganization } from '../../lib/auth'
 import { cn } from '../../lib/utils'
 import { formatDateTime, formStatusBadge, scheduleSummary } from '../../lib/responseWindow'
 import { Button } from '../ui/button'
@@ -120,6 +121,8 @@ export function PublishModal({
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
   const now = useNow()
+  // Still shown if a loaded form already uses it, so the radio group isn't left blank.
+  const showOrganizationOption = useHasOrganization() || settings.whoCanFill === 'organization'
 
   // Every readout derives from the saved snapshot; controls still bind to `settings`.
   const saved = savedAccessSettings ?? settings
@@ -251,32 +254,34 @@ export function PublishModal({
                 ) : null}
               </ModalRadioOption>
 
-              <ModalRadioOption
-                description="Sign-in required to validate access with organization"
-                title="Only people in my organization can respond"
-                value="organization"
-              >
-                {settings.whoCanFill === 'organization' ? (
-                  <div className="mt-2 flex flex-col gap-2 pl-7">
-                    <ModalCheckboxField
-                      checked={settings.organizationRecordName}
-                      label="Record name"
-                      onCheckedChange={(checked) =>
-                        onUpdateSettings({ organizationRecordName: checked })
-                      }
-                    />
-                    <ModalCheckboxField
-                      checked={settings.organizationOneResponsePerPerson}
-                      label="One response per person"
-                      onCheckedChange={(checked) =>
-                        onUpdateSettings({
-                          organizationOneResponsePerPerson: checked,
-                        })
-                      }
-                    />
-                  </div>
-                ) : null}
-              </ModalRadioOption>
+              {showOrganizationOption ? (
+                <ModalRadioOption
+                  description="Sign-in required to validate access with organization"
+                  title="Only people in my organization can respond"
+                  value="organization"
+                >
+                  {settings.whoCanFill === 'organization' ? (
+                    <div className="mt-2 flex flex-col gap-2 pl-7">
+                      <ModalCheckboxField
+                        checked={settings.organizationRecordName}
+                        label="Record name"
+                        onCheckedChange={(checked) =>
+                          onUpdateSettings({ organizationRecordName: checked })
+                        }
+                      />
+                      <ModalCheckboxField
+                        checked={settings.organizationOneResponsePerPerson}
+                        label="One response per person"
+                        onCheckedChange={(checked) =>
+                          onUpdateSettings({
+                            organizationOneResponsePerPerson: checked,
+                          })
+                        }
+                      />
+                    </div>
+                  ) : null}
+                </ModalRadioOption>
+              ) : null}
 
               <ModalRadioOption
                 title="Specific people in my organization can respond"

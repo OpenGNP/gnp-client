@@ -9,9 +9,9 @@ import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation
 import { Sidebar, type MoveTarget } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
-import { useAuth } from './lib/auth'
+import { useAuth, useHasOrganization } from './lib/auth'
 import { buildCreateFormPayload } from './lib/formMapping'
-import { defaultFormAccessSettings, useFormAccessSettings } from './hooks/useFormAccessSettings'
+import { defaultFormAccessSettingsFor, useFormAccessSettings } from './hooks/useFormAccessSettings'
 import { emptyFormEditorModel, useFormEditorModel } from './hooks/useFormEditorModel'
 import { useProjectTree } from './hooks/useProjectTree'
 import { useWorkspaceTree } from './hooks/useWorkspaceTree'
@@ -35,6 +35,7 @@ function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user: authUser, logout } = useAuth()
+  const newFormAccessSettings = defaultFormAccessSettingsFor(useHasOrganization())
   const workspace = useWorkspaceTree()
   const {
     projects,
@@ -66,7 +67,7 @@ function App() {
     settings: createFormAccessSettings,
     updateSettings: onUpdateCreateFormAccessSettings,
     setSettings: setCreateFormAccessSettings,
-  } = useFormAccessSettings()
+  } = useFormAccessSettings(newFormAccessSettings)
   const {
     model: createFormModel,
     update: updateCreateFormModel,
@@ -98,7 +99,7 @@ function App() {
   function handleCreateForm() {
     setIsCreateFormSettingsOpen(false)
     setCreateFormModel(emptyFormEditorModel)
-    setCreateFormAccessSettings(defaultFormAccessSettings)
+    setCreateFormAccessSettings(newFormAccessSettings)
     navigate('/create-form')
   }
 
@@ -145,7 +146,7 @@ function App() {
       })
       setIsCreateFormSettingsOpen(false)
       setCreateFormModel(emptyFormEditorModel)
-      setCreateFormAccessSettings(defaultFormAccessSettings)
+      setCreateFormAccessSettings(newFormAccessSettings)
       navigate(`/forms/${idStr}`)
     } catch (error) {
       window.alert(
@@ -166,7 +167,7 @@ function App() {
         parentFolderId: folderId,
         type: 'document',
       })
-      const payload = buildCreateFormPayload(emptyFormEditorModel, defaultFormAccessSettings, {
+      const payload = buildCreateFormPayload(emptyFormEditorModel, newFormAccessSettings, {
         status: 'draft',
         folderId: parseFolderId(folderId),
       })

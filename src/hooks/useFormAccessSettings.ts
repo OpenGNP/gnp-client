@@ -34,6 +34,16 @@ export const defaultFormAccessSettings: FormAccessSettings = {
   specificEmails: [],
 }
 
+/**
+ * Defaults for a new form. An account with no organization can't use the
+ * "organization" option (see useHasOrganization), so it starts on "anyone".
+ */
+export function defaultFormAccessSettingsFor(hasOrganization: boolean): FormAccessSettings {
+  return hasOrganization
+    ? defaultFormAccessSettings
+    : { ...defaultFormAccessSettings, whoCanFill: 'anyone' }
+}
+
 /** True when two access-settings objects differ on any editable field — i.e. a Save is pending. */
 export function formAccessSettingsChanged(a: FormAccessSettings, b: FormAccessSettings): boolean {
   return (
