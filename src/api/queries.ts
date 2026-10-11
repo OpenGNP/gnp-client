@@ -8,7 +8,7 @@ import {
   type TrendQuery,
 } from './analytics'
 import { listFolders } from './folders'
-import { getForm, getPublicFormBySlug, getPublicFormByToken, listForms } from './forms'
+import { getForm, getPublicFormByToken, listForms } from './forms'
 
 /** Every query key lives here so invalidation can't drift from the queries themselves. */
 export const queryKeys = {
@@ -20,7 +20,6 @@ export const queryKeys = {
   themes: (id: number, query: ThemeQuery) => ['analytics', id, 'themes', query] as const,
   trend: (id: number, query: TrendQuery) => ['analytics', id, 'trend', query] as const,
   publicByToken: (token: string) => ['public-form', 'token', token] as const,
-  publicBySlug: (slug: string) => ['public-form', 'slug', slug] as const,
 }
 
 export const formsQuery = () => queryOptions({ queryKey: queryKeys.forms, queryFn: () => listForms() })
@@ -55,14 +54,6 @@ export const publicFormByTokenQuery = (token: string) =>
   queryOptions({
     queryKey: queryKeys.publicByToken(token),
     queryFn: () => getPublicFormByToken(token),
-    staleTime: 0,
-    gcTime: 0,
-  })
-
-export const publicFormBySlugQuery = (slug: string) =>
-  queryOptions({
-    queryKey: queryKeys.publicBySlug(slug),
-    queryFn: () => getPublicFormBySlug(slug),
     staleTime: 0,
     gcTime: 0,
   })

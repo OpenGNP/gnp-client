@@ -71,18 +71,24 @@ function ChartCard({
   title,
   legend,
   chartHeight,
+  action,
   children,
 }: {
   title: string
   legend: React.ReactNode
   chartHeight: number
+  /** Controls that only affect this chart, shown at the right of its title. */
+  action?: React.ReactNode
   children: React.ReactElement
 }) {
   return (
     <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5">
-      <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+          {title}
+        </h2>
+        {action ? <div className="flex items-center gap-2.5">{action}</div> : null}
+      </div>
       <div className="flex flex-wrap items-center gap-x-3.75 gap-y-1.5 pt-1 pb-2">{legend}</div>
       <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer height="100%" width="100%">
@@ -159,12 +165,15 @@ function SentimentTrendTooltip({ active, label, payload }: TooltipContentProps) 
 function TopicTrendsCard({
   series,
   data,
+  action,
 }: {
   series: TrendTopicSeries[]
   data: TrendVolumePoint[]
+  action?: React.ReactNode
 }) {
   return (
     <ChartCard
+      action={action}
       chartHeight={224}
       legend={series.map((entry, index) => (
         <LegendDot
@@ -468,13 +477,19 @@ function TimelineCard({ events }: { events: TrendTimelineEvent[] }) {
 
 export type TrendViewProps = {
   trend: FormTrendAnalytics
+  /** The topic picker — it only changes which lines Topic Trends draws, so it lives on that card. */
+  topicControl?: React.ReactNode
 }
 
-export function TrendView({ trend }: TrendViewProps) {
+export function TrendView({ trend, topicControl }: TrendViewProps) {
   return (
     <div className="grid grid-cols-[795fr_653fr] gap-4.5 max-[1160px]:grid-cols-1">
       <div className="@container flex min-w-0 flex-col gap-4.5">
-        <TopicTrendsCard data={trend.volumeSeries} series={trend.topicVolumeSeries} />
+        <TopicTrendsCard
+          action={topicControl}
+          data={trend.volumeSeries}
+          series={trend.topicVolumeSeries}
+        />
         <div className="grid grid-cols-1 gap-4.5 @min-[700px]:grid-cols-2">
           <TopicMovementCard
             comparisonLabel={trend.comparisonLabel}

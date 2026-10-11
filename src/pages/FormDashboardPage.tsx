@@ -188,15 +188,34 @@ export function FormDashboardPage({
   // Themes-tab demographic filter: question label → chosen answers (server-side).
   const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
 
-  const changeBucket = (next: BucketChoice) => setBucket(next)
+  // Which kind of control last changed the trend query — so "Updating…" shows where
+  // the change applies: on the Topic Trends card for the topic picker (it only
+  // changes that chart's lines), in the filter row for page-wide filters.
+  const [trendChangeScope, setTrendChangeScope] = useState<'page' | 'topic-chart'>('page')
+
+  const changeBucket = (next: BucketChoice) => {
+    setTrendChangeScope('page')
+    setBucket(next)
+  }
   const changeRank = (next: TrendRank) => {
+    setTrendChangeScope('topic-chart')
     setRank(next)
     setTopicSel(null) // fall back to that rank's auto pick
   }
-  const changeTopicSel = (ids: string[]) => setTopicSel(ids)
-  const resetTopicSel = () => setTopicSel(null)
-  const changeRange = (next: { from: string; to: string }) => setRange(next)
+  const changeTopicSel = (ids: string[]) => {
+    setTrendChangeScope('topic-chart')
+    setTopicSel(ids)
+  }
+  const resetTopicSel = () => {
+    setTrendChangeScope('topic-chart')
+    setTopicSel(null)
+  }
+  const changeRange = (next: { from: string; to: string }) => {
+    setTrendChangeScope('page')
+    setRange(next)
+  }
   const toggleDemo = (label: string, value: string) => {
+    setTrendChangeScope('page')
     setDemoSel((prev) => {
       const current = prev[label] ?? []
       const next = current.includes(value)
@@ -205,8 +224,14 @@ export function FormDashboardPage({
       return { ...prev, [label]: next }
     })
   }
-  const clearDemo = () => setDemoSel({})
-  const resetRange = () => setRange(null)
+  const clearDemo = () => {
+    setTrendChangeScope('page')
+    setDemoSel({})
+  }
+  const resetRange = () => {
+    setTrendChangeScope('page')
+    setRange(null)
+  }
 
   // Each data source is its own cached query. Changing a filter changes the
   // themes/trend query key; `keepPreviousData` (see api/queries.ts) keeps the old
@@ -258,6 +283,8 @@ export function FormDashboardPage({
   const trend = trendResult.data ?? sameFormLastGood?.trend ?? null
   const themesPending = themesResult.isPlaceholderData
   const trendPending = trendResult.isPlaceholderData
+  const trendPagePending = trendPending && trendChangeScope === 'page'
+  const topicChartPending = trendPending && trendChangeScope === 'topic-chart'
 
   // Keep an explicit selection in sync with what the server actually charted (it
   // drops ids with no mentions in the window, caps at the max) so the picker count
@@ -600,26 +627,43 @@ export function FormDashboardPage({
                     ))}
                   </div>
                 </div>
-                {trend.availableTopics.length > 0 ? (
-                  <TopicPicker
-                    max={TREND_SERIES_MAX}
-                    onRankChange={changeRank}
-                    onReset={resetTopicSel}
-                    onSelectionChange={changeTopicSel}
-                    pending={trendPending}
-                    rank={rank}
-                    selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
-                    topics={trend.availableTopics}
-                  />
-                ) : null}
-                {trendPending ? <UpdatingIndicator /> : null}
+                {trendPagePending ? <UpdatingIndicator /> : null}
               </div>
             ) : null}
             {activeView === 'trend' && trend && trend.totalMentions > 0 ? activeFilterBar : null}
 
             {activeView === 'trend' && trend ? (
               trend.topicVolumeSeries.length > 0 ? (
-                <TrendView trend={trend} />
+                <TrendView
+                  topicControl={
+                    trend.availableTopics.length > 0 ? (
+                      <>
+                        {topicChartPending ? (
+                          <span
+                            aria-live="polite"
+                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#726f6f]"
+                            role="status"
+                          >
+                            <RefreshCw className="animate-spin" size={14} />
+                            Updating…
+                          </span>
+                        ) : null}
+                        <TopicPicker
+                          max={TREND_SERIES_MAX}
+                          onRankChange={changeRank}
+                          onReset={resetTopicSel}
+                          onSelectionChange={changeTopicSel}
+                          pending={topicChartPending}
+                          rank={rank}
+                          selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
+                          topics={trend.availableTopics}
+                          variant="compact"
+                        />
+                      </>
+                    ) : null
+                  }
+                  trend={trend}
+                />
               ) : trend.totalMentions === 0 ? (
                 <EmptyNote>
                   No feedback has been analysed for this form yet. The AI pipeline runs once

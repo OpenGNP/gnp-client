@@ -26,6 +26,8 @@ export type TopicPickerProps = {
   onSelectionChange: (ids: string[]) => void
   /** Back to the rank's auto pick. */
   onReset: () => void
+  /** `labeled` (default): filter-row button with a caption. `compact`: small button for a card header. */
+  variant?: 'labeled' | 'compact'
 }
 
 export function TopicPicker({
@@ -37,7 +39,9 @@ export function TopicPicker({
   onRankChange,
   onSelectionChange,
   onReset,
+  variant = 'labeled',
 }: TopicPickerProps) {
+  const compact = variant === 'compact'
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [showAll, setShowAll] = useState(false)
@@ -70,21 +74,31 @@ export function TopicPicker({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <span className="text-[9.5px] font-medium text-black">Topics on chart:</span>
+    <div className={cn('flex flex-col gap-2', compact ? 'items-end' : 'items-start')}>
+      {compact ? null : (
+        <span className="text-[9.5px] font-medium text-black">Topics on chart:</span>
+      )}
       <Popover onOpenChange={handleOpenChange} open={open}>
         <PopoverTrigger asChild>
           <button
-            className="inline-flex h-11.25 min-w-33.75 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]"
+            aria-label={compact ? `Topics on chart: ${rankShort}, ${selectedIds.length} shown` : undefined}
+            className={cn(
+              'inline-flex items-center justify-center whitespace-nowrap text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]',
+              compact
+                ? 'h-8.75 gap-1.5 rounded-[10px] border border-[#e6e7eb] bg-white px-2.5 text-[12px] font-semibold hover:border-[#1e55c5]'
+                : 'h-11.25 min-w-33.75 gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold',
+            )}
+            title="Choose which topics are drawn on this chart"
             type="button"
           >
-            <ListFilter size={16} />
+            <ListFilter size={compact ? 14 : 16} />
+            {compact ? 'Topics: ' : ''}
             {rankShort} · {selectedIds.length}
-            <ChevronDown size={16} />
+            <ChevronDown size={compact ? 14 : 16} />
           </button>
         </PopoverTrigger>
         <PopoverContent
-          align="start"
+          align={compact ? 'end' : 'start'}
           className="flex max-h-(--radix-popover-content-available-height) w-80 flex-col rounded-[10px] border border-[#e8eaf1] bg-white p-0 shadow-[0_12px_32px_rgba(15,23,42,0.14)]"
           side="bottom"
           sideOffset={8}

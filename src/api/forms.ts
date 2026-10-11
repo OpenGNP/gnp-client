@@ -123,25 +123,6 @@ export async function getPublicFormByToken(
   };
 }
 
-/** Respondent-facing view returned by `GET /api/forms/slug/:slug` — used for shareable `/form/{slug}` links. */
-export async function getPublicFormBySlug(
-  slug: string,
-): Promise<ApiPublicForm> {
-  const deviceId = getRespondentDeviceId();
-  const form = await apiGet<ApiPublicForm>(
-    `/forms/slug/${encodeURIComponent(slug)}`,
-    deviceId ? { params: { deviceId } } : undefined,
-  );
-  return {
-    ...form,
-    startDate: asUtcIso(form.startDate),
-    endDate: asUtcIso(form.endDate),
-    coverImageUrl: form.coverImageUrl
-      ? coverImageSrc(`/forms/slug/${encodeURIComponent(slug)}/cover-image`, form.updatedAt)
-      : null,
-  };
-}
-
 export type FieldOptionPayload = {
   optionLabel: string;
   optionValue: string;

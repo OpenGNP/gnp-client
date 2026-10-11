@@ -100,7 +100,7 @@ function describeLoadError(error: unknown): {
   if (status === 401) {
     return {
       title: "Sign-in required",
-      body: "This form is limited to a specific organization. Sign in to respond.",
+      body: "This form is limited. Sign in to respond.",
       canSignIn: true,
     };
   }
