@@ -12,8 +12,6 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,10 +25,8 @@ import type {
   TopicMovement,
   TrendSentimentPoint,
   TrendTimelineEvent,
-  TrendTopicSeries,
-  TrendVolumePoint,
 } from '../../data/dashboardAnalytics'
-import { TOPIC_TREND_COLORS } from './trendColors'
+import { TopicTrendsCard } from './TopicTrendsCard'
 
 const SENTIMENT_AREA = {
   positive: '#B5E6B1',
@@ -107,29 +103,6 @@ function TrendTooltipCard({ children }: { children: React.ReactNode }) {
   )
 }
 
-function TopicTrendsTooltip({ active, label, payload }: TooltipContentProps) {
-  if (!active || !payload?.length) {
-    return null
-  }
-
-  return (
-    <TrendTooltipCard>
-      <span className="font-medium text-[#14181f]">{label}</span>
-      <div className="flex flex-col gap-1">
-        {payload.map((entry, index) => (
-          <div className="flex items-center gap-2" key={index}>
-            <span
-              className="size-2 shrink-0 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="ml-auto pl-3 font-medium text-[#14181f]">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    </TrendTooltipCard>
-  )
-}
-
 function SentimentTrendTooltip({ active, label, payload }: TooltipContentProps) {
   if (!active || !payload?.length) {
     return null
@@ -159,65 +132,6 @@ function SentimentTrendTooltip({ active, label, payload }: TooltipContentProps) 
         })}
       </div>
     </TrendTooltipCard>
-  )
-}
-
-function TopicTrendsCard({
-  series,
-  data,
-  action,
-}: {
-  series: TrendTopicSeries[]
-  data: TrendVolumePoint[]
-  action?: React.ReactNode
-}) {
-  return (
-    <ChartCard
-      action={action}
-      chartHeight={224}
-      legend={series.map((entry, index) => (
-        <LegendDot
-          color={TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]}
-          key={entry.id}
-          label={entry.label}
-        />
-      ))}
-      title="Topic Trends (by volume)"
-    >
-      <LineChart data={data} margin={{ top: 12, right: 18, bottom: 0, left: 4 }}>
-        <CartesianGrid stroke="#f3f5f8" vertical={false} />
-        <XAxis
-          axisLine={false}
-          dataKey="label"
-          interval="preserveStartEnd"
-          minTickGap={24}
-          tick={AXIS_TICK}
-          tickLine={false}
-        />
-        <YAxis
-          allowDecimals={false}
-          axisLine={false}
-          domain={[0, 'auto']}
-          tick={AXIS_TICK}
-          tickLine={false}
-          width={36}
-        />
-        <Tooltip content={TopicTrendsTooltip} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
-        {series.map((entry, index) => (
-          <Line
-            activeDot={{ r: 4 }}
-            dataKey={entry.id}
-            dot={false}
-            isAnimationActive={false}
-            key={entry.id}
-            name={entry.label}
-            stroke={TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]}
-            strokeWidth={2}
-            type="monotone"
-          />
-        ))}
-      </LineChart>
-    </ChartCard>
   )
 }
 
@@ -483,31 +397,39 @@ export type TrendViewProps = {
 
 export function TrendView({ trend, topicControl }: TrendViewProps) {
   return (
-    <div className="grid grid-cols-[795fr_653fr] gap-4.5 max-[1160px]:grid-cols-1">
-      <div className="@container flex min-w-0 flex-col gap-4.5">
-        <TopicTrendsCard
-          action={topicControl}
-          data={trend.volumeSeries}
-          series={trend.topicVolumeSeries}
-        />
-        <div className="grid grid-cols-1 gap-4.5 @min-[700px]:grid-cols-2">
-          <TopicMovementCard
-            comparisonLabel={trend.comparisonLabel}
-            icon={<TrendingUp className="text-[#1e55c5]" size={22} />}
-            rows={trend.risingTopics}
-            title="Rising Topics"
-          />
-          <TopicMovementCard
-            comparisonLabel={trend.comparisonLabel}
-            icon={<TrendingDown className="text-[#1e55c5]" size={22} />}
-            rows={trend.decliningTopics}
-            title="Declining Topics"
-          />
+    <div className="flex flex-col gap-4.5">
+      {/* Full width: the chart plus its topic-detail side panel. */}
+      <TopicTrendsCard
+        action={topicControl}
+        data={trend.volumeSeries}
+        sentimentByTopic={trend.topicSentimentSeries ?? {}}
+        series={trend.topicVolumeSeries}
+        summaries={trend.topicSummaries ?? []}
+      />
+
+      <div className="grid grid-cols-[795fr_653fr] gap-4.5 max-[1160px]:grid-cols-1">
+        <div className="@container min-w-0">
+          <div className="grid grid-cols-1 gap-4.5 @min-[700px]:grid-cols-2">
+            <TopicMovementCard
+              comparisonLabel={trend.comparisonLabel}
+              icon={<TrendingUp className="text-[#1e55c5]" size={22} />}
+              rows={trend.risingTopics}
+              title="Rising Topics"
+            />
+            <TopicMovementCard
+              comparisonLabel={trend.comparisonLabel}
+              icon={<TrendingDown className="text-[#1e55c5]" size={22} />}
+              rows={trend.decliningTopics}
+              title="Declining Topics"
+            />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <SentimentTrendCard data={trend.sentimentSeries} />
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-4.5">
-        <SentimentTrendCard data={trend.sentimentSeries} />
+      <div className="grid grid-cols-2 gap-4.5 max-[1160px]:grid-cols-1">
         <EmergingIssuesCard issues={trend.emergingIssues} />
         <TimelineCard events={trend.timelineEvents} />
       </div>

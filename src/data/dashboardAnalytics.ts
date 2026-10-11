@@ -134,6 +134,19 @@ export type TrendSentimentPoint = {
   positive: number
 }
 
+/** Raw mention counts by sentiment (not percentages). */
+export type SentimentCounts = {
+  negative: number
+  neutral: number
+  positive: number
+}
+
+/** One charted topic over the whole selected window. */
+export type TrendTopicSummary = SentimentCounts & {
+  id: string
+  mentions: number
+}
+
 export type FormTrendAnalytics = {
   bucket: TrendBucket
   /** How `availableTopics` is ordered + how the chart auto-picked lines. */
@@ -150,6 +163,10 @@ export type FormTrendAnalytics = {
   /** Every in-window topic, ranked — powers the topic picker. */
   availableTopics: TrendAvailableTopic[]
   volumeSeries: TrendVolumePoint[]
+  /** Per charted topic id: sentiment counts per bucket, index-aligned with `volumeSeries`. */
+  topicSentimentSeries: Record<string, SentimentCounts[]>
+  /** Per charted topic: mentions + sentiment over the whole window. */
+  topicSummaries: TrendTopicSummary[]
   sentimentSeries: TrendSentimentPoint[]
   risingTopics: TopicMovement[]
   decliningTopics: TopicMovement[]
