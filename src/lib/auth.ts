@@ -27,6 +27,12 @@ export type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>
   loginWithMicrosoft: (idToken: string, accessToken?: string) => Promise<void>
   logout: () => Promise<void>
+  /**
+   * True after the user pressed "Log out" (until the next sign-in). AppGate then
+   * sends them to /login *without* remembering the page they were on, so signing
+   * back in starts at Home rather than wherever they logged out from.
+   */
+  signedOut: boolean
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

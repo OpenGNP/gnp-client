@@ -10,7 +10,7 @@ import { AppShellSkeleton } from './skeletons/AppShellSkeleton'
  * unreachable (an app-shaped skeleton while it's still resolving), else renders the app.
  */
 export function AppGate({ children }: { children: ReactNode }) {
-  const { status, error } = useAuth()
+  const { status, error, signedOut } = useAuth()
   const location = useLocation()
 
   if (status === 'ready') {
@@ -18,10 +18,13 @@ export function AppGate({ children }: { children: ReactNode }) {
   }
 
   if (status === 'unauthenticated') {
+    // Remember where they were headed only when they *landed* here signed out (a
+    // deep link, an expired session) — not after pressing "Log out", where the
+    // next sign-in should start fresh at Home.
     return (
       <Navigate
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={signedOut ? undefined : { from: `${location.pathname}${location.search}` }}
         to="/login"
       />
     )

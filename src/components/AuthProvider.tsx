@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [signedOut, setSignedOut] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const loggedInUser = await loginRequest(email, password)
     queryClient.clear() // never show a previous account's cached data
+    setSignedOut(false)
     setUser(loggedInUser)
     setStatus('ready')
   }
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loginWithMicrosoft(idToken: string, accessToken?: string) {
     const loggedInUser = await loginWithMicrosoftRequest(idToken, accessToken)
     queryClient.clear()
+    setSignedOut(false)
     setUser(loggedInUser)
     setStatus('ready')
   }
@@ -64,12 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     await logoutRequest()
     queryClient.clear()
+    setSignedOut(true)
     setUser(null)
     setStatus('unauthenticated')
   }
 
   return (
-    <AuthContext.Provider value={{ user, status, error, retry, login, loginWithMicrosoft, logout }}>
+    <AuthContext.Provider value={{ user, status, error, retry, login, loginWithMicrosoft, logout, signedOut }}>
       {children}
     </AuthContext.Provider>
   )

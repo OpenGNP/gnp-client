@@ -104,6 +104,7 @@ const auth: AuthContextValue = {
   login: async () => {},
   loginWithMicrosoft: async () => {},
   logout: async () => {},
+  signedOut: false,
 }
 
 function renderAt(path: string, routePath: string, element: ReactNode) {

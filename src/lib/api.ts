@@ -63,8 +63,18 @@ httpClient.interceptors.request.use((config) => {
 
 // The server wraps every response in `{ success, message, data }`. Unwrap it here
 // so callers deal in plain payloads, and turn `success: false` into a thrown ApiError.
+// Token renewal: while you're active the server periodically swaps your token
+// for a fresh one (gnp-server plugins/jwt.ts) and sends it in this header. Keep it,
+// or the stored token would still expire on its original schedule.
+const RENEWED_TOKEN_HEADER = 'x-auth-token'
+
 httpClient.interceptors.response.use(
   (response) => {
+    const renewed = response.headers[RENEWED_TOKEN_HEADER]
+    // Only while signed in — a late response must not sign a logged-out user back in.
+    if (typeof renewed === 'string' && renewed && authToken) {
+      setAuthToken(renewed)
+    }
     const envelope = response.data as ApiEnvelope<unknown> | undefined
     if (envelope && typeof envelope === 'object' && 'success' in envelope) {
       if (!envelope.success) {
