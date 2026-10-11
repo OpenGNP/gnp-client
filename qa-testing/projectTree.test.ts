@@ -16,6 +16,7 @@ import {
   removeProjectById,
   renameProjectById,
   uniqueName,
+  getAncestorFolderIds,
 } from '../src/utils/projectTree'
 
 function tree(): ProjectTreeItem[] {
@@ -310,5 +311,30 @@ describe('addProjectToFolder', () => {
   it('does not add anywhere when the target folder id does not exist', () => {
     const result = addProjectToFolder(tree(), 'missing-folder', { id: 'new', label: 'New', type: 'document' })
     expect(findProjectById(result, 'new')).toBeNull()
+  })
+})
+
+describe('getAncestorFolderIds', () => {
+  const nested: ProjectTreeItem[] = [
+    {
+      id: 'a',
+      label: 'A',
+      type: 'folder',
+      children: [
+        { id: 'b', label: 'B', type: 'folder', children: [{ id: 'form-1', label: 'F1', type: 'document' }] },
+      ],
+    },
+    { id: 'form-2', label: 'F2', type: 'document' },
+  ]
+
+  it('lists every enclosing folder, outermost first', () => {
+    expect(getAncestorFolderIds(nested, 'form-1')).toEqual(['a', 'b'])
+    expect(getAncestorFolderIds(nested, 'b')).toEqual(['a'])
+  })
+
+  it('is empty for root items and unknown ids', () => {
+    expect(getAncestorFolderIds(nested, 'form-2')).toEqual([])
+    expect(getAncestorFolderIds(nested, 'a')).toEqual([])
+    expect(getAncestorFolderIds(nested, 'missing')).toEqual([])
   })
 })

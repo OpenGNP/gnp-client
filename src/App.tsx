@@ -8,7 +8,7 @@ import { markWorkspaceStale, queryKeys } from './api/queries'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
-import { Sidebar, type MoveTarget } from './components/navigation/Sidebar'
+import { NARROW_VIEWPORT_QUERY, Sidebar, type MoveTarget } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
 import { useAuth, useHasOrganization } from './lib/auth'
@@ -33,6 +33,28 @@ import {
   uniqueName,
 } from './utils/projectTree'
 
+const SIDEBAR_COLLAPSED_KEY = 'gnp.sidebar.collapsed'
+
+function isNarrowViewport(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia(NARROW_VIEWPORT_QUERY).matches
+}
+
+function readSidebarCollapsedPreference(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeSidebarCollapsedPreference(collapsed: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0')
+  } catch {
+    // Storage unavailable (private mode) — the choice just isn't remembered.
+  }
+}
+
 function App() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -49,6 +71,7 @@ function App() {
     moveProject,
     removeProject,
     renameProject,
+    revealProject,
     toggleFolder,
   } = useProjectTree(workspace.projects)
   const sidebarUser = {
@@ -56,7 +79,25 @@ function App() {
     email: authUser?.email ?? '',
   }
   const [searchTerm, setSearchTerm] = useState('')
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  // Phones/tablets: the sidebar is an overlay, so it starts closed and closes again
+  // after each navigation. Desktop: it's a column, and its open/closed choice is
+  // remembered across reloads.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => isNarrowViewport() || readSidebarCollapsedPreference(),
+  )
+
+  function setSidebarCollapsed(collapsed: boolean) {
+    setIsSidebarCollapsed(collapsed)
+    if (!isNarrowViewport()) {
+      writeSidebarCollapsedPreference(collapsed)
+    }
+  }
+
+  function closeSidebarOnNarrowViewport() {
+    if (isNarrowViewport()) {
+      setIsSidebarCollapsed(true)
+    }
+  }
   const [isCreateFormSettingsOpen, setIsCreateFormSettingsOpen] =
     useState(false)
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
@@ -79,17 +120,36 @@ function App() {
   // Ref, not state: guards against a double-submit before the first render settles.
   const savingNewFormRef = useRef(false)
   const selectedProjectId = getSelectedProjectId(location.pathname)
+  // The sidebar matches rows by tree-node id: forms are `form-<id>`, folders their id.
+  const selectedNodeId = !selectedProjectId
+    ? ''
+    : location.pathname.startsWith('/forms/')
+      ? formNodeId(selectedProjectId)
+      : selectedProjectId
+  const activeNav =
+    location.pathname === '/' ? 'home' : location.pathname.startsWith('/files') ? 'files' : null
+
+  // Expand the folders above the current item whenever the route points somewhere
+  // new (Home card, deep link, …) — once per item, so the user can still collapse
+  // that folder afterwards. Done during render, React's "adjust state on change" pattern.
+  const [revealedNodeId, setRevealedNodeId] = useState('')
+  if (selectedNodeId && selectedNodeId !== revealedNodeId && projects.length > 0) {
+    setRevealedNodeId(selectedNodeId)
+    revealProject(selectedNodeId)
+  }
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
   const isFilesRoute = location.pathname.startsWith('/files')
 
   function handleGoHome() {
     setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
     navigate('/')
   }
 
   function handleGoFiles() {
     setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
     navigate('/files')
   }
 
@@ -101,6 +161,7 @@ function App() {
 
   function handleCreateForm() {
     setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
     setCreateFormModel(emptyFormEditorModel)
     setCreateFormAccessSettings(newFormAccessSettings)
     navigate('/create-form')
@@ -395,6 +456,7 @@ function App() {
 
   function handleSelectProject(project: ProjectTreeItem) {
     setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
     const path =
       project.type === 'folder'
         ? `/files/${encodeURIComponent(project.id)}`
@@ -459,13 +521,16 @@ function App() {
     <div className="flex min-h-screen flex-col bg-[#f5f9ff] text-[#050608] min-[901px]:flex-row">
       {!isCreateFormRoute ? (
         <Sidebar
+          activeNav={activeNav}
           brand={brand}
           isCollapsed={isSidebarCollapsed}
           isLoading={workspace.status === 'loading'}
+          loadError={workspace.status === 'error'}
+          onRetryLoad={workspace.retry}
           openFolderIds={openFolderIds}
           projects={projects}
           searchTerm={searchTerm}
-          selectedProjectId={selectedProjectId}
+          selectedNodeId={selectedNodeId}
           user={sidebarUser}
           onCreateFolder={handleCreateFolder}
           onCreateForm={handleCreateForm}
@@ -475,9 +540,7 @@ function App() {
           onMoveProject={handleMoveProject}
           onSearchChange={setSearchTerm}
           onSelectProject={handleSelectProject}
-          onToggleCollapse={() =>
-            setIsSidebarCollapsed((currentValue) => !currentValue)
-          }
+          onToggleCollapse={() => setSidebarCollapsed(!isSidebarCollapsed)}
           onToggleFolder={toggleFolder}
         />
       ) : null}
@@ -500,7 +563,7 @@ function App() {
           <Navbar
             title={isFilesRoute ? 'Files' : 'Overview'}
             showSidebarToggle={isSidebarCollapsed}
-            onToggleSidebar={() => setIsSidebarCollapsed(false)}
+            onToggleSidebar={() => setSidebarCollapsed(false)}
           />
         )}
         <Routes>
@@ -525,7 +588,7 @@ function App() {
             element={
               <EditFormPage
                 onMove={() => handleOpenMove(formNodeId(selectedProjectId))}
-                onToggleSidebar={() => setIsSidebarCollapsed(false)}
+                onToggleSidebar={() => setSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />
             }
@@ -534,7 +597,7 @@ function App() {
             path="/forms/:projectId/dashboard"
             element={
               <FormDashboardPage
-                onToggleSidebar={() => setIsSidebarCollapsed(false)}
+                onToggleSidebar={() => setSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />
             }

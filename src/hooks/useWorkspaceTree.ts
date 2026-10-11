@@ -10,6 +10,8 @@ import { formNodeId } from '../utils/projectTree'
 type WorkspaceTree = {
   projects: ProjectTreeItem[]
   status: 'loading' | 'ready' | 'error'
+  /** Refetches whichever of the two lists failed. */
+  retry: () => void
 }
 
 const EMPTY: ProjectTreeItem[] = []
@@ -48,7 +50,12 @@ export function useWorkspaceTree(): WorkspaceTree {
         ? 'ready'
         : 'loading'
 
-  return { projects, status }
+  function retry() {
+    if (foldersResult.isError) void foldersResult.refetch()
+    if (formsResult.isError) void formsResult.refetch()
+  }
+
+  return { projects, status, retry }
 }
 
 function buildTree(folders: ApiFolder[], forms: ApiForm[]): ProjectTreeItem[] {

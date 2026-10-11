@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   FilePlus,
   FileText,
   Folder,
@@ -13,6 +14,7 @@ import {
   PlusCircle,
   Search,
   Smile,
+  X,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
@@ -45,16 +47,28 @@ type DropZone = 'before' | 'after' | 'into'
 type DragOverTarget = { id: string; zone: DropZone } | null
 const ROOT_DROP_ID = '__root__'
 
+/**
+ * Matches Tailwind v4's `max-[900px]` (= `width < 900px`), where the sidebar becomes
+ * an overlay. Shared with App so the JS and CSS breakpoints can't disagree.
+ */
+export const NARROW_VIEWPORT_QUERY = '(max-width: 899.98px)'
+
 export type SidebarProps = {
   brand: SidebarBrand
   user: SidebarUser
   projects: ProjectTreeItem[]
   /** True while the project tree is still being fetched — shows placeholder rows. */
   isLoading?: boolean
+  /** True when the project tree failed to load — shows an error with a retry. */
+  loadError?: boolean
+  onRetryLoad?: () => void
   isCollapsed: boolean
   openFolderIds: Set<string>
   searchTerm: string
-  selectedProjectId: string
+  /** Tree-node id of the current route's item (`form-<id>` for forms, the folder id for folders). */
+  selectedNodeId: string
+  /** Which top nav entry the current route belongs to. */
+  activeNav?: 'home' | 'files' | null
   onCreateFolder: (name: string) => void
   onCreateForm: () => void
   onGoFiles: () => void
@@ -75,7 +89,7 @@ type ProjectItemProps = {
   isCollapsed?: boolean
   openFolderIds: Set<string>
   searchTerm: string
-  selectedProjectId: string
+  selectedNodeId: string
   draggedId: string | null
   /** The resolved item being dragged — lets a folder refuse to drop into its own subtree. */
   draggedItem: ProjectTreeItem | null
@@ -94,8 +108,38 @@ const navButtonClass =
 const treeButtonClass =
   'flex h-[46px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-[5px] border-0 bg-transparent p-2.5 text-left text-[#3f4045]'
 
+// Distinct from the hover tint (#f7f8fb) so "where am I" never looks like "under the mouse".
+const selectedRowClass = 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]'
+
 const treeTextClass =
   '[&_span]:min-w-0 [&_span]:overflow-hidden [&_span]:text-ellipsis [&_span]:whitespace-nowrap [&_span]:text-[16px] [&_span]:leading-[22px] [&_span]:font-bold [&_span]:tracking-[0.16px] [&_svg]:shrink-0'
+
+/** The label with every case-insensitive match of the search term highlighted. */
+function HighlightedLabel({ label, searchTerm }: { label: string; searchTerm: string }) {
+  const term = searchTerm.trim()
+  if (!term) {
+    return <span title={label}>{label}</span>
+  }
+
+  const parts: React.ReactNode[] = []
+  const lower = label.toLowerCase()
+  const needle = term.toLowerCase()
+  let cursor = 0
+  let match = lower.indexOf(needle)
+  while (match !== -1) {
+    if (match > cursor) parts.push(label.slice(cursor, match))
+    parts.push(
+      <mark className="rounded-[2px] bg-[#ffe9a8] text-inherit" key={match}>
+        {label.slice(match, match + term.length)}
+      </mark>,
+    )
+    cursor = match + term.length
+    match = lower.indexOf(needle, cursor)
+  }
+  if (cursor < label.length) parts.push(label.slice(cursor))
+
+  return <span title={label}>{parts}</span>
+}
 
 function itemMatchesSearch(item: ProjectTreeItem, searchTerm: string) {
   return item.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -155,30 +199,44 @@ function SidebarHeader({
 }
 
 function HomeNav({
+  activeNav,
   isCollapsed,
   onGoFiles,
   onGoHome,
 }: {
+  activeNav: 'home' | 'files' | null
   isCollapsed: boolean
   onGoFiles: () => void
   onGoHome: () => void
 }) {
-  const itemClass = cn(
-    navButtonClass,
-    'px-6.5 py-0',
-    isCollapsed && 'justify-center px-0',
-  )
+  const itemClass = (isActive: boolean) =>
+    cn(
+      navButtonClass,
+      'px-6.5 py-0',
+      isCollapsed && 'justify-center px-0',
+      isActive && 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]',
+    )
 
   return (
     <nav
       className={cn('border-y border-[#e8eaf1] py-2', isCollapsed && 'px-3')}
       aria-label="Main"
     >
-      <button className={itemClass} onClick={onGoHome} type="button">
+      <button
+        aria-current={activeNav === 'home' ? 'page' : undefined}
+        className={itemClass(activeNav === 'home')}
+        onClick={onGoHome}
+        type="button"
+      >
         <Home size={26} strokeWidth={2.1} />
         {!isCollapsed ? <span>Home</span> : null}
       </button>
-      <button className={itemClass} onClick={onGoFiles} type="button">
+      <button
+        aria-current={activeNav === 'files' ? 'page' : undefined}
+        className={itemClass(activeNav === 'files')}
+        onClick={onGoFiles}
+        type="button"
+      >
         <HardDrive size={26} strokeWidth={2.1} />
         {!isCollapsed ? <span>Files</span> : null}
       </button>
@@ -194,7 +252,7 @@ function ProjectItem({
   isCollapsed = false,
   openFolderIds,
   searchTerm,
-  selectedProjectId,
+  selectedNodeId,
   draggedId,
   draggedItem,
   dragOverTarget,
@@ -210,11 +268,22 @@ function ProjectItem({
   const rejectsDraggedItem =
     draggedItem?.type === 'folder' && isIdWithinItem(draggedItem, item.id)
   const isOpen = isFolder && (openFolderIds.has(item.id) || Boolean(searchTerm.trim()))
-  const isSelected =
-    item.id === selectedProjectId || item.formId === selectedProjectId
+  // Compared by tree-node id only: a form's node id is `form-<id>`, a folder's is its
+  // bare id, so form #2 and folder #2 can't both light up.
+  const isSelected = item.id === selectedNodeId
   const isDragging = draggedId === item.id
   const zone = dragOverTarget?.id === item.id ? dragOverTarget.zone : null
   const Icon = isFolder ? (isOpen ? FolderOpen : Folder) : FileText
+  const childCount = item.children?.length ?? 0
+
+  // Keep the current item visible when it's selected from elsewhere (Home card,
+  // deep link) or its folder was just auto-expanded.
+  const rowRef = useRef<HTMLDivElement & HTMLButtonElement>(null)
+  useEffect(() => {
+    if (isSelected) {
+      rowRef.current?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [isSelected])
 
   function handleSelect() {
     onSelectProject(item)
@@ -304,13 +373,13 @@ function ProjectItem({
           className={cn(
             treeButtonClass,
             treeTextClass,
-            'transition-colors hover:bg-[#f7f8fb]',
-            isOpen && 'text-[#1e55c5]',
-            isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
+            'gap-1.5 pl-1 transition-colors hover:bg-[#f7f8fb]',
+            isSelected && selectedRowClass,
             isDragging && 'opacity-40',
             dropZoneClass,
           )}
           draggable
+          ref={rowRef}
           title={isCollapsed ? item.label : undefined}
           onDragEnd={onDragEnd}
           onDragOver={handleDragOver}
@@ -320,23 +389,42 @@ function ProjectItem({
           <CollapsibleTrigger asChild>
             <button
               aria-label={isOpen ? `Collapse ${item.label}` : `Expand ${item.label}`}
-              className="-m-0.5 flex shrink-0 cursor-pointer items-center rounded p-0.5 transition-colors hover:bg-black/10"
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#8a8d97] transition-colors hover:bg-black/10 hover:text-[#3f4045]"
               type="button"
             >
-              <Icon size={24} />
+              <ChevronRight
+                className={cn('transition-transform duration-150', isOpen && 'rotate-90')}
+                size={18}
+                strokeWidth={2.4}
+              />
             </button>
           </CollapsibleTrigger>
           <button
-            className="flex min-w-0 flex-1 cursor-pointer items-center text-left"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
             onClick={handleSelect}
             type="button"
           >
-            <span>{item.label}</span>
+            <Icon size={22} />
+            <HighlightedLabel label={item.label} searchTerm={searchTerm} />
           </button>
+          {childCount > 0 ? (
+            <em
+              aria-label={`${childCount} item${childCount === 1 ? '' : 's'}`}
+              className="ml-auto shrink-0 rounded-full bg-[#eef1f6] px-1.75 text-[11px] leading-4.5 font-semibold text-[#6e7180] not-italic"
+            >
+              {childCount}
+            </em>
+          ) : null}
         </div>
-        {item.children && item.children.length > 0 ? (
+        {childCount === 0 ? (
           <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
-            {item.children.map((child, childIndex) => (
+            <p className="m-0 py-2 pl-2.5 text-[13px] font-medium text-[#8a8d97]">
+              Empty folder — drag forms here
+            </p>
+          </CollapsibleContent>
+        ) : (
+          <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
+            {(item.children ?? []).map((child, childIndex) => (
               <ProjectItem
                 item={child}
                 key={child.id}
@@ -346,7 +434,7 @@ function ProjectItem({
                 isCollapsed={isCollapsed}
                 openFolderIds={openFolderIds}
                 searchTerm={searchTerm}
-                selectedProjectId={selectedProjectId}
+                selectedNodeId={selectedNodeId}
                 draggedId={draggedId}
                 draggedItem={draggedItem}
                 dragOverTarget={dragOverTarget}
@@ -359,7 +447,7 @@ function ProjectItem({
               />
             ))}
           </CollapsibleContent>
-        ) : null}
+        )}
       </Collapsible>
     )
   }
@@ -370,12 +458,13 @@ function ProjectItem({
         treeButtonClass,
         treeTextClass,
         'cursor-grab transition-colors hover:bg-[#f7f8fb] active:cursor-grabbing',
-        isSelected && 'bg-[#f7f8fb] text-[#1e55c5]',
+        isSelected && selectedRowClass,
         isDragging && 'opacity-40',
         dropZoneClass,
       )}
+      ref={rowRef}
       type="button"
-      aria-pressed={isSelected}
+      aria-current={isSelected ? 'page' : undefined}
       draggable
       title={isCollapsed ? item.label : undefined}
       onClick={handleSelect}
@@ -385,7 +474,7 @@ function ProjectItem({
       onDrop={handleDrop}
     >
       <Icon size={22} />
-      <span>{item.label}</span>
+      <HighlightedLabel label={item.label} searchTerm={searchTerm} />
     </button>
   )
 }
@@ -466,9 +555,11 @@ function NewFolderRow({
 function ProjectNavigation({
   projects,
   isLoading = false,
+  loadError = false,
+  onRetryLoad,
   openFolderIds,
   searchTerm,
-  selectedProjectId,
+  selectedNodeId,
   onCreateFolder,
   onCreateForm,
   onSearchChange,
@@ -477,8 +568,31 @@ function ProjectNavigation({
   onToggleFolder,
 }: Omit<
   SidebarProps,
-  'brand' | 'user' | 'isCollapsed' | 'onGoFiles' | 'onGoHome' | 'onLogout' | 'onToggleCollapse'
+  | 'brand'
+  | 'user'
+  | 'isCollapsed'
+  | 'activeNav'
+  | 'onGoFiles'
+  | 'onGoHome'
+  | 'onLogout'
+  | 'onToggleCollapse'
 >) {
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const hasSearch = searchTerm.trim().length > 0
+
+  // "/" jumps to search from anywhere (unless already typing somewhere).
+  useEffect(() => {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      event.preventDefault()
+      searchInputRef.current?.focus()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverTarget, setDragOverTarget] = useState<DragOverTarget>(null)
@@ -565,17 +679,45 @@ function ProjectNavigation({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <label className="mt-4 mb-5.25 flex h-10.5 items-center justify-between rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180]">
-        <span className="sr-only">Search forms</span>
+      <div className="mt-4 mb-5.25 flex h-10.5 items-center gap-2 rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180] transition-colors focus-within:border-[#1e55c5]">
+        <Search className="shrink-0" size={20} />
         <input
-          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3f4045] outline-0 placeholder:text-[#6e7180] placeholder:opacity-100"
+          aria-label="Search forms"
+          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3f4045] outline-0 placeholder:text-[#6e7180] placeholder:opacity-100 [&::-webkit-search-cancel-button]:hidden"
           type="search"
           placeholder="Search forms..."
+          ref={searchInputRef}
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && searchTerm) {
+              event.preventDefault()
+              onSearchChange('')
+            }
+          }}
         />
-        <Search size={24} />
-      </label>
+        {searchTerm ? (
+          <button
+            aria-label="Clear search"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#8a8d97] transition-colors hover:bg-black/5 hover:text-[#3f4045]"
+            onClick={() => {
+              onSearchChange('')
+              searchInputRef.current?.focus()
+            }}
+            type="button"
+          >
+            <X size={16} />
+          </button>
+        ) : (
+          <kbd
+            aria-hidden="true"
+            className="shrink-0 rounded border border-[#e0e2e7] px-1.5 font-sans text-[11px] leading-4.5 font-semibold text-[#8a8d97]"
+            title="Press / to search"
+          >
+            /
+          </kbd>
+        )}
+      </div>
 
       <div className="flex flex-col items-stretch">
         {isCreatingFolder ? (
@@ -589,6 +731,19 @@ function ProjectNavigation({
         ) : null}
         {isLoading ? (
           <SidebarTreeSkeleton />
+        ) : loadError ? (
+          <div className="flex flex-col items-start gap-2 p-2.5" role="alert">
+            <p className="m-0 text-[14px] font-medium text-[#e0507a]">Couldn't load your forms.</p>
+            {onRetryLoad ? (
+              <button
+                className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
+                onClick={onRetryLoad}
+                type="button"
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
         ) : visibleProjects.length > 0 ? (
           visibleProjects.map((project, index) => (
             <ProjectItem
@@ -599,7 +754,7 @@ function ProjectNavigation({
               index={index}
               openFolderIds={openFolderIds}
               searchTerm={searchTerm}
-              selectedProjectId={selectedProjectId}
+              selectedNodeId={selectedNodeId}
               draggedId={draggedId}
               draggedItem={draggedItem}
               dragOverTarget={dragOverTarget}
@@ -611,9 +766,21 @@ function ProjectNavigation({
               onToggleFolder={onToggleFolder}
             />
           ))
-        ) : isCreatingFolder ? null : (
-          <p className="m-0 p-2.5 text-[14px] font-medium tracking-[0.14px] text-[#6e7180]">
-            No forms found
+        ) : isCreatingFolder ? null : hasSearch ? (
+          <div className="flex flex-col items-start gap-1 p-2.5 text-[14px] font-medium tracking-[0.14px] text-[#6e7180]">
+            <p className="m-0">No results for “{searchTerm.trim()}”</p>
+            <button
+              className="cursor-pointer p-0 text-[13px] font-semibold text-[#1e55c5] hover:underline"
+              onClick={() => onSearchChange('')}
+              type="button"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : (
+          <p className="m-0 p-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#6e7180]">
+            No forms yet. Use <strong className="text-[#3f4045]">Create</strong> to make your first
+            form or folder.
           </p>
         )}
       </div>
@@ -658,13 +825,16 @@ function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => vo
 }
 
 export function Sidebar({
+  activeNav = null,
   brand,
   isCollapsed,
   isLoading,
+  loadError,
+  onRetryLoad,
   openFolderIds,
   projects,
   searchTerm,
-  selectedProjectId,
+  selectedNodeId,
   user,
   onCreateFolder,
   onCreateForm,
@@ -682,6 +852,13 @@ export function Sidebar({
   }
 
   return (
+    <>
+    {/* Narrow screens: the sidebar overlays the page, so dim it and close on tap. */}
+    <div
+      aria-hidden="true"
+      className="fixed inset-0 z-39 bg-[#0f172a]/30 min-[900px]:hidden"
+      onClick={onToggleCollapse}
+    />
     <aside
       className={cn(
         'sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white transition-[width,flex-basis] duration-200 ease-in-out',
@@ -689,12 +866,19 @@ export function Sidebar({
         'w-78.25 basis-78.25 max-[1200px]:w-71.5 max-[1200px]:basis-71.5 max-[900px]:w-[min(313px,calc(100vw_-_24px))] max-[900px]:basis-auto',
       )}
       aria-label="Primary navigation"
+      onKeyDown={(event) => {
+        // Esc closes the overlay on narrow screens (no-op layout-wise on desktop).
+        if (event.key === 'Escape' && window.matchMedia(NARROW_VIEWPORT_QUERY).matches) {
+          onToggleCollapse()
+        }
+      }}
     >
       <SidebarHeader
         brand={brand}
         onToggleCollapse={onToggleCollapse}
       />
       <HomeNav
+        activeNav={activeNav}
         isCollapsed={isCollapsed}
         onGoFiles={onGoFiles}
         onGoHome={onGoHome}
@@ -703,10 +887,12 @@ export function Sidebar({
         <>
           <ProjectNavigation
             isLoading={isLoading}
+            loadError={loadError}
+            onRetryLoad={onRetryLoad}
             projects={projects}
             openFolderIds={openFolderIds}
             searchTerm={searchTerm}
-            selectedProjectId={selectedProjectId}
+            selectedNodeId={selectedNodeId}
             onCreateFolder={onCreateFolder}
             onCreateForm={onCreateForm}
             onMoveProject={onMoveProject}
@@ -718,5 +904,6 @@ export function Sidebar({
         </>
       ) : null}
     </aside>
+    </>
   )
 }

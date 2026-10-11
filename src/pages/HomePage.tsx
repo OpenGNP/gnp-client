@@ -106,7 +106,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       <section className="grid h-65.5 grid-cols-[minmax(320px,419px)_minmax(420px,562px)] items-center gap-14.25 max-[1200px]:h-auto max-[1200px]:grid-cols-1 max-[1200px]:gap-6 max-[1200px]:py-12 max-[1200px]:pb-7 max-[560px]:py-8">
         <div className="pt-10 max-[1200px]:pt-0">
           <h1 className="m-0 mb-5.25 text-[32px] leading-[1.12] font-semibold tracking-[0.32px] text-black max-[560px]:text-[28px]">
-            Welcome back, {firstName(user)}! 👋
+            Welcome back, {firstName(user)}!
           </h1>
           <p className="m-0 text-[16px] leading-[25.376px] font-normal tracking-[0.16px] text-black">
             Manage your feedback and view AI-powered analytics

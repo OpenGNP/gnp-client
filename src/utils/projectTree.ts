@@ -301,3 +301,22 @@ export function addProjectToFolder(
     return project
   })
 }
+
+/**
+ * Ids of every folder that contains `nodeId` (outermost first), or [] at root /
+ * not found. Used to auto-expand the sidebar down to the current item.
+ */
+export function getAncestorFolderIds(projects: ProjectTreeItem[], nodeId: string): string[] {
+  for (const project of projects) {
+    if (project.id === nodeId) {
+      return []
+    }
+    if (project.type === 'folder' && project.children) {
+      const inner = getAncestorFolderIds(project.children, nodeId)
+      if (inner.length > 0 || project.children.some((child) => child.id === nodeId)) {
+        return [project.id, ...inner]
+      }
+    }
+  }
+  return []
+}

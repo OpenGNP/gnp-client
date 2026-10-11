@@ -5,6 +5,7 @@ import {
   addProjectToFolder,
   addProjectToRoot,
   findProjectById,
+  getAncestorFolderIds,
   getDefaultOpenFolderIds,
   isIdWithinItem,
   removeProjectById,
@@ -147,10 +148,20 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     }
   }
 
+  /** Opens every folder above `nodeId` so it's visible in the tree. */
+  function revealProject(nodeId: string) {
+    const ancestors = getAncestorFolderIds(projects, nodeId)
+    if (ancestors.every((id) => openFolderIds.has(id))) {
+      return
+    }
+    setOpenFolderIds((current) => new Set([...current, ...ancestors]))
+  }
+
   return {
     projects,
     setProjects,
     openFolderIds,
+    revealProject,
     addProject,
     addFolder,
     moveProject,
