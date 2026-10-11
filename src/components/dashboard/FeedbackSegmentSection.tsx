@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, MessageSquareText } from 'lucide-react'
+import { AlertTriangle, ChevronDown, MessageSquareText, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
@@ -119,12 +119,17 @@ export type FeedbackSegmentSectionProps = {
    * questions only the chosen answers are offered — the data is already narrowed to them.
    */
   mainDemoSelection?: Record<string, string[]>
+  /** A period picked on the topic's volume chart: only points counted in that bar. */
+  period?: { index: number; label: string } | null
+  onClearPeriod?: () => void
 }
 
 export function FeedbackSegmentSection({
   feedbackSegment,
   demographicFilters: allDemographicFilters,
   mainDemoSelection,
+  period = null,
+  onClearPeriod,
 }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
@@ -175,6 +180,7 @@ export function FeedbackSegmentSection({
 
   const visiblePoints = useMemo(() => {
     const filtered = feedbackSegment.filter((point) => {
+      if (period && point.volumeBucket !== period.index) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false
       }
@@ -195,14 +201,29 @@ export function FeedbackSegmentSection({
         ? b.submittedAt.localeCompare(a.submittedAt)
         : a.submittedAt.localeCompare(b.submittedAt)
     })
-  }, [feedbackSegment, selectedSentiments, selectedDemos, sortOption])
+  }, [feedbackSegment, period, selectedSentiments, selectedDemos, sortOption])
 
   return (
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <p className="m-0 text-[12px] font-medium text-[#929292]">
-          Feedback Segment ({visiblePoints.length})
-        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="m-0 text-[12px] font-medium text-[#929292]">
+            Feedback Segment ({visiblePoints.length})
+          </p>
+          {period ? (
+            <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[#eef3fd] py-0.5 pr-1 pl-2.5 text-[11px] font-semibold text-[#1e55c5]">
+              <span className="truncate">{period.label}</span>
+              <button
+                aria-label={`Show feedback from every period, not just ${period.label}`}
+                className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#1e55c5] transition-colors hover:bg-[#dbe6fb]"
+                onClick={onClearPeriod}
+                type="button"
+              >
+                <X size={11} strokeWidth={2.6} />
+              </button>
+            </span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

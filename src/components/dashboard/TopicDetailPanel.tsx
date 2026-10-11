@@ -1,6 +1,6 @@
 import { ArrowRight, MessageCircle, Sparkles, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { TooltipContentProps } from 'recharts'
 
 import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
@@ -15,6 +15,7 @@ import { SENTIMENT_COLORS } from './sentimentColors'
 
 /** A volume bucket as the bars draw it: the sentiment split, plus anything unsplit. */
 type VolumeBar = {
+  index: number
   label: string
   value: number
   negative: number
@@ -33,6 +34,7 @@ function toVolumeBars(series: NonNullable<TopicSentiment['volumeSeries']>): Volu
     const positive = point.positive ?? 0
     const previous = i > 0 ? series[i - 1] : undefined
     return {
+      index: i,
       label: point.label,
       value: point.value,
       negative,
@@ -44,11 +46,22 @@ function toVolumeBars(series: NonNullable<TopicSentiment['volumeSeries']>): Volu
   })
 }
 
-function VolumeTooltip({ active, payload }: TooltipContentProps) {
+function VolumeTooltip({
+  active,
+  payload,
+  selectedIndex,
+  canSelect,
+}: TooltipContentProps & { selectedIndex: number | null; canSelect: boolean }) {
   const bar = payload?.[0]?.payload as VolumeBar | undefined
   if (!active || !bar) {
     return null
   }
+  const note =
+    !canSelect || bar.value === 0
+      ? undefined
+      : bar.index === selectedIndex
+        ? 'Click to show every period'
+        : "Click to see this period's feedback"
   // Mentions from an older server have no split: show the count, not a fake 0/0/0.
   if (bar.unsplit > 0) {
     return (
@@ -56,12 +69,19 @@ function VolumeTooltip({ active, payload }: TooltipContentProps) {
         delta={bar.delta}
         label={bar.label}
         mentions={bar.value}
+        note={note}
         shares={{ negative: 0, neutral: 0, positive: 0 }}
       />
     )
   }
   return (
-    <PeriodSentimentTooltip counts={bar} delta={bar.delta} label={bar.label} shares={sharesOf(bar)} />
+    <PeriodSentimentTooltip
+      counts={bar}
+      delta={bar.delta}
+      label={bar.label}
+      note={note}
+      shares={sharesOf(bar)}
+    />
   )
 }
 
@@ -127,6 +147,20 @@ export function TopicDetailPanel({
 
   const feedbackPoints = topic.negative + topic.neutral + topic.positive
   const score = sentimentScore(topic)
+
+  const volumeBars = toVolumeBars(topic.volumeSeries ?? [])
+  // Clicking a bar narrows the feedback below to that period. Needs every point's
+  // bucket from the server (absent on older ones).
+  const canSelectPeriod =
+    topic.feedbackSegment.length > 0 && topic.feedbackSegment.every((point) => point.volumeBucket !== undefined)
+  const [picked, setPicked] = useState<{ index: number; label: string } | null>(null)
+  // Dropped if a refetch (range/filter change) moved the buckets out from under it.
+  const period = picked && volumeBars[picked.index]?.label === picked.label ? picked : null
+  const togglePeriod = (index: number) => {
+    const bar = volumeBars[index]
+    if (!bar || bar.value === 0) return
+    setPicked(period?.index === index ? null : { index, label: bar.label })
+  }
 
   return (
     <aside
@@ -247,8 +281,18 @@ export function TopicDetailPanel({
           <ResponsiveContainer height="100%" width="100%">
             <BarChart
               barCategoryGap="28%"
-              data={toVolumeBars(topic.volumeSeries ?? [])}
+              data={volumeBars}
               margin={{ top: 4, right: 8, bottom: 0, left: -20 }}
+              // The whole column is the click target, so thin segments are easy to hit.
+              onClick={
+                canSelectPeriod
+                  ? (state) => {
+                      const index = Number(state.activeTooltipIndex)
+                      if (Number.isInteger(index)) togglePeriod(index)
+                    }
+                  : undefined
+              }
+              style={canSelectPeriod ? { cursor: 'pointer' } : undefined}
             >
               <CartesianGrid stroke="#f0f1f4" vertical={false} />
               <XAxis
@@ -265,23 +309,32 @@ export function TopicDetailPanel({
                 tickLine={false}
               />
               <Tooltip
-                content={VolumeTooltip}
+                content={(props) => (
+                  <VolumeTooltip {...props} canSelect={canSelectPeriod} selectedIndex={period?.index ?? null} />
+                )}
                 cursor={{ fill: '#f5f7fd' }}
                 isAnimationActive={false}
               />
               {/* Bar height is still the mention count; the stack shows what those
                   mentions felt like. Negative sits at the bottom so it's the easiest
                   part to compare across periods. */}
-              {SENTIMENT_KEYS.map((key) => (
+              {[...SENTIMENT_KEYS, 'unsplit' as const].map((key) => (
                 <Bar
                   dataKey={key}
-                  fill={SENTIMENT_COLORS[key]}
+                  fill={key === 'unsplit' ? '#1e55c5' : SENTIMENT_COLORS[key]}
                   isAnimationActive={false}
                   key={key}
                   stackId="volume"
-                />
+                >
+                  {/* With a period picked, the other bars fade back. */}
+                  {volumeBars.map((bar) => (
+                    <Cell
+                      fillOpacity={period === null || period.index === bar.index ? 1 : 0.3}
+                      key={bar.index}
+                    />
+                  ))}
+                </Bar>
               ))}
-              <Bar dataKey="unsplit" fill="#1e55c5" isAnimationActive={false} stackId="volume" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -292,6 +345,8 @@ export function TopicDetailPanel({
         feedbackSegment={topic.feedbackSegment}
         key={JSON.stringify(mainDemoSelection ?? {})}
         mainDemoSelection={mainDemoSelection}
+        onClearPeriod={() => setPicked(null)}
+        period={period}
       />
     </aside>
   )

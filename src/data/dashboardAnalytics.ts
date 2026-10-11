@@ -20,6 +20,11 @@ export type FeedbackPoint = {
   originalFeedback: string
   submittedAt: string
   /**
+   * Index into the topic's `volumeSeries` this point was counted in (null: outside every
+   * bucket). Absent from servers older than the field.
+   */
+  volumeBucket?: number | null
+  /**
    * The respondent's answers to whatever demographic (single-choice) questions the
    * form has — could be Year / Department / Gender / Age / anything. In form order.
    */
