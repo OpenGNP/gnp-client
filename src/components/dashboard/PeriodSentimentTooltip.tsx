@@ -12,7 +12,7 @@ const sentimentName = (key: SentimentKey) => key[0]!.toUpperCase() + key.slice(1
  * Themes panel's "Mentions over time" bars, so both read the same way.
  *
  * - Line 1: the period, an optional scope (topic name), mentions, change vs the
- *   previous period, and a "small sample" flag.
+ *   previous period. A small sample reads "only N mentions", in amber.
  * - Line 2: the sentiment split as % with the counts behind it, when known.
  * - Optional line 3: a hint (e.g. "Click to pin").
  */
@@ -54,6 +54,7 @@ export function PeriodSentimentDetail({
     ? counts.negative + counts.neutral + counts.positive
     : (mentions ?? shares.negative + shares.neutral + shares.positive)
   const showCount = counts !== undefined || mentions !== undefined
+  const smallSample = showCount && total > 0 && total < SMALL_SAMPLE_MENTIONS
   return (
     <div className="flex flex-col gap-1">
       <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#929292]">
@@ -63,16 +64,21 @@ export function PeriodSentimentDetail({
             ·<span className="max-w-72 truncate">{scope}</span>
           </>
         ) : null}
-        {showCount ? <>· {total} mention{total === 1 ? '' : 's'}</> : null}
+        {showCount ? (
+          <>
+            ·
+            <span className={smallSample ? 'font-medium text-[#9a6700]' : undefined}>
+              {smallSample ? 'only ' : ''}
+              {total} mention{total === 1 ? '' : 's'}
+            </span>
+          </>
+        ) : null}
         {delta !== null && delta !== 0 ? (
           // Neutral colour on purpose: more mentions isn't good or bad by itself.
           <span className="inline-flex items-center font-semibold text-[#3f4045]">
             {delta > 0 ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
             {Math.abs(delta)}
           </span>
-        ) : null}
-        {showCount && total > 0 && total < SMALL_SAMPLE_MENTIONS ? (
-          <span className="rounded-full bg-[#fff4dc] px-1.5 font-semibold text-[#9a6700]">small sample</span>
         ) : null}
       </p>
       {total === 0 ? (
