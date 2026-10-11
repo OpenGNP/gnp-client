@@ -20,6 +20,7 @@ import {
   buildUpdateFormPayload,
   formDetailToModel,
 } from '../lib/formMapping'
+import { FormEditorSkeleton } from '../components/skeletons/FormEditorSkeleton'
 import { cn } from '../lib/utils'
 
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -218,7 +219,7 @@ export function EditFormPage({
 
       <div className="bg-[#f5f9ff] px-14 pb-16 max-[900px]:px-6 max-[560px]:px-4">
         {loadStatus === 'loading' ? (
-          <p className="mx-auto max-w-[978px] pt-10 text-[14px] text-[#8b8e98]">Loading this form…</p>
+          <FormEditorSkeleton />
         ) : loadStatus === 'error' ? (
           <div className="mx-auto flex max-w-[978px] flex-wrap items-center gap-3 pt-10 text-[14px] text-[#e0507a]">
             <span>{loadError}</span>

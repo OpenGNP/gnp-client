@@ -430,6 +430,7 @@ function App() {
       onMoveItemInto={(id, folderId) => {
         void handleMoveProject(id, { folderId })
       }}
+      isLoading={workspace.status === 'loading'}
       onRenameItem={handleRenameProject}
       projects={projects}
     />
@@ -441,6 +442,7 @@ function App() {
         <Sidebar
           brand={brand}
           isCollapsed={isSidebarCollapsed}
+          isLoading={workspace.status === 'loading'}
           openFolderIds={openFolderIds}
           projects={projects}
           searchTerm={searchTerm}

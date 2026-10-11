@@ -37,7 +37,9 @@ import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
 import { useNow } from '../hooks/useNow'
 import { ApiError } from '../lib/api'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
-import { formatDateTime, formStatusBadge, type ResponseStateBadge } from '../lib/responseWindow'
+import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
+import { ContentSkeleton } from '../components/skeletons/DashboardSkeleton'
+import { Skeleton } from '../components/ui/skeleton'
 import { cn } from '../lib/utils'
 
 type BucketChoice = TrendBucket | 'auto'
@@ -51,27 +53,42 @@ const BUCKETS: { value: BucketChoice; label: string }[] = [
   { value: 'year', label: 'Yearly' },
 ]
 
-function StatusRow({
-  badge,
-  openDateRangeLabel,
-  lastUpdatedLabel,
-}: {
-  badge: ResponseStateBadge
-  openDateRangeLabel: string
-  lastUpdatedLabel: string
-}) {
+/** `form === null` while it loads: the labels render, the values are placeholders. */
+function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
   return (
     <div className="flex items-center gap-5">
-      <ResponseStateChip badge={badge} />
+      {form ? (
+        <ResponseStateChip
+          badge={formStatusBadge(
+            form.status,
+            {
+              acceptingResponses: form.acceptingResponses,
+              startDate: form.startDate,
+              endDate: form.endDate,
+            },
+            now,
+          )}
+        />
+      ) : (
+        <Skeleton className="h-6.5 w-24 rounded-full" />
+      )}
       <span className="inline-flex items-center gap-1.5 text-[12px]">
         <Calendar className="text-[#3f4045]" size={22} strokeWidth={1.8} />
         <span className="font-medium text-[#929292]">Open</span>
-        <span className="font-bold text-[#14181f]">{openDateRangeLabel}</span>
+        {form ? (
+          <span className="font-bold text-[#14181f]">{openRangeLabel(form)}</span>
+        ) : (
+          <Skeleton className="h-3.5 w-28" />
+        )}
       </span>
       <span className="inline-flex items-center gap-1.5 text-[12px]">
         <RefreshCw className="text-[#3f4045]" size={22} strokeWidth={1.8} />
         <span className="font-medium text-[#929292]">Last update</span>
-        <span className="font-bold text-[#14181f]">{lastUpdatedLabel}</span>
+        {form ? (
+          <span className="font-bold text-[#14181f]">{formatRelativeTime(form.updatedAt)}</span>
+        ) : (
+          <Skeleton className="h-3.5 w-16" />
+        )}
       </span>
     </div>
   )
@@ -327,7 +344,10 @@ export function FormDashboardPage({
     }
   }, [formId, hasValidId, bucket, rank, topicSel, range?.from, range?.to, demoSel])
 
-  if (loadStatus !== 'ready' || !form || !responses || !themes) {
+  // Only an error replaces the page. While loading, the static chrome (tabs,
+  // headings, card labels, filter controls) renders right away and each
+  // data-backed slot shows its own placeholder until its fetch lands.
+  if (loadStatus === 'error') {
     return (
       <div>
         <FormDetailTabs
@@ -336,28 +356,29 @@ export function FormDashboardPage({
           showSidebarToggle={showSidebarToggle}
         />
         <div className="flex min-h-100 items-center justify-center px-14 py-16 text-center">
-          <p className="m-0 text-[14px] text-[#726f6f]">
-            {loadStatus === 'error' ? loadError : 'Loading dashboard…'}
-          </p>
+          <p className="m-0 text-[14px] text-[#726f6f]">{loadError}</p>
         </div>
       </div>
     )
   }
 
+  // form + responses arrive together (one Promise.all); themes on its own.
+  const formReady = loadStatus === 'ready' && form !== null && responses !== null
+
   const selectedTopic =
-    activeView === 'themes'
+    activeView === 'themes' && themes
       ? ([...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].find(
           (topic) => topic.id === selectedTopicId,
         ) ?? null)
       : null
 
-  const noResponses = responses.totalResponses === 0
-  const sentimentTotal =
-    themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
+  const sentimentTotal = themes
+    ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
+    : 0
 
   const activeDemoCount = Object.values(demoSel).reduce((sum, values) => sum + values.length, 0)
   const demoFilterControl =
-    themes.demographicFilters.length > 0 ? (
+    themes && themes.demographicFilters.length > 0 ? (
       <FeedbackFilter
         activeFilterCount={activeDemoCount}
         demographicFilters={themes.demographicFilters}
@@ -396,19 +417,7 @@ export function FormDashboardPage({
             )}
           >
             <div className="flex flex-col gap-1.25">
-              <StatusRow
-                badge={formStatusBadge(
-                  form.status,
-                  {
-                    acceptingResponses: form.acceptingResponses,
-                    startDate: form.startDate,
-                    endDate: form.endDate,
-                  },
-                  now,
-                )}
-                lastUpdatedLabel={formatRelativeTime(form.updatedAt)}
-                openDateRangeLabel={openRangeLabel(form)}
-              />
+              <StatusRow form={formReady ? form : null} now={now} />
               <div className="flex items-start justify-between gap-2.5 py-2.5">
                 <div className="flex items-center gap-2.5">
                   {activeView === 'themes' ? (
@@ -416,19 +425,25 @@ export function FormDashboardPage({
                   ) : (
                     <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
                   )}
-                  <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                    {activeView === 'themes'
-                      ? themes.title
-                      : activeView === 'trend'
-                        ? 'Trend Overview'
-                        : 'Response Overview'}
-                  </h1>
+                  {activeView === 'themes' && !themes ? (
+                    <Skeleton className="h-6 w-56" />
+                  ) : (
+                    <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
+                      {activeView === 'themes'
+                        ? themes?.title
+                        : activeView === 'trend'
+                          ? 'Trend Overview'
+                          : 'Response Overview'}
+                    </h1>
+                  )}
                 </div>
               </div>
             </div>
 
             {activeView === 'themes' ? (
-              themes.aiDiscoveredTopics.length === 0 ? (
+              !themes ? (
+                <ContentSkeleton label="Loading themes…" />
+              ) : themes.aiDiscoveredTopics.length === 0 ? (
                 <>
                   {themes.totalMentions > 0 ? (
                     <div className="flex flex-wrap items-end gap-3">
@@ -548,48 +563,59 @@ export function FormDashboardPage({
             ) : null}
 
             {activeView === 'response' ? (
-              <>
-                <div className="flex h-27 w-full shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
-                  <div className="flex size-15.25 shrink-0 items-center justify-center rounded-[6px] bg-[#edf2fd]">
-                    <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
+              !formReady ? (
+                <ContentSkeleton label="Loading responses…" />
+              ) : (
+                <>
+                  <div className="flex h-27 w-full shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
+                    <div className="flex size-15.25 shrink-0 items-center justify-center rounded-[6px] bg-[#edf2fd]">
+                      <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
+                    </div>
+                    <div className="flex flex-col gap-2.5">
+                      <p className="m-0 text-[12px] font-medium text-[#929292]">Total Response</p>
+                      <p className="m-0 text-[20px] font-bold text-[#14181f]">
+                        {responses.totalResponses}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2.5">
-                    <p className="m-0 text-[12px] font-medium text-[#929292]">Total Response</p>
-                    <p className="m-0 text-[20px] font-bold text-[#14181f]">
-                      {responses.totalResponses}
-                    </p>
-                  </div>
-                </div>
 
-                {noResponses ? (
-                  <div className="flex min-h-40 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-10 text-center">
-                    <p className="m-0 text-[14px] text-[#726f6f]">
-                      No responses have been submitted yet.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <ResponseOverviewSection
-                      breakdowns={responses.demographic}
-                      title="Demographic Overview"
-                    />
-                    <ResponseOverviewSection
-                      breakdowns={responses.feedback}
-                      title="Feedback Overview"
-                    />
-                  </>
-                )}
-              </>
+                  {responses.totalResponses === 0 ? (
+                    <div className="flex min-h-40 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-10 text-center">
+                      <p className="m-0 text-[14px] text-[#726f6f]">
+                        No responses have been submitted yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <ResponseOverviewSection
+                        breakdowns={responses.demographic}
+                        title="Demographic Overview"
+                      />
+                      <ResponseOverviewSection
+                        breakdowns={responses.feedback}
+                        title="Feedback Overview"
+                      />
+                    </>
+                  )}
+                </>
+              )
             ) : null}
 
-            {activeView === 'trend' ? (
+            {activeView === 'trend' && !trend ? (
+              <ContentSkeleton label="Loading trend…" />
+            ) : null}
+
+            {/* Same rule as Themes: no filters when the form has no analysed feedback at
+                all (`totalMentions` is all-time) — there's nothing to filter. They stay when
+                data exists but the current range/filters exclude it, so you can widen them. */}
+            {activeView === 'trend' && trend && trend.totalMentions > 0 ? (
               <div className="flex flex-wrap items-end gap-3">
                 <DateRangeFilter
                   isDefault={range === null}
-                  label={range === null ? (trend?.rangeLabel ?? 'All feedback') : undefined}
+                  label={range === null ? trend.rangeLabel : undefined}
                   onChange={changeRange}
                   onReset={resetRange}
-                  value={range ?? (trend ? { from: trend.from, to: trend.to } : undefined)}
+                  value={range ?? { from: trend.from, to: trend.to }}
                 />
                 {demoFilterControl}
                 <div className="flex flex-col items-start gap-2">
@@ -612,7 +638,7 @@ export function FormDashboardPage({
                     ))}
                   </div>
                 </div>
-                {trend && trend.availableTopics.length > 0 ? (
+                {trend.availableTopics.length > 0 ? (
                   <TopicPicker
                     max={TREND_SERIES_MAX}
                     onRankChange={changeRank}
@@ -628,10 +654,8 @@ export function FormDashboardPage({
               </div>
             ) : null}
 
-            {activeView === 'trend' ? (
-              !trend ? (
-                <EmptyNote>Loading trend…</EmptyNote>
-              ) : trend.topicVolumeSeries.length > 0 ? (
+            {activeView === 'trend' && trend ? (
+              trend.topicVolumeSeries.length > 0 ? (
                 <TrendView trend={trend} />
               ) : trend.totalMentions === 0 ? (
                 <EmptyNote>
@@ -650,7 +674,7 @@ export function FormDashboardPage({
         </div>
       </div>
 
-      {selectedTopic ? (
+      {selectedTopic && themes ? (
         <TopicDetailPanel
           demographicFilters={themes.demographicFilters}
           key={selectedTopic.id}

@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { useNow } from "../hooks/useNow";
 import { ApiError } from "../lib/api";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
+import { PublicFormSkeleton } from "../components/skeletons/PublicFormSkeleton";
 import { cn } from "../lib/utils";
 
 const TEXTAREA_MAX_LENGTH = 2000;
@@ -283,9 +284,7 @@ export function PublicFormBySlugPage() {
   if (status === "loading") {
     return (
       <Shell>
-        <p className="p-10 text-center text-sm text-muted-foreground">
-          Loading form…
-        </p>
+        <PublicFormSkeleton />
       </Shell>
     );
   }

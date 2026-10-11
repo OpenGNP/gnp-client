@@ -14,6 +14,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FolderCard, NewFolderCard } from '../components/files/FolderCard'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
+import { FolderCardGridSkeleton } from '../components/skeletons/FolderCardSkeleton'
+import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
+import { SkeletonRegion } from '../components/ui/skeleton'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -34,6 +37,8 @@ import { getFolderPath } from '../utils/projectTree'
 
 export type FilesPageProps = {
   projects: ProjectTreeItem[]
+  /** True while the project tree is still being fetched — shows placeholder cards. */
+  isLoading?: boolean
   onCreateFolder: (name: string, parentFolderId: string | null) => void
   onCreateForm: (parentFolderId: string | null) => void
   onDeleteItem: (id: string) => void
@@ -83,6 +88,7 @@ function stopContextMenu(event: { stopPropagation: () => void }) {
 
 export function FilesPage({
   projects,
+  isLoading = false,
   onCreateFolder,
   onCreateForm,
   onDeleteItem,
@@ -253,78 +259,85 @@ export function FilesPage({
               </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-8">
-              {folders.length > 0 || isCreatingFolder ? (
-                <section aria-labelledby="files-folders-heading">
-                  <h2
-                    className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]"
-                    id="files-folders-heading"
-                  >
-                    Folders
-                  </h2>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-                    {isCreatingFolder ? (
-                      <NewFolderCard
-                        onCancel={() => setIsCreatingFolder(false)}
-                        onCommit={(name) => {
-                          onCreateFolder(name, currentFolderId)
-                          setIsCreatingFolder(false)
-                        }}
-                      />
-                    ) : null}
-                    {folders.map((folder) => (
-                      <FolderCard
-                        dragId={folder.id}
-                        draggingId={draggingId}
-                        folder={folder}
-                        key={folder.id}
-                        onDelete={() => deleteItem(folder)}
-                        onDragEnd={endDrag}
-                        onDragStart={setDraggingId}
-                        onItemDrop={(draggedId) => {
-                          endDrag()
-                          onMoveItemInto(draggedId, folder.id)
-                        }}
-                        onMove={() => onMoveItem(folder.id)}
-                        onOpen={() => openFolder(folder.id)}
-                        onRename={(name) => onRenameItem(folder.id, name)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              <section aria-labelledby="files-files-heading">
-                <h2
-                  className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]"
-                  id="files-files-heading"
-                >
-                  Files
-                </h2>
-                {files.length > 0 ? (
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
-                    {files.map((file) => (
-                      <div key={file.id} onContextMenu={stopContextMenu}>
-                        <FormCard
-                          dragId={file.id}
-                          image={placeholderFormImage(Number(file.formId ?? file.id))}
-                          onDelete={() => deleteItem(file)}
+            {isLoading ? (
+              <SkeletonRegion className="mt-4 flex flex-col gap-8" label="Loading files…">
+                <FolderCardGridSkeleton />
+                <FormCardGridSkeleton count={4} />
+              </SkeletonRegion>
+            ) : (
+              <div className="mt-4 flex flex-col gap-8">
+                {folders.length > 0 || isCreatingFolder ? (
+                  <section aria-labelledby="files-folders-heading">
+                    <h2
+                      className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]"
+                      id="files-folders-heading"
+                    >
+                      Folders
+                    </h2>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+                      {isCreatingFolder ? (
+                        <NewFolderCard
+                          onCancel={() => setIsCreatingFolder(false)}
+                          onCommit={(name) => {
+                            onCreateFolder(name, currentFolderId)
+                            setIsCreatingFolder(false)
+                          }}
+                        />
+                      ) : null}
+                      {folders.map((folder) => (
+                        <FolderCard
+                          dragId={folder.id}
+                          draggingId={draggingId}
+                          folder={folder}
+                          key={folder.id}
+                          onDelete={() => deleteItem(folder)}
                           onDragEnd={endDrag}
                           onDragStart={setDraggingId}
-                          onMove={() => onMoveItem(file.id)}
-                          onOpen={() => openForm(file.formId ?? file.id)}
-                          onRename={(name) => onRenameItem(file.id, name)}
-                          title={file.label}
-                          updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}
+                          onItemDrop={(draggedId) => {
+                            endDrag()
+                            onMoveItemInto(draggedId, folder.id)
+                          }}
+                          onMove={() => onMoveItem(folder.id)}
+                          onOpen={() => openFolder(folder.id)}
+                          onRename={(name) => onRenameItem(folder.id, name)}
                         />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="m-0 text-[14px] text-[#8b8e98]">No file here</p>
-                )}
-              </section>
-            </div>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                <section aria-labelledby="files-files-heading">
+                  <h2
+                    className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]"
+                    id="files-files-heading"
+                  >
+                    Files
+                  </h2>
+                  {files.length > 0 ? (
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
+                      {files.map((file) => (
+                        <div key={file.id} onContextMenu={stopContextMenu}>
+                          <FormCard
+                            dragId={file.id}
+                            image={placeholderFormImage(Number(file.formId ?? file.id))}
+                            onDelete={() => deleteItem(file)}
+                            onDragEnd={endDrag}
+                            onDragStart={setDraggingId}
+                            onMove={() => onMoveItem(file.id)}
+                            onOpen={() => openForm(file.formId ?? file.id)}
+                            onRename={(name) => onRenameItem(file.id, name)}
+                            title={file.label}
+                            updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="m-0 text-[14px] text-[#8b8e98]">No file here</p>
+                  )}
+                </section>
+              </div>
+            )}
           </PageContainer>
         </div>
       </ContextMenuTrigger>

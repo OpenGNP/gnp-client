@@ -5,6 +5,8 @@ import { deleteForm, listForms, updateForm, type ApiForm } from '../api/forms'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
+import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
+import { SkeletonRegion } from '../components/ui/skeleton'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
@@ -131,7 +133,9 @@ export function HomePage({ onMoveItem }: HomePageProps) {
         </h2>
 
         {status === 'loading' ? (
-          <p className="mt-6.5 text-[14px] text-[#8b8e98]">Loading your forms…</p>
+          <SkeletonRegion className="mt-6.5" label="Loading your forms…">
+            <FormCardGridSkeleton />
+          </SkeletonRegion>
         ) : status === 'error' ? (
           <div className="mt-6.5 flex flex-wrap items-center gap-3 text-[14px] text-[#e0507a]">
             <span>{errorMessage}</span>

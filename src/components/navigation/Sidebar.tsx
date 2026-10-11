@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
+import { SidebarTreeSkeleton } from '../skeletons/SidebarTreeSkeleton'
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
 import { findProjectById, isIdWithinItem } from '../../utils/projectTree'
@@ -48,6 +49,8 @@ export type SidebarProps = {
   brand: SidebarBrand
   user: SidebarUser
   projects: ProjectTreeItem[]
+  /** True while the project tree is still being fetched — shows placeholder rows. */
+  isLoading?: boolean
   isCollapsed: boolean
   openFolderIds: Set<string>
   searchTerm: string
@@ -462,6 +465,7 @@ function NewFolderRow({
 
 function ProjectNavigation({
   projects,
+  isLoading = false,
   openFolderIds,
   searchTerm,
   selectedProjectId,
@@ -583,7 +587,9 @@ function ProjectNavigation({
             }}
           />
         ) : null}
-        {visibleProjects.length > 0 ? (
+        {isLoading ? (
+          <SidebarTreeSkeleton />
+        ) : visibleProjects.length > 0 ? (
           visibleProjects.map((project, index) => (
             <ProjectItem
               item={project}
@@ -654,6 +660,7 @@ function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => vo
 export function Sidebar({
   brand,
   isCollapsed,
+  isLoading,
   openFolderIds,
   projects,
   searchTerm,
@@ -695,6 +702,7 @@ export function Sidebar({
       {!isCollapsed ? (
         <>
           <ProjectNavigation
+            isLoading={isLoading}
             projects={projects}
             openFolderIds={openFolderIds}
             searchTerm={searchTerm}
