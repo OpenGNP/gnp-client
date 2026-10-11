@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 import type { FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
@@ -319,8 +319,14 @@ export function FormDashboardPage({
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />
-        <div className="flex min-h-100 items-center justify-center px-14 py-16 text-center">
+        <div className="flex min-h-100 flex-col items-center justify-center gap-4 px-14 py-16 text-center">
           <p className="m-0 text-[14px] text-[#726f6f]">{loadError}</p>
+          <Link
+            className="rounded-[5px] border border-[#d7dbe6] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3f4045] no-underline transition-colors hover:bg-[#f7f8fb]"
+            to="/"
+          >
+            Back to Home
+          </Link>
         </div>
       </div>
     )
@@ -328,6 +334,7 @@ export function FormDashboardPage({
 
   // The status row + Response tab need both; themes/trend each fill in on their own.
   const formReady = form !== null && responses !== null
+  const trendReady = trend !== null && themes !== null
 
   const selectedTopic =
     activeView === 'themes' && themes
@@ -590,14 +597,14 @@ export function FormDashboardPage({
               )
             ) : null}
 
-            {activeView === 'trend' && !trend ? (
+            {activeView === 'trend' && !trendReady ? (
               <ContentSkeleton label="Loading trend…" />
             ) : null}
 
             {/* Same rule as Themes: no filters when the form has no analysed feedback at
                 all (`totalMentions` is all-time) — there's nothing to filter. They stay when
                 data exists but the current range/filters exclude it, so you can widen them. */}
-            {activeView === 'trend' && trend && trend.totalMentions > 0 ? (
+            {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? (
               <div className="flex flex-wrap items-end gap-3">
                 <DateRangeFilter
                   isDefault={range === null}
@@ -630,9 +637,9 @@ export function FormDashboardPage({
                 {trendPagePending ? <UpdatingIndicator /> : null}
               </div>
             ) : null}
-            {activeView === 'trend' && trend && trend.totalMentions > 0 ? activeFilterBar : null}
+            {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? activeFilterBar : null}
 
-            {activeView === 'trend' && trend ? (
+            {activeView === 'trend' && trendReady ? (
               trend.topicVolumeSeries.length > 0 ? (
                 <TrendView
                   topicControl={

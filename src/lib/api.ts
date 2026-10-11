@@ -32,6 +32,19 @@ export function setAuthToken(token: string | null): void {
   }
 }
 
+// Fired when a request made *with* a token comes back 401 — the token expired (or
+// was revoked) while the app was open. AuthProvider listens and flips to signed-out,
+// so AppGate sends the user to /login (remembering the page) instead of every
+// screen showing its own "Unauthorized" error.
+const unauthorizedListeners = new Set<() => void>()
+
+export function onUnauthorized(listener: () => void): () => void {
+  unauthorizedListeners.add(listener)
+  return () => {
+    unauthorizedListeners.delete(listener)
+  }
+}
+
 /** Thrown for any non-2xx response or a `{ success: false }` envelope. */
 export class ApiError extends Error {
   readonly status: number
@@ -90,6 +103,11 @@ httpClient.interceptors.response.use(
     }
     if (error instanceof AxiosError) {
       const envelope = error.response?.data as ApiEnvelope<unknown> | undefined
+      const sentToken = Boolean(error.config?.headers?.get('Authorization'))
+      if (error.response?.status === 401 && sentToken && authToken) {
+        setAuthToken(null)
+        unauthorizedListeners.forEach((listener) => listener())
+      }
       throw new ApiError(
         envelope?.message || error.message || 'Request failed',
         error.response?.status ?? 0,

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 import {
   removeFormCoverImage,
@@ -125,6 +125,11 @@ export function EditFormPage({
       ? formResult.error.message
       : 'Something went wrong loading this form.'
 
+  // Not yours (403) or gone (404) — see gnp-server getOwnedForm.
+  const isNotAvailable =
+    formResult.error instanceof ApiError &&
+    (formResult.error.status === 403 || formResult.error.status === 404)
+
   function retryLoad() {
     void formResult.refetch()
   }
@@ -242,7 +247,9 @@ export function EditFormPage({
         ) : loadStatus === 'error' ? (
           <div className="mx-auto flex max-w-[978px] flex-wrap items-center gap-3 pt-10 text-[14px] text-[#e0507a]">
             <span>{loadError}</span>
-            {hasValidId ? (
+            {/* Retrying only helps a network/server blip — not a form that isn't
+                yours or no longer exists. */}
+            {hasValidId && !isNotAvailable ? (
               <button
                 className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
                 onClick={retryLoad}
@@ -251,6 +258,12 @@ export function EditFormPage({
                 Try again
               </button>
             ) : null}
+            <Link
+              className="rounded-[5px] border border-[#d7dbe6] bg-white px-3 py-1 text-[13px] font-medium text-[#3f4045] no-underline transition-colors hover:bg-[#f7f8fb]"
+              to="/"
+            >
+              Back to Home
+            </Link>
           </div>
         ) : (
           <div

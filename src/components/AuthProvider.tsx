@@ -10,6 +10,7 @@ import {
   type AuthStatus,
   type AuthUser,
 } from '../lib/auth'
+import { onUnauthorized } from '../lib/api'
 import { queryClient } from '../lib/queryClient'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -40,6 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [attempt])
+
+  // Token expired mid-use (some request got a 401): treat as signed out — not as
+  // an explicit logout, so AppGate still remembers the page for after sign-in.
+  useEffect(
+    () =>
+      onUnauthorized(() => {
+        setUser(null)
+        setSignedOut(false)
+        setStatus('unauthenticated')
+      }),
+    [],
+  )
 
   function retry() {
     setStatus('loading')

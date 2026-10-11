@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -169,5 +170,47 @@ describe('pages on React Query', () => {
     expect(await screen.findByText('Canteen survey')).toBeInTheDocument()
     expect(count('/forms')).toBe(1)
     expect(count('/folders')).toBe(1)
+  })
+
+  it("edit page for a form you can't open offers Back to Home, not Try again", async () => {
+    renderAt('/forms/99', '/forms/:projectId', <EditFormPage />)
+    expect(await screen.findByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('Trend shows its whole filter row at once, only after trend and themes both load', async () => {
+    let releaseThemes = () => {}
+    const themesGate = new Promise<void>((resolve) => {
+      releaseThemes = resolve
+    })
+    const withData: Record<string, unknown> = {
+      ...fixtures,
+      '/analytics/forms/4/themes': {
+        ...(fixtures['/analytics/forms/4/themes'] as object),
+        totalMentions: 5,
+        demographicFilters: [{ label: 'Faculty', options: ['SIT'] }],
+      },
+      '/analytics/forms/4/trend': { ...(fixtures['/analytics/forms/4/trend'] as object), totalMentions: 5 },
+    }
+    httpClient.defaults.adapter = async (config) => {
+      const path = (config.url ?? '').split('?')[0]!
+      requests.push(path)
+      if (path === '/analytics/forms/4/themes') await themesGate
+      return { data: { success: true, message: 'ok', data: withData[path] }, status: 200, statusText: 'OK', headers: {}, config }
+    }
+
+    const user = userEvent.setup()
+    renderAt('/forms/4/dashboard', '/forms/:projectId/dashboard', <FormDashboardPage />)
+    await user.click(await screen.findByRole('tab', { name: /trend/i }))
+    await waitFor(() => expect(count('/analytics/forms/4/trend')).toBeGreaterThan(0))
+
+    // Trend has arrived, themes hasn't: no partial filter row yet.
+    expect(screen.queryByText('Summarise by:')).not.toBeInTheDocument()
+    expect(screen.queryByText('Filter by:')).not.toBeInTheDocument()
+
+    await act(async () => releaseThemes())
+    expect(await screen.findByText('Summarise by:')).toBeInTheDocument()
+    expect(screen.getByText('Filter by:')).toBeInTheDocument()
+    expect(screen.getByText('Show reports for:')).toBeInTheDocument()
   })
 })
