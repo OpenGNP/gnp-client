@@ -19,6 +19,8 @@ export type FeedbackPoint = {
   quote: string
   originalFeedback: string
   submittedAt: string
+  /** Who wrote it, when the form recorded names; null = anonymous. Absent from older servers. */
+  respondentName?: string | null
   /**
    * Index into the topic's `volumeSeries` this point was counted in (null: outside every
    * bucket). Absent from servers older than the field.
@@ -74,8 +76,12 @@ export type TextResponseBreakdown = {
   kind: 'text'
   id: string
   title: string
-  responses: string[]
+  /** Plain strings from servers older than recorded names. */
+  responses: (string | TextResponse)[]
 }
+
+/** A free-text answer, with who wrote it when the form recorded names (null: anonymous). */
+export type TextResponse = { text: string; respondentName: string | null }
 
 export type DemographicBreakdown =
   | SingleChoiceBreakdown

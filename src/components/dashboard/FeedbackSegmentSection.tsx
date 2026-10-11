@@ -43,7 +43,7 @@ function toggleInSet<T>(set: Set<T>, value: T) {
   return next
 }
 
-function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
+function FeedbackPointCard({ point, showName }: { point: FeedbackPoint; showName: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -88,6 +88,14 @@ function FeedbackPointCard({ point }: { point: FeedbackPoint }) {
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#929292]">Original Feedback</span>
             <span className="text-[11px] text-[#929292]">
+              {showName ? (
+                <>
+                  <span className={point.respondentName ? 'font-medium text-[#3f4045]' : undefined}>
+                    {point.respondentName ?? 'Anonymous'}
+                  </span>
+                  {' · '}
+                </>
+              ) : null}
               {formatFeedbackDate(point.submittedAt)}
             </span>
           </div>
@@ -122,6 +130,8 @@ export type FeedbackSegmentSectionProps = {
   /** A period picked on the topic's volume chart: only points counted in that bar. */
   period?: { index: number; label: string } | null
   onClearPeriod?: () => void
+  /** The dashboard's "Hide names" toggle. */
+  hideNames?: boolean
 }
 
 export function FeedbackSegmentSection({
@@ -130,6 +140,7 @@ export function FeedbackSegmentSection({
   mainDemoSelection,
   period = null,
   onClearPeriod,
+  hideNames = false,
 }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
@@ -167,6 +178,9 @@ export function FeedbackSegmentSection({
         : group
     })
   }, [allDemographicFilters, feedbackSegment, mainDemoSelection])
+
+  // Names only when this form recorded any — otherwise every card would just say "Anonymous".
+  const showNames = !hideNames && feedbackSegment.some((point) => point.respondentName)
 
   const activeFilterCount =
     selectedSentiments.size +
@@ -269,7 +283,7 @@ export function FeedbackSegmentSection({
       {visiblePoints.length > 0 ? (
         <div className="flex flex-col gap-3">
           {visiblePoints.map((point) => (
-            <FeedbackPointCard key={point.id} point={point} />
+            <FeedbackPointCard key={point.id} point={point} showName={showNames} />
           ))}
         </div>
       ) : (

@@ -107,6 +107,8 @@ export type TopicDetailPanelProps = {
   onClose: () => void
   /** Opens the Trend tab with this topic charted and pinned, to compare it with others. */
   onCompareInTrend?: () => void
+  /** The dashboard's "Hide names" toggle. */
+  hideNames?: boolean
   width: number | null
 }
 
@@ -114,6 +116,7 @@ export function TopicDetailPanel({
   topic,
   onClose,
   onCompareInTrend,
+  hideNames,
   width,
   demographicFilters,
   mainDemoSelection,
@@ -343,6 +346,7 @@ export function TopicDetailPanel({
       <FeedbackSegmentSection
         demographicFilters={demographicFilters}
         feedbackSegment={topic.feedbackSegment}
+        hideNames={hideNames}
         key={JSON.stringify(mainDemoSelection ?? {})}
         mainDemoSelection={mainDemoSelection}
         onClearPeriod={() => setPicked(null)}

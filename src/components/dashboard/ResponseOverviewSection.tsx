@@ -6,22 +6,25 @@ import { TextResponseListCard } from './TextResponseListCard'
 export type DemographicOverviewSectionProps = {
   title: string
   breakdowns: DemographicBreakdown[]
+  /** The dashboard's "Hide names" toggle (text responses). */
+  hideNames?: boolean
 }
 
-function BreakdownCard({ breakdown }: { breakdown: DemographicBreakdown }) {
+function BreakdownCard({ breakdown, hideNames }: { breakdown: DemographicBreakdown; hideNames?: boolean }) {
   switch (breakdown.kind) {
     case 'single-choice':
       return <DemographicPieCard breakdown={breakdown} />
     case 'multi-choice':
       return <MultiChoiceBarCard breakdown={breakdown} />
     case 'text':
-      return <TextResponseListCard breakdown={breakdown} />
+      return <TextResponseListCard breakdown={breakdown} hideNames={hideNames} />
   }
 }
 
 export function ResponseOverviewSection({
   title,
   breakdowns,
+  hideNames,
 }: DemographicOverviewSectionProps) {
   if (breakdowns.length === 0) {
     return null
@@ -38,7 +41,7 @@ export function ResponseOverviewSection({
           </h2>
         </div>
         <div className="rounded-b-[15px] border border-[#e9eaed] bg-white">
-          <BreakdownCard breakdown={firstBreakdown} />
+          <BreakdownCard breakdown={firstBreakdown} hideNames={hideNames} />
         </div>
       </div>
 
@@ -47,7 +50,7 @@ export function ResponseOverviewSection({
           className="w-full rounded-[15px] border border-[#e9eaed] bg-white"
           key={breakdown.id}
         >
-          <BreakdownCard breakdown={breakdown} />
+          <BreakdownCard breakdown={breakdown} hideNames={hideNames} />
         </div>
       ))}
     </section>

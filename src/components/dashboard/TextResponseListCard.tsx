@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
 
-import type { TextResponseBreakdown } from '../../data/dashboardAnalytics'
+import type { TextResponse, TextResponseBreakdown } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
 import { Pagination } from './Pagination'
 
 const PAGE_SIZE = 4
 const LONG_RESPONSE_THRESHOLD = 220
 
-function ResponseCard({ response }: { response: string }) {
+const toTextResponse = (response: string | TextResponse): TextResponse =>
+  typeof response === 'string' ? { text: response, respondentName: null } : response
+
+function ResponseCard({ response, showName }: { response: TextResponse; showName: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const isLong = response.length > LONG_RESPONSE_THRESHOLD
+  const isLong = response.text.length > LONG_RESPONSE_THRESHOLD
 
   return (
     <div className="flex items-start gap-2.5 rounded-[8px] border border-[#e8eaf1] bg-[#f7f8fb] px-4 py-3">
@@ -22,7 +25,7 @@ function ResponseCard({ response }: { response: string }) {
             isLong && !isExpanded && 'line-clamp-3',
           )}
         >
-          {response}
+          {response.text}
         </p>
         {isLong ? (
           <button
@@ -33,6 +36,16 @@ function ResponseCard({ response }: { response: string }) {
             {isExpanded ? 'Show less' : 'Show more'}
           </button>
         ) : null}
+        {showName ? (
+          <p
+            className={cn(
+              'm-0 mt-1.5 text-[12px]',
+              response.respondentName ? 'font-medium text-[#726f6f]' : 'text-[#929292]',
+            )}
+          >
+            {response.respondentName ?? 'Anonymous'}
+          </p>
+        ) : null}
       </div>
     </div>
   )
@@ -40,13 +53,18 @@ function ResponseCard({ response }: { response: string }) {
 
 export type TextResponseListCardProps = {
   breakdown: TextResponseBreakdown
+  /** The dashboard's "Hide names" toggle. */
+  hideNames?: boolean
 }
 
-export function TextResponseListCard({ breakdown }: TextResponseListCardProps) {
+export function TextResponseListCard({ breakdown, hideNames = false }: TextResponseListCardProps) {
   const [page, setPage] = useState(1)
 
-  const totalPages = Math.max(1, Math.ceil(breakdown.responses.length / PAGE_SIZE))
-  const visibleResponses = breakdown.responses.slice(
+  const responses = breakdown.responses.map(toTextResponse)
+  // Names only when this form recorded any — otherwise every card would just say "Anonymous".
+  const showNames = !hideNames && responses.some((response) => response.respondentName)
+  const totalPages = Math.max(1, Math.ceil(responses.length / PAGE_SIZE))
+  const visibleResponses = responses.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
   )
@@ -56,13 +74,17 @@ export function TextResponseListCard({ breakdown }: TextResponseListCardProps) {
       <div className="flex flex-col gap-2 px-7.5">
         <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
         <p className="m-0 text-[12px] font-medium text-[#929292]">
-          Response: {breakdown.responses.length}
+          Response: {responses.length}
         </p>
       </div>
 
       <div className="flex flex-col gap-3 px-10 max-[560px]:px-4">
         {visibleResponses.map((response, index) => (
-          <ResponseCard key={(page - 1) * PAGE_SIZE + index} response={response} />
+          <ResponseCard
+            key={(page - 1) * PAGE_SIZE + index}
+            response={response}
+            showName={showNames}
+          />
         ))}
       </div>
 

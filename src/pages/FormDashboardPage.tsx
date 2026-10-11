@@ -1,6 +1,8 @@
 import {
   ArrowUp,
   Calendar,
+  Eye,
+  EyeOff,
   RefreshCw,
   Tag,
   TrendingUp,
@@ -25,6 +27,8 @@ import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
+import { Switch } from '../components/ui/switch'
+import { useHideNames } from '../hooks/useHideNames'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
@@ -108,7 +112,7 @@ function StatCard({
   deltaClassName: string
 }) {
   return (
-    <div className="flex h-29.5 w-56 shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
+    <div className="flex h-29.5 min-w-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
       <div
         className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] ${iconBgClassName}`}
       >
@@ -185,6 +189,7 @@ export function FormDashboardPage({
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  const { hideNames, toggleHideNames } = useHideNames()
   // Pinned line on the Trend tab's Topic Trends card (see TrendView).
   const [trendPinned, setTrendPinned] = useState<string | null>(null)
   // Themes-tab demographic filter: question label → chosen answers (server-side).
@@ -351,6 +356,21 @@ export function FormDashboardPage({
     window.scrollTo({ top: 0 })
   }
 
+  // "Hide names" only makes sense when this form recorded some, on a tab that shows them.
+  const hasNames =
+    (activeView === 'themes' &&
+      !!themes &&
+      [...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].some((topic) =>
+        topic.feedbackSegment.some((point) => point.respondentName),
+      )) ||
+    (activeView === 'response' &&
+      !!responses &&
+      [...responses.demographic, ...responses.feedback].some(
+        (breakdown) =>
+          breakdown.kind === 'text' &&
+          breakdown.responses.some((response) => typeof response !== 'string' && response.respondentName),
+      ))
+
   const selectedTopic =
     activeView === 'themes' && themes
       ? ([...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].find(
@@ -446,6 +466,19 @@ export function FormDashboardPage({
                     </h1>
                   )}
                 </div>
+                {/* A switch with a fixed label, so its state reads at a glance:
+                    on = names shown, off = hidden (e.g. while screen-sharing). */}
+                {hasNames ? (
+                  <label className="flex h-8.75 shrink-0 cursor-pointer items-center gap-2 text-[12px] font-medium text-[#3f4045]">
+                    {hideNames ? (
+                      <EyeOff className="text-[#929292]" size={14} />
+                    ) : (
+                      <Eye className="text-[#1e55c5]" size={14} />
+                    )}
+                    Show names
+                    <Switch checked={!hideNames} onCheckedChange={toggleHideNames} />
+                  </label>
+                ) : null}
               </div>
             </div>
 
@@ -492,7 +525,9 @@ export function FormDashboardPage({
                     ) : null}
                   </div>
                   {activeFilterBar}
-                  <div className="flex flex-wrap items-center gap-4">
+                  {/* Three equal columns spanning the cards below; wraps once a column
+                      would drop under the sentiment card's 14rem content. */}
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
                     <StatCard
                       deltaClassName="text-[#0b842d]"
                       deltaLabel={
@@ -504,7 +539,7 @@ export function FormDashboardPage({
                       value={themes.totalResponders}
                     />
 
-                    <div className="flex h-29.5 w-56 shrink-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
+                    <div className="flex h-29.5 min-w-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
                       <p className="m-0 text-[12px] font-medium text-[#929292]">
                         Overall Sentiment
                       </p>
@@ -600,10 +635,12 @@ export function FormDashboardPage({
                     <>
                       <ResponseOverviewSection
                         breakdowns={responses.demographic}
+                        hideNames={hideNames}
                         title="Demographic Overview"
                       />
                       <ResponseOverviewSection
                         breakdowns={responses.feedback}
+                        hideNames={hideNames}
                         title="Feedback Overview"
                       />
                     </>
@@ -711,6 +748,7 @@ export function FormDashboardPage({
           key={selectedTopic.id}
           mainDemoSelection={demoSel}
           onClose={() => setSelectedTopicId(null)}
+          hideNames={hideNames}
           onCompareInTrend={() => compareInTrend(selectedTopic.id)}
           topic={selectedTopic}
           width={detailPanelWidth}
