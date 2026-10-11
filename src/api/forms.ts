@@ -56,10 +56,10 @@ export type ApiFormField = {
   fieldOptions: ApiFieldOption[];
 };
 
+/** An invited email on a "specific" form; `userId` is set once that person has an account. */
 export type ApiFormAllowedUser = {
-  formId: number;
-  userId: number;
-  user: { id: number; fullName: string | null; email: string };
+  email: string;
+  userId: number | null;
 };
 
 /** Shape returned by `GET /api/forms/:id` (see gnp-server formService.getForEdit). */

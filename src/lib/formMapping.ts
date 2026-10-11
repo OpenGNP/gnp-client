@@ -165,7 +165,7 @@ export function accessSettingsToPayload(
 export function accessSettingsFromForm(
   form: ApiFormDetail,
 ): FormAccessSettings {
-  const emails = form.formAllowedUsers.map((entry) => entry.user.email);
+  const emails = form.formAllowedUsers.map((entry) => entry.email);
   const recordName = form.recordName ?? false;
   const oneResponse = form.oneResponsePerPerson ?? false;
   const base: FormAccessSettings = {
