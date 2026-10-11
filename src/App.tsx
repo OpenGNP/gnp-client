@@ -518,7 +518,7 @@ function App() {
   )
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f5f9ff] text-[#050608] min-[901px]:flex-row">
+    <div className="flex min-h-screen flex-col bg-[#f5f9ff] text-[#050608] min-[900px]:flex-row">
       {!isCreateFormRoute ? (
         <Sidebar
           activeNav={activeNav}

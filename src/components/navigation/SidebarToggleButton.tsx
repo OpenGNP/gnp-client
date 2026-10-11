@@ -9,7 +9,9 @@ export type SidebarToggleButtonProps = {
 export function SidebarToggleButton({ onToggleSidebar }: SidebarToggleButtonProps) {
   return (
     <Button
-      className="size-9 shrink-0 text-[#3f4045]"
+      // Desktop has the collapsed sidebar's icon rail (with its own expand button),
+      // so this hamburger is only for narrow screens, where the sidebar fully hides.
+      className="size-9 shrink-0 text-[#3f4045] min-[900px]:hidden"
       aria-label="Expand sidebar"
       onClick={onToggleSidebar}
       size="icon"

@@ -1,6 +1,5 @@
 import {
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   FilePlus,
   FileText,
@@ -11,6 +10,8 @@ import {
   Home,
   LogOut,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   PlusCircle,
   Search,
   Smile,
@@ -28,6 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 
@@ -190,11 +192,171 @@ function SidebarHeader({
         aria-label="Collapse sidebar"
         onClick={onToggleCollapse}
         size="icon"
+        title="Collapse sidebar"
         variant="ghost"
       >
-        <ChevronLeft className="size-6.5" strokeWidth={2.4} />
+        <PanelLeftClose className="size-6" strokeWidth={2} />
       </Button>
     </div>
+  )
+}
+
+/** The "/" search shortcut — ignored while typing in a field or with a modifier held. */
+function isSearchShortcut(event: globalThis.KeyboardEvent): boolean {
+  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return false
+  const target = event.target as HTMLElement | null
+  return !target?.closest('input, textarea, select, [contenteditable="true"]')
+}
+
+/** What to do once the full sidebar opens, when it was opened from a rail shortcut. */
+type ExpandAction = 'search' | 'create-folder' | null
+
+// Full-size icons (same as the expanded sidebar) with a small label underneath.
+const railRowClass =
+  'flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border-0 bg-transparent py-2 text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
+const railLabelClass = 'text-[11px] leading-3.5 font-semibold tracking-[0.11px]'
+
+/**
+ * Desktop's collapsed sidebar: the same sections as the full sidebar, squeezed to
+ * an icon column with labels — header (expand), Home / Files between the same
+ * dividers, the "My Project" Create button + search, and the profile at the bottom.
+ * The project tree only lives in the full sidebar; Search and "Create folder" open it.
+ * Hidden below 900px, where a collapsed sidebar disappears entirely.
+ */
+function SidebarRail({
+  activeNav,
+  user,
+  onCreateForm,
+  onExpand,
+  onGoFiles,
+  onGoHome,
+  onLogout,
+}: {
+  activeNav: 'home' | 'files' | null
+  user: SidebarUser
+  onCreateForm: () => void
+  onExpand: (action: ExpandAction) => void
+  onGoFiles: () => void
+  onGoHome: () => void
+  onLogout: () => void
+}) {
+  return (
+    <aside
+      aria-label="Primary navigation"
+      className="sticky top-0 z-30 flex h-screen w-19.5 shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white max-[900px]:hidden"
+    >
+      {/* Header — same height as SidebarHeader */}
+      <div className="flex h-22 shrink-0 items-center justify-center">
+        <Button
+          aria-label="Expand sidebar"
+          className="size-10 text-[#3f4045]"
+          onClick={() => onExpand(null)}
+          size="icon"
+          title="Expand sidebar"
+          variant="ghost"
+        >
+          <PanelLeftOpen className="size-6" strokeWidth={2} />
+        </Button>
+      </div>
+
+      {/* Home / Files — same block as HomeNav */}
+      <nav aria-label="Main" className="border-y border-[#e8eaf1] py-2">
+        {(
+          [
+            { key: 'home', label: 'Home', icon: Home, onClick: onGoHome },
+            { key: 'files', label: 'Files', icon: HardDrive, onClick: onGoFiles },
+          ] as const
+        ).map(({ key, label, icon: Icon, onClick }) => {
+          const isActive = activeNav === key
+          return (
+            <button
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={label}
+              className={cn(
+                railRowClass,
+                'rounded-none',
+                isActive && 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]',
+              )}
+              key={key}
+              onClick={onClick}
+              title={label}
+              type="button"
+            >
+              <Icon size={26} strokeWidth={2.1} />
+              <span className={railLabelClass}>{label}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* "My Project" — Create + search */}
+      <div className="flex flex-col gap-3 px-3 pt-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label="Create"
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border-0 bg-[#1e55c5] py-2 text-white transition-colors hover:bg-[#1a49aa]"
+              title="Create"
+              type="button"
+            >
+              <PlusCircle size={21} />
+              <span className={railLabelClass}>Create</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            side="right"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
+            <DropdownMenuItem onSelect={onCreateForm}>
+              <FilePlus size={16} />
+              Create form
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onExpand('create-folder')}>
+              <FolderPlus size={16} />
+              Create folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <button
+          aria-label="Search"
+          className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
+          onClick={() => onExpand('search')}
+          title="Search forms"
+          type="button"
+        >
+          <Search size={20} />
+          <span className={railLabelClass}>Search</span>
+        </button>
+      </div>
+
+      {/* Profile — same strip as UserProfile */}
+      <div className="mt-auto flex h-20.75 shrink-0 items-center justify-center border-t border-[#eef1f5]">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label="Account options"
+              className="flex size-7.75 cursor-pointer items-center justify-center rounded-full border-0 bg-[#4c71f7] text-white transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20"
+              title={user.name}
+              type="button"
+            >
+              <Smile size={19} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-50" side="right">
+            <div className="px-2 py-1.5">
+              <p className="m-0 truncate text-[13px] font-semibold text-[#3f4045]">{user.name}</p>
+              <p className="m-0 truncate text-[12px] text-[#888683]">{user.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onLogout}>
+              <LogOut size={14} />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
   )
 }
 
@@ -553,6 +715,7 @@ function NewFolderRow({
 }
 
 function ProjectNavigation({
+  expandAction = null,
   projects,
   isLoading = false,
   loadError = false,
@@ -576,16 +739,15 @@ function ProjectNavigation({
   | 'onGoHome'
   | 'onLogout'
   | 'onToggleCollapse'
->) {
+> & { expandAction?: ExpandAction }) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const hasSearch = searchTerm.trim().length > 0
 
-  // "/" jumps to search from anywhere (unless already typing somewhere).
+  // "/" jumps to search from anywhere (unless already typing somewhere). While the
+  // sidebar is collapsed, Sidebar's own listener expands it first instead.
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
-      const target = event.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (!isSearchShortcut(event)) return
       event.preventDefault()
       searchInputRef.current?.focus()
     }
@@ -593,7 +755,17 @@ function ProjectNavigation({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  // Opened from the rail's Search button: land in the search box. Read once on
+  // mount — this component remounts each time the sidebar expands.
+  const initialExpandActionRef = useRef(expandAction)
+  useEffect(() => {
+    if (initialExpandActionRef.current === 'search') {
+      searchInputRef.current?.focus()
+    }
+  }, [])
+
+  // Opened from the rail's "Create folder": start with the new-folder row showing.
+  const [isCreatingFolder, setIsCreatingFolder] = useState(expandAction === 'create-folder')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverTarget, setDragOverTarget] = useState<DragOverTarget>(null)
   const visibleProjects = filterProjects(projects, searchTerm)
@@ -847,8 +1019,37 @@ export function Sidebar({
   onToggleCollapse,
   onToggleFolder,
 }: SidebarProps) {
+  const [expandAction, setExpandAction] = useState<ExpandAction>(null)
+
+  // "/" works while collapsed too: open the sidebar and land in the search box
+  // (the expanded sidebar's own listener handles it once it's open).
+  useEffect(() => {
+    if (!isCollapsed) return
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (!isSearchShortcut(event)) return
+      event.preventDefault()
+      setExpandAction('search')
+      onToggleCollapse()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isCollapsed, onToggleCollapse])
+
   if (isCollapsed) {
-    return null
+    return (
+      <SidebarRail
+        activeNav={activeNav}
+        user={user}
+        onCreateForm={onCreateForm}
+        onExpand={(action) => {
+          setExpandAction(action)
+          onToggleCollapse()
+        }}
+        onGoFiles={onGoFiles}
+        onGoHome={onGoHome}
+        onLogout={onLogout}
+      />
+    )
   }
 
   return (
@@ -875,7 +1076,10 @@ export function Sidebar({
     >
       <SidebarHeader
         brand={brand}
-        onToggleCollapse={onToggleCollapse}
+        onToggleCollapse={() => {
+          setExpandAction(null)
+          onToggleCollapse()
+        }}
       />
       <HomeNav
         activeNav={activeNav}
@@ -886,6 +1090,7 @@ export function Sidebar({
       {!isCollapsed ? (
         <>
           <ProjectNavigation
+            expandAction={expandAction}
             isLoading={isLoading}
             loadError={loadError}
             onRetryLoad={onRetryLoad}

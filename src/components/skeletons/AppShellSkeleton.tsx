@@ -9,7 +9,7 @@ import { SidebarTreeSkeleton } from './SidebarTreeSkeleton'
 export function AppShellSkeleton() {
   return (
     <SkeletonRegion
-      className="flex min-h-screen flex-col bg-[#f5f9ff] min-[901px]:flex-row"
+      className="flex min-h-screen flex-col bg-[#f5f9ff] min-[900px]:flex-row"
       label="Connecting to the server…"
     >
       <div className="flex h-screen w-78.25 shrink-0 max-[1200px]:w-71.5 flex-col gap-4 border-r-2 border-[#e8eaf1] bg-white px-5 pt-6 max-[900px]:hidden">
