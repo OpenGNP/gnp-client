@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
-import { deleteForm, listForms, updateForm, type ApiForm } from '../api/forms'
+import { deleteForm, updateForm, type ApiForm } from '../api/forms'
+import { formsQuery, queryKeys } from '../api/queries'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -26,37 +27,26 @@ export type HomePageProps = {
 export function HomePage({ onMoveItem }: HomePageProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [forms, setForms] = useState<ApiForm[]>([])
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [reloadKey, setReloadKey] = useState(0)
+  const queryClient = useQueryClient()
+  // The same `['forms']` query the sidebar tree uses — one request feeds both, and
+  // the optimistic edits below (written to that cache) show in the sidebar too.
+  const formsResult = useQuery(formsQuery())
+  const forms = formsResult.data ?? []
+  const errorMessage =
+    formsResult.error instanceof ApiError
+      ? formsResult.error.message
+      : 'Something went wrong loading your forms.'
 
-  useEffect(() => {
-    let cancelled = false
+  /** Optimistically rewrites the cached list; returns the snapshot to roll back to. */
+  function updateCachedForms(transform: (current: ApiForm[]) => ApiForm[]) {
+    const snapshot = queryClient.getQueryData<ApiForm[]>(queryKeys.forms)
+    queryClient.setQueryData<ApiForm[]>(queryKeys.forms, (current) => transform(current ?? []))
+    return snapshot
+  }
 
-    listForms()
-      .then((data) => {
-        if (cancelled) return
-        setForms(data)
-        setStatus('ready')
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setErrorMessage(
-          error instanceof ApiError ? error.message : 'Something went wrong loading your forms.',
-        )
-        setStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [reloadKey])
-
-  function retryLoad() {
-    setStatus('loading')
-    setErrorMessage('')
-    setReloadKey((key) => key + 1)
+  function settleForms(formId: number) {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
   }
 
   async function handleDeleteForm(id: number) {
@@ -65,21 +55,21 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       return
     }
 
-    const snapshot = forms
-    setForms((current) => current.filter((form) => form.id !== id))
+    const snapshot = updateCachedForms((current) => current.filter((form) => form.id !== id))
     try {
       await deleteForm(id)
+      queryClient.removeQueries({ queryKey: queryKeys.form(id) })
+      queryClient.removeQueries({ queryKey: queryKeys.analytics(id) })
     } catch (error) {
-      setForms(snapshot)
+      queryClient.setQueryData(queryKeys.forms, snapshot)
       window.alert(error instanceof ApiError ? error.message : 'Could not delete the form.')
+    } finally {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
     }
   }
 
-  // Home keeps its own independently-fetched form list rather than the sidebar's
-  // shared tree, so — like handleDeleteForm above — this updates that local list
-  // optimistically and persists via the same API the tree-based handlers use. A rename
-  // made here won't be visible in the sidebar/Files page until the next reload, same
-  // staleness that already existed for delete.
+  // Like handleDeleteForm: optimistic write to the shared `['forms']` cache (so the
+  // sidebar tree shows the new name immediately), persist, roll back on failure.
   async function handleRenameForm(id: number, label: string) {
     const trimmed = label.trim()
     if (!trimmed) {
@@ -98,15 +88,16 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       return
     }
 
-    const snapshot = forms
-    setForms((current) =>
+    const snapshot = updateCachedForms((current) =>
       current.map((form) => (form.id === id ? { ...form, formTitle: trimmed } : form)),
     )
     try {
       await updateForm(id, { formTitle: trimmed })
     } catch (error) {
-      setForms(snapshot)
+      queryClient.setQueryData(queryKeys.forms, snapshot)
       window.alert(error instanceof ApiError ? error.message : 'Could not rename the form.')
+    } finally {
+      settleForms(id)
     }
   }
 
@@ -132,16 +123,16 @@ export function HomePage({ onMoveItem }: HomePageProps) {
           Recent forms
         </h2>
 
-        {status === 'loading' ? (
+        {formsResult.isPending ? (
           <SkeletonRegion className="mt-6.5" label="Loading your forms…">
             <FormCardGridSkeleton />
           </SkeletonRegion>
-        ) : status === 'error' ? (
+        ) : formsResult.isError ? (
           <div className="mt-6.5 flex flex-wrap items-center gap-3 text-[14px] text-[#e0507a]">
             <span>{errorMessage}</span>
             <button
               className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
-              onClick={retryLoad}
+              onClick={() => void formsResult.refetch()}
               type="button"
             >
               Try again

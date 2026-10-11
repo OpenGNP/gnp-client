@@ -10,6 +10,7 @@ import {
   type AuthStatus,
   type AuthUser,
 } from '../lib/auth'
+import { queryClient } from '../lib/queryClient'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -48,18 +49,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Doesn't catch — the caller (the login form) shows the failure inline.
   async function login(email: string, password: string) {
     const loggedInUser = await loginRequest(email, password)
+    queryClient.clear() // never show a previous account's cached data
     setUser(loggedInUser)
     setStatus('ready')
   }
 
   async function loginWithMicrosoft(idToken: string, accessToken?: string) {
     const loggedInUser = await loginWithMicrosoftRequest(idToken, accessToken)
+    queryClient.clear()
     setUser(loggedInUser)
     setStatus('ready')
   }
 
   async function logout() {
     await logoutRequest()
+    queryClient.clear()
     setUser(null)
     setStatus('unauthenticated')
   }

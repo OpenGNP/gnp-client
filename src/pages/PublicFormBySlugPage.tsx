@@ -1,18 +1,16 @@
 import { Check, Send, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
-import {
-  getPublicFormBySlug,
-  type ApiFormField,
-  type ApiPublicForm,
-} from "../api/forms";
+import type { ApiFormField } from "../api/forms";
 import formArchitecture from "../assets/form-architecture.png";
 import logoGnp from "../assets/logo.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { publicFormBySlugQuery } from "../api/queries";
 import { useNow } from "../hooks/useNow";
 import { ApiError } from "../lib/api";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
@@ -227,23 +225,7 @@ export function PublicFormBySlugPage() {
   const navigate = useNavigate();
   const hasSlug = typeof slug === "string" && slug.length > 0;
 
-  const [status, setStatus] = useState<
-    "loading" | "error" | "ready" | "submitted"
-  >(hasSlug ? "loading" : "error");
-  const [loadError, setLoadError] = useState<{
-    title: string;
-    body: string;
-    canSignIn?: boolean;
-  }>(
-    hasSlug
-      ? { title: "", body: "" }
-      : {
-          title: "This form isn't available",
-          body: "The link looks incomplete.",
-        },
-  );
   const now = useNow(15_000);
-  const [form, setForm] = useState<ApiPublicForm | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [hasInteracted, setHasInteracted] = useState(false);
   const [submitState, setSubmitState] = useState<"idle" | "submitting">("idle");
@@ -253,33 +235,37 @@ export function PublicFormBySlugPage() {
     if (form) setAnswers(initialAnswers(form.fields));
     setHasInteracted(false);
     setSubmitError("");
-    setStatus("ready");
+    setSubmitted(false);
   };
 
-  useEffect(() => {
-    if (!hasSlug) return;
-    let cancelled = false;
+  // Fetched through React Query (one request even under StrictMode), never served
+  // from cache — see publicFormBySlugQuery. The answers are seeded from it once, during
+  // render, so nothing a respondent has typed is replaced by a later refetch.
+  const formResult = useQuery({ ...publicFormBySlugQuery(slug ?? ""), enabled: hasSlug });
+  const [seeded, setSeeded] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const form = formResult.data ?? null;
+  if (form && !seeded) {
+    setSeeded(true);
+    setAnswers(initialAnswers(form.fields));
+    // Already responded (one-response-per-person, and we know who they are) —
+    // skip straight to the thank-you screen instead of a form that would just
+    // 409 on submit. `canSubmitAnother` there already hides "Submit another".
+    setSubmitted(form.alreadyResponded);
+  }
 
-    getPublicFormBySlug(slug)
-      .then((data) => {
-        if (cancelled) return;
-        setForm(data);
-        setAnswers(initialAnswers(data.fields));
-        // Already responded (one-response-per-person, and we know who they are) —
-        // skip straight to the thank-you screen instead of a form that would just
-        // 409 on submit.
-        setStatus(data.alreadyResponded ? "submitted" : "ready");
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setLoadError(describeLoadError(error));
-        setStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slug, hasSlug]);
+  const status: "loading" | "error" | "ready" | "submitted" = !hasSlug || formResult.isError
+    ? "error"
+    : !seeded
+      ? "loading"
+      : submitted
+        ? "submitted"
+        : "ready";
+  const loadError: { title: string; body: string; canSignIn?: boolean } = !hasSlug
+    ? { title: "This form isn't available", body: "The link looks incomplete." }
+    : formResult.isError
+      ? describeLoadError(formResult.error)
+      : { title: "", body: "" };
 
   if (status === "loading") {
     return (
@@ -444,7 +430,7 @@ export function PublicFormBySlugPage() {
     setSubmitState("submitting");
     try {
       await submitFeedback({ formId: form.id, answers: payload });
-      setStatus("submitted");
+      setSubmitted(true);
     } catch (error) {
       setSubmitState("idle");
       setSubmitError(

@@ -7,17 +7,13 @@ import {
   TriangleAlert,
   Users,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import {
-  getFormResponseAnalytics,
-  getFormThemeAnalytics,
-  getFormTrendAnalytics,
-  type FormResponseAnalytics,
-  type FormThemeAnalytics,
-} from '../api/analytics'
-import { getForm, type ApiFormDetail } from '../api/forms'
+import type { FormThemeAnalytics } from '../api/analytics'
+import type { ApiFormDetail } from '../api/forms'
+import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
@@ -179,23 +175,10 @@ export function FormDashboardPage({
   const detailPanelWidth = useDetailPanelWidth()
   const now = useNow()
 
-  const [loadStatus, setLoadStatus] = useState<'loading' | 'error' | 'ready'>(
-    hasValidId ? 'loading' : 'error',
-  )
-  const [loadError, setLoadError] = useState(
-    hasValidId ? '' : "This form hasn't been saved yet, so there's no dashboard.",
-  )
-  const [form, setForm] = useState<ApiFormDetail | null>(null)
-  const [responses, setResponses] = useState<FormResponseAnalytics | null>(null)
-  const [themes, setThemes] = useState<FormThemeAnalytics | null>(null)
-
   // Themes + Trend tabs share one date `range`, fetched separately from form/responses
   // so changing it doesn't reload the whole dashboard. `range === null` means "auto" —
   // the server defaults to the span of this form's analysed feedback (earliest →
   // latest submission), so both tabs open on all feedback. Trend also has a `bucket`.
-  const [trend, setTrend] = useState<FormTrendAnalytics | null>(null)
-  const [trendPending, setTrendPending] = useState(false)
-  const [themesPending, setThemesPending] = useState(false)
   const [bucket, setBucket] = useState<BucketChoice>('auto')
   const [rank, setRank] = useState<TrendRank>('mentioned')
   // `null` = "let the server auto-pick the top lines for the current rank".
@@ -203,30 +186,15 @@ export function FormDashboardPage({
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
   // Themes-tab demographic filter: question label → chosen answers (server-side).
   const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
-  const themesLoadedRef = useRef(false)
 
-  const changeBucket = (next: BucketChoice) => {
-    setBucket(next)
-    setTrendPending(true)
-  }
+  const changeBucket = (next: BucketChoice) => setBucket(next)
   const changeRank = (next: TrendRank) => {
     setRank(next)
     setTopicSel(null) // fall back to that rank's auto pick
-    setTrendPending(true)
   }
-  const changeTopicSel = (ids: string[]) => {
-    setTopicSel(ids)
-    setTrendPending(true)
-  }
-  const resetTopicSel = () => {
-    setTopicSel(null)
-    setTrendPending(true)
-  }
-  const changeRange = (next: { from: string; to: string }) => {
-    setRange(next)
-    setTrendPending(true)
-    setThemesPending(true)
-  }
+  const changeTopicSel = (ids: string[]) => setTopicSel(ids)
+  const resetTopicSel = () => setTopicSel(null)
+  const changeRange = (next: { from: string; to: string }) => setRange(next)
   const toggleDemo = (label: string, value: string) => {
     setDemoSel((prev) => {
       const current = prev[label] ?? []
@@ -235,119 +203,87 @@ export function FormDashboardPage({
         : [...current, value]
       return { ...prev, [label]: next }
     })
-    setThemesPending(true)
-    setTrendPending(true)
   }
-  const clearDemo = () => {
-    setDemoSel({})
-    setThemesPending(true)
-    setTrendPending(true)
-  }
-  const resetRange = () => {
-    setRange(null)
-    setTrendPending(true)
-    setThemesPending(true)
-  }
+  const clearDemo = () => setDemoSel({})
+  const resetRange = () => setRange(null)
 
-  useEffect(() => {
-    if (!hasValidId) {
-      return
-    }
-
-    let cancelled = false
-
-    Promise.all([getForm(formId), getFormResponseAnalytics(formId)])
-      .then(([detail, responseAnalytics]) => {
-        if (cancelled) return
-        setForm(detail)
-        setResponses(responseAnalytics)
-        setLoadStatus('ready')
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setLoadError(error instanceof ApiError ? error.message : 'Could not load this dashboard.')
-        setLoadStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [formId, hasValidId])
-
-  // Themes tab — its own window fetch (shares `range` with Trend). On the first
-  // load a failure surfaces as the whole-dashboard error; a later range-change
-  // failure keeps the last-loaded themes on screen.
-  useEffect(() => {
-    if (!hasValidId) {
-      return
-    }
-
-    let cancelled = false
-
-    getFormThemeAnalytics(formId, { from: range?.from, to: range?.to, demo: demoSel })
-      .then((data) => {
-        if (cancelled) return
-        themesLoadedRef.current = true
-        setThemes(data)
-        setThemesPending(false)
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setThemesPending(false)
-        if (!themesLoadedRef.current) {
-          setLoadError(error instanceof ApiError ? error.message : 'Could not load this dashboard.')
-          setLoadStatus('error')
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [formId, hasValidId, range?.from, range?.to, demoSel])
-
-  useEffect(() => {
-    if (!hasValidId) {
-      return
-    }
-
-    let cancelled = false
-
-    getFormTrendAnalytics(formId, {
+  // Each data source is its own cached query. Changing a filter changes the
+  // themes/trend query key; `keepPreviousData` (see api/queries.ts) keeps the old
+  // result on screen meanwhile, which `isPlaceholderData` reports as "Updating…".
+  const formResult = useQuery({ ...formQuery(formId), enabled: hasValidId })
+  const responsesResult = useQuery({ ...responsesQuery(formId), enabled: hasValidId })
+  const themesResult = useQuery({
+    ...themesQuery(formId, { from: range?.from, to: range?.to, demo: demoSel }),
+    enabled: hasValidId,
+  })
+  const trendResult = useQuery({
+    ...trendQuery(formId, {
       from: range?.from,
       to: range?.to,
       bucket: bucket === 'auto' ? undefined : bucket,
       rank,
       topics: topicSel ?? undefined,
       demo: demoSel,
-    })
-      .then((data) => {
-        if (cancelled) return
-        setTrend(data)
-        setTrendPending(false)
-        // Keep an explicit selection in sync with what the server actually charted
-        // (it drops ids with no mentions in the window, caps at the max) so the
-        // picker count + swatch colours stay aligned with the chart.
-        if (topicSel) {
-          const charted = data.topicVolumeSeries.map((s) => s.id)
-          if (charted.length !== topicSel.length || charted.some((id, i) => id !== topicSel[i])) {
-            setTopicSel(charted)
-          }
-        }
-      })
-      .catch(() => {
-        if (cancelled) return
-        setTrendPending(false)
-      })
+    }),
+    enabled: hasValidId,
+  })
 
-    return () => {
-      cancelled = true
+  const form = formResult.data ?? null
+  const responses = responsesResult.data ?? null
+
+  // A failed filter change shouldn't blank the tab: keep the last successful
+  // themes/trend for this form on screen (only a *first* themes failure is fatal).
+  const [lastGood, setLastGood] = useState<{
+    formId: number
+    themes: FormThemeAnalytics | null
+    trend: FormTrendAnalytics | null
+  }>({ formId, themes: null, trend: null })
+  const freshThemes = themesResult.isPlaceholderData ? undefined : themesResult.data
+  const freshTrend = trendResult.isPlaceholderData ? undefined : trendResult.data
+  if (
+    lastGood.formId !== formId ||
+    (freshThemes && freshThemes !== lastGood.themes) ||
+    (freshTrend && freshTrend !== lastGood.trend)
+  ) {
+    const sameForm = lastGood.formId === formId
+    setLastGood({
+      formId,
+      themes: freshThemes ?? (sameForm ? lastGood.themes : null),
+      trend: freshTrend ?? (sameForm ? lastGood.trend : null),
+    })
+  }
+  const sameFormLastGood = lastGood.formId === formId ? lastGood : null
+  const themes = themesResult.data ?? sameFormLastGood?.themes ?? null
+  const trend = trendResult.data ?? sameFormLastGood?.trend ?? null
+  const themesPending = themesResult.isPlaceholderData
+  const trendPending = trendResult.isPlaceholderData
+
+  // Keep an explicit selection in sync with what the server actually charted (it
+  // drops ids with no mentions in the window, caps at the max) so the picker count
+  // + swatch colours stay aligned with the chart.
+  if (freshTrend && topicSel) {
+    const charted = freshTrend.topicVolumeSeries.map((series) => series.id)
+    if (charted.length !== topicSel.length || charted.some((id, i) => id !== topicSel[i])) {
+      setTopicSel(charted)
     }
-  }, [formId, hasValidId, bucket, rank, topicSel, range?.from, range?.to, demoSel])
+  }
+
+  const loadFailure = !hasValidId
+    ? "This form hasn't been saved yet, so there's no dashboard."
+    : formResult.error ??
+      responsesResult.error ??
+      (themesResult.isError && !themes ? themesResult.error : null)
+  const loadError =
+    typeof loadFailure === 'string'
+      ? loadFailure
+      : loadFailure instanceof ApiError
+        ? loadFailure.message
+        : 'Could not load this dashboard.'
 
   // Only an error replaces the page. While loading, the static chrome (tabs,
   // headings, card labels, filter controls) renders right away and each
   // data-backed slot shows its own placeholder until its fetch lands.
-  if (loadStatus === 'error') {
+  if (loadFailure) {
     return (
       <div>
         <FormDetailTabs
@@ -362,8 +298,8 @@ export function FormDashboardPage({
     )
   }
 
-  // form + responses arrive together (one Promise.all); themes on its own.
-  const formReady = loadStatus === 'ready' && form !== null && responses !== null
+  // The status row + Response tab need both; themes/trend each fill in on their own.
+  const formReady = form !== null && responses !== null
 
   const selectedTopic =
     activeView === 'themes' && themes

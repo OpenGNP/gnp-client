@@ -25,9 +25,14 @@ export function useProjectTree(initialProjects: ProjectTreeItem[]) {
     if (seededProjectsRef.current === initialProjects) {
       return
     }
+    const isFirstSeed = seededProjectsRef.current.length === 0
     seededProjectsRef.current = initialProjects
     setProjects(initialProjects)
-    setOpenFolderIds(getDefaultOpenFolderIds(initialProjects))
+    // A later re-seed (fresh server data after an edit elsewhere) keeps whatever
+    // folders the user had open; only the first real load applies the defaults.
+    if (isFirstSeed) {
+      setOpenFolderIds(getDefaultOpenFolderIds(initialProjects))
+    }
   }, [initialProjects])
 
   function toggleFolder(id: string) {

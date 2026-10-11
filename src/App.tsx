@@ -1,8 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { createForm, deleteForm, reorderForms, updateForm, uploadFormCoverImage } from './api/forms'
 import { createFolder, deleteFolder, reorderFolders, updateFolder } from './api/folders'
+import { markWorkspaceStale, queryKeys } from './api/queries'
 import { CreateFormNavbar } from './components/navigation/CreateFormNavbar'
 import { Navbar } from './components/navigation/Navbar'
 import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation/SaveDraftModal'
@@ -33,6 +35,7 @@ import {
 
 function App() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const location = useLocation()
   const { user: authUser, logout } = useAuth()
   const newFormAccessSettings = defaultFormAccessSettingsFor(useHasOrganization())
@@ -126,6 +129,7 @@ function App() {
         type: 'document',
       })
       const created = await createForm(payload)
+      markWorkspaceStale(queryClient)
       const idStr = String(created.id)
 
       if (createFormModel.coverImageFile) {
@@ -173,6 +177,7 @@ function App() {
       })
       payload.formTitle = title
       const created = await createForm(payload)
+      markWorkspaceStale(queryClient)
       const idStr = String(created.id)
 
       addProject(folderId, {
@@ -202,6 +207,7 @@ function App() {
     const label = uniqueName(projects, desired, { parentFolderId, type: 'folder' })
     try {
       const created = await createFolder({ folderName: label })
+      markWorkspaceStale(queryClient)
       addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
     } catch (error) {
       window.alert(
@@ -254,6 +260,8 @@ function App() {
         window.alert(
           error instanceof ApiError ? error.message : 'Could not reorder folders. Please try again.',
         )
+      } finally {
+        markWorkspaceStale(queryClient)
       }
       return
     }
@@ -291,6 +299,8 @@ function App() {
       window.alert(
         error instanceof ApiError ? error.message : 'Could not move the form. Please try again.',
       )
+    } finally {
+      markWorkspaceStale(queryClient, numericFormId)
     }
   }
 
@@ -337,6 +347,11 @@ function App() {
       window.alert(
         error instanceof ApiError ? error.message : 'Could not rename this item. Please try again.',
       )
+    } finally {
+      markWorkspaceStale(
+        queryClient,
+        item.type === 'document' ? Number(item.formId ?? item.id) : undefined,
+      )
     }
   }
 
@@ -365,12 +380,16 @@ function App() {
         await deleteFolder(numericId)
       } else {
         await deleteForm(numericId)
+        queryClient.removeQueries({ queryKey: queryKeys.form(numericId) })
+        queryClient.removeQueries({ queryKey: queryKeys.analytics(numericId) })
       }
     } catch (error) {
       setProjects(snapshot)
       window.alert(
         error instanceof ApiError ? error.message : `Could not delete "${item.label}". Please try again.`,
       )
+    } finally {
+      markWorkspaceStale(queryClient)
     }
   }
 

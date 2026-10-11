@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { getForm, removeFormCoverImage, updateForm, uploadFormCoverImage } from '../api/forms'
+import {
+  removeFormCoverImage,
+  updateForm,
+  uploadFormCoverImage,
+  type ApiFormDetail,
+} from '../api/forms'
+import { formQuery, queryKeys } from '../api/queries'
 import { CreateFormCard } from '../components/forms/CreateFormCard'
 import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
@@ -23,8 +30,6 @@ import {
 import { FormEditorSkeleton } from '../components/skeletons/FormEditorSkeleton'
 import { cn } from '../lib/utils'
 
-type LoadStatus = 'loading' | 'ready' | 'error'
-
 export type EditFormPageProps = {
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
@@ -40,12 +45,8 @@ export function EditFormPage({
   const formId = Number(projectId)
   const hasValidId = Number.isInteger(formId) && formId > 0
 
+  const queryClient = useQueryClient()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [loadStatus, setLoadStatus] = useState<LoadStatus>(hasValidId ? 'loading' : 'error')
-  const [loadError, setLoadError] = useState(
-    hasValidId ? '' : "This form hasn't been saved yet, so there's nothing to edit.",
-  )
-  const [reloadKey, setReloadKey] = useState(0)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isPublished, setIsPublished] = useState(false)
   // Raw forms.status ('draft' | 'active' | 'closed' | 'archived') — drives the
@@ -65,58 +66,67 @@ export function EditFormPage({
 
   // Snapshot of the fields as loaded — lets a settings-only save skip sending
   // `fields` (once a form has responses, the server edits them in place).
-  const loadedFieldsRef = useRef('')
+  const [loadedFields, setLoadedFields] = useState('')
   // Whether the form had a cover when loaded — so handleSave knows a null
   // `model.coverImageUrl` at save time means "the user removed it" and needs a
   // DELETE call, not "there was never one".
-  const initialHadCoverRef = useRef(false)
+  const [initialHadCover, setInitialHadCover] = useState(false)
 
   // Any saved form has a dashboard (the Response tab reads live data; the page shows
   // its own empty state when there are no submissions yet).
   const hasDashboardData = hasValidId
 
-  useEffect(() => {
-    if (!hasValidId) {
-      return
-    }
+  const formResult = useQuery({ ...formQuery(formId), enabled: hasValidId })
 
-    let cancelled = false
+  /** Replaces all editor state with a form as loaded from the server. */
+  function seedFrom(detail: ApiFormDetail) {
+    const nextModel = formDetailToModel(detail)
+    const nextSettings = accessSettingsFromForm(detail)
+    setModel(nextModel)
+    setSettings(nextSettings)
+    setSavedSettings(nextSettings)
+    setPublicToken(detail.publicToken)
+    setFormStatus(detail.status)
+    // "Published" (Save-flow UI, share link) covers both active and closed —
+    // a closed form was published at some point and can be reopened, it
+    // shouldn't fall back to the pre-publish "Publish for the first time" UI.
+    setIsPublished(detail.status === 'active' || detail.status === 'closed')
+    setLoadedFields(JSON.stringify(buildFieldPayloads(nextModel)))
+    setInitialHadCover(Boolean(nextModel.coverImageUrl))
+  }
 
-    getForm(formId)
-      .then((detail) => {
-        if (cancelled) return
-        const nextModel = formDetailToModel(detail)
-        const nextSettings = accessSettingsFromForm(detail)
-        setModel(nextModel)
-        setSettings(nextSettings)
-        setSavedSettings(nextSettings)
-        setPublicToken(detail.publicToken)
-        setFormStatus(detail.status)
-        // "Published" (Save-flow UI, share link) covers both active and closed —
-        // a closed form was published at some point and can be reopened, it
-        // shouldn't fall back to the pre-publish "Publish for the first time" UI.
-        setIsPublished(detail.status === 'active' || detail.status === 'closed')
-        loadedFieldsRef.current = JSON.stringify(buildFieldPayloads(nextModel))
-        initialHadCoverRef.current = Boolean(nextModel.coverImageUrl)
-        setLoadStatus('ready')
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setLoadError(
-          error instanceof ApiError ? error.message : 'Something went wrong loading this form.',
-        )
-        setLoadStatus('error')
-      })
+  // The editor holds its own copy of the form, seeded once per form id — a later
+  // background refetch must never overwrite what the user is typing. Seeded during
+  // render (React's "adjust state when a prop changes" pattern) rather than in an
+  // effect. A cached-but-stale copy waits for its refetch so editing starts from
+  // the latest version; a fresh one seeds instantly.
+  const [seededFormId, setSeededFormId] = useState<number | null>(null)
+  const formData = formResult.data
+  if (
+    hasValidId &&
+    formData &&
+    seededFormId !== formId &&
+    !(formResult.isStale && formResult.isFetching)
+  ) {
+    setSeededFormId(formId)
+    seedFrom(formData)
+  }
 
-    return () => {
-      cancelled = true
-    }
-  }, [formId, hasValidId, reloadKey, setModel, setSettings])
+  const loadStatus = !hasValidId
+    ? 'error'
+    : seededFormId === formId
+      ? 'ready'
+      : formResult.isError
+        ? 'error'
+        : 'loading'
+  const loadError = !hasValidId
+    ? "This form hasn't been saved yet, so there's nothing to edit."
+    : formResult.error instanceof ApiError
+      ? formResult.error.message
+      : 'Something went wrong loading this form.'
 
   function retryLoad() {
-    setLoadStatus('loading')
-    setLoadError('')
-    setReloadKey((key) => key + 1)
+    void formResult.refetch()
   }
 
   async function handleSave(publish: boolean) {
@@ -125,7 +135,7 @@ export function EditFormPage({
     }
 
     const currentFields = JSON.stringify(buildFieldPayloads(model))
-    const includeFields = currentFields !== loadedFieldsRef.current
+    const includeFields = currentFields !== loadedFields
     // The modal's Save/Publish button always calls this with publish=true, whether
     // the form is a fresh draft or already active/closed — only force status to
     // 'active' on a genuine first publish (draft → active). Otherwise a plain Save
@@ -142,15 +152,15 @@ export function EditFormPage({
         }),
       )
       if (includeFields) {
-        loadedFieldsRef.current = currentFields
+        setLoadedFields(currentFields)
       }
       if (model.coverImageFile) {
         await uploadFormCoverImage(formId, model.coverImageFile)
         update({ coverImageFile: null })
-        initialHadCoverRef.current = true
-      } else if (model.coverImageUrl === null && initialHadCoverRef.current) {
+        setInitialHadCover(true)
+      } else if (model.coverImageUrl === null && initialHadCover) {
         await removeFormCoverImage(formId)
-        initialHadCoverRef.current = false
+        setInitialHadCover(false)
       }
       if (nextStatus) {
         setIsPublished(true)
@@ -159,11 +169,18 @@ export function EditFormPage({
       // Only now do the modal's readouts / reminder catch up to the edits.
       setSavedSettings(settings)
       setSaveStatus('saved')
+      // Title / status / questions may have changed: refresh the lists (sidebar,
+      // Home) and drop cached dashboard analytics for this form.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.analytics(formId) })
       // Newly added questions only get their database ids on the server. Re-read the
-      // form (without the loading state) so the next save sends those ids and edits
-      // them in place, rather than treating them as new and replacing them.
+      // form (without the loading state) and re-seed, so the next save sends those
+      // ids and edits them in place, rather than treating them as new and replacing them.
       if (includeFields) {
-        setReloadKey((key) => key + 1)
+        const fresh = await queryClient.fetchQuery({ ...formQuery(formId), staleTime: 0 })
+        seedFrom(fresh)
+      } else {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
       }
     } catch (error) {
       setSaveStatus('error')
@@ -179,6 +196,8 @@ export function EditFormPage({
       await updateForm(formId, { status: 'active' })
       setFormStatus('active')
       setIsPublished(true)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
     } catch (error) {
       window.alert(
         error instanceof ApiError ? error.message : 'Could not reopen the form. Please try again.',

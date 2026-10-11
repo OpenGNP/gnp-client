@@ -1,18 +1,16 @@
 import { Check, Send, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
-import {
-  getPublicFormByToken,
-  type ApiFormField,
-  type ApiPublicForm,
-} from "../api/forms";
+import type { ApiFormField } from "../api/forms";
 import formArchitecture from "../assets/form-architecture.png";
 import logoGnp from "../assets/logo.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { publicFormByTokenQuery } from "../api/queries";
 import { useNow } from "../hooks/useNow";
 import { ApiError } from "../lib/api";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
@@ -297,23 +295,7 @@ export function PublicFormPage() {
   const navigate = useNavigate();
   const hasToken = typeof token === "string" && token.length > 0;
 
-  const [status, setStatus] = useState<
-    "loading" | "error" | "ready" | "submitted"
-  >(hasToken ? "loading" : "error");
-  const [loadError, setLoadError] = useState<{
-    title: string;
-    body: string;
-    canSignIn?: boolean;
-  }>(
-    hasToken
-      ? { title: "", body: "" }
-      : {
-          title: "This form isn't available",
-          body: "The link looks incomplete.",
-        },
-  );
   const now = useNow(15_000);
-  const [form, setForm] = useState<ApiPublicForm | null>(null);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   // Once someone starts answering, a window boundary passing keeps the form on screen
   // (with a banner) rather than yanking their work — see the gate below.
@@ -326,36 +308,37 @@ export function PublicFormPage() {
     if (form) setAnswers(initialAnswers(form.fields));
     setHasInteracted(false);
     setSubmitError("");
-    setStatus("ready");
+    setSubmitted(false);
   };
 
-  useEffect(() => {
-    if (!hasToken) {
-      return;
-    }
+  // Fetched through React Query (one request even under StrictMode), never served
+  // from cache — see publicFormByTokenQuery. The answers are seeded from it once, during
+  // render, so nothing a respondent has typed is replaced by a later refetch.
+  const formResult = useQuery({ ...publicFormByTokenQuery(token ?? ""), enabled: hasToken });
+  const [seeded, setSeeded] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const form = formResult.data ?? null;
+  if (form && !seeded) {
+    setSeeded(true);
+    setAnswers(initialAnswers(form.fields));
+    // Already responded (one-response-per-person, and we know who they are) —
+    // skip straight to the thank-you screen instead of a form that would just
+    // 409 on submit. `canSubmitAnother` there already hides "Submit another".
+    setSubmitted(form.alreadyResponded);
+  }
 
-    let cancelled = false;
-
-    getPublicFormByToken(token)
-      .then((data) => {
-        if (cancelled) return;
-        setForm(data);
-        setAnswers(initialAnswers(data.fields));
-        // Already responded (one-response-per-person, and we know who they are) —
-        // skip straight to the thank-you screen instead of a form that would just
-        // 409 on submit. `canSubmitAnother` there already hides "Submit another".
-        setStatus(data.alreadyResponded ? "submitted" : "ready");
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setLoadError(describeLoadError(error));
-        setStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, hasToken]);
+  const status: "loading" | "error" | "ready" | "submitted" = !hasToken || formResult.isError
+    ? "error"
+    : !seeded
+      ? "loading"
+      : submitted
+        ? "submitted"
+        : "ready";
+  const loadError: { title: string; body: string; canSignIn?: boolean } = !hasToken
+    ? { title: "This form isn't available", body: "The link looks incomplete." }
+    : formResult.isError
+      ? describeLoadError(formResult.error)
+      : { title: "", body: "" };
 
   if (status === "loading") {
     return (
@@ -520,7 +503,7 @@ export function PublicFormPage() {
     setSubmitState("submitting");
     try {
       await submitFeedback({ formId: form.id, answers: payload });
-      setStatus("submitted");
+      setSubmitted(true);
     } catch (error) {
       setSubmitState("idle");
       setSubmitError(
