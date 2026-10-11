@@ -9,7 +9,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
-import { useState } from 'react'
 
 import type {
   EmergingIssue,
@@ -326,13 +325,18 @@ export type TrendViewProps = {
   trend: FormTrendAnalytics
   /** The topic picker — it only changes which lines Topic Trends draws, so it lives on that card. */
   topicControl?: React.ReactNode
+  /**
+   * Pinned topic in Topic Trends (it also switches that card's sentiment strip). Owned
+   * by the page so the Themes tab's "Compare with other topics" can open it pinned.
+   */
+  pinned: string | null
+  onPinnedChange: (id: string | null) => void
 }
 
-export function TrendView({ trend, topicControl }: TrendViewProps) {
+export function TrendView({ trend, topicControl, pinned, onPinnedChange }: TrendViewProps) {
   const movementRule = trend.movementRule ?? { minDelta: 2, limit: 5 }
-  // Pinned topic in Topic Trends (it also switches that card's sentiment strip).
-  // Ignored once it's no longer on the chart (e.g. the topic picker removed it).
-  const [pinned, setPinned] = useState<string | null>(null)
+  // Ignored once it's no longer on the chart (e.g. the topic picker removed it) — or
+  // not on it yet, while a "Compare" jump's new topic selection is still loading.
   const pinnedTopic = trend.topicVolumeSeries.some((entry) => entry.id === pinned) ? pinned : null
 
   return (
@@ -342,7 +346,7 @@ export function TrendView({ trend, topicControl }: TrendViewProps) {
       <TopicTrendsCard
         action={topicControl}
         data={trend.volumeSeries}
-        onPinnedTopicChange={setPinned}
+        onPinnedTopicChange={onPinnedChange}
         pinnedTopic={pinnedTopic}
         sentimentByTopic={trend.topicSentimentSeries ?? {}}
         sentimentSeries={trend.sentimentSeries}

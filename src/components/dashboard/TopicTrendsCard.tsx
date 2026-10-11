@@ -21,37 +21,24 @@ import type {
 } from '../../data/dashboardAnalytics'
 import {
   SENTIMENT_KEYS,
-  SMALL_SAMPLE_MENTIONS,
   sentimentBands,
   sharesOf,
   sumSentiment,
   topicSentimentPoints,
 } from '../../lib/sentimentTrendSummary'
 import { cn } from '../../lib/utils'
+import { SENTIMENT_COLORS } from './sentimentColors'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { PeriodSentimentDetail, PeriodSentimentTooltip } from './PeriodSentimentTooltip'
 import { TOPIC_TREND_COLORS } from './trendColors'
 
 const AXIS_TICK = { fill: '#73777e', fontSize: 10 } as const
-
-const SENTIMENT_BAR = {
-  negative: '#FD798F',
-  neutral: '#FED871',
-  positive: '#B5E6B1',
-} as const
-
-const SENTIMENT_DOT = {
-  negative: '#F63B56',
-  neutral: '#FEB535',
-  positive: '#51C66D',
-} as const
 
 // Both charts share this so the hover line runs through volume and sentiment together.
 const SYNC_ID = 'topic-trends'
 // Same left/right geometry on both charts, so their x positions line up exactly.
 const CHART_MARGIN = { top: 12, right: 18, bottom: 0, left: 4 }
 const Y_AXIS_WIDTH = 36
-
-const sentimentName = (key: (typeof SENTIMENT_KEYS)[number]) => key[0]!.toUpperCase() + key.slice(1)
 
 const colorFor = (index: number) => TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]
 const totalOf = (counts: SentimentCounts) => counts.negative + counts.neutral + counts.positive
@@ -71,7 +58,7 @@ function NegativeCell({ counts }: { counts: SentimentCounts }) {
           ? SENTIMENT_KEYS.map((key) => (
               <span
                 key={key}
-                style={{ backgroundColor: SENTIMENT_BAR[key], width: `${(counts[key] / total) * 100}%` }}
+                style={{ backgroundColor: SENTIMENT_COLORS[key], width: `${(counts[key] / total) * 100}%` }}
               />
             ))
           : null}
@@ -92,81 +79,6 @@ function DeltaCell({ value }: { value: number | null }) {
       {value > 0 ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
       {Math.abs(value)}
     </span>
-  )
-}
-
-/** Hover detail for a panel row: the full name and the whole sentiment split. */
-function RowDetail({ title, note, counts }: { title: string; note?: string; counts: SentimentCounts }) {
-  const total = totalOf(counts)
-  const shares = sharesOf(counts)
-  return (
-    <div className="flex max-w-72 flex-col gap-1.5 whitespace-normal">
-      <p className="m-0 font-semibold text-[#14181f]">{title}</p>
-      {note ? <p className="m-0 text-[11px] text-[#929292]">{note}</p> : null}
-      <div className="flex flex-col gap-0.5">
-        {SENTIMENT_KEYS.map((key) => (
-          <span className="flex items-center gap-2 text-[12px]" key={key}>
-            <span
-              aria-hidden="true"
-              className="size-2 shrink-0 rounded-full"
-              style={{ backgroundColor: SENTIMENT_DOT[key] }}
-            />
-            <span className="w-16 text-[#726f6f]">{sentimentName(key)}</span>
-            <span className="w-9 text-right font-semibold text-[#14181f]">
-              {total > 0 ? `${shares[key]}%` : '—'}
-            </span>
-            <span className="text-[11px] text-[#929292]">({counts[key]})</span>
-          </span>
-        ))}
-      </div>
-      {total > 0 && total < SMALL_SAMPLE_MENTIONS ? (
-        <p className="m-0 text-[11px] font-semibold text-[#9a6700]">
-          Small sample — only {total} mention{total === 1 ? '' : 's'}
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-/**
- * Tooltip on the sentiment strip: that date's split, with the counts behind it.
- * Two compact lines, so it can sit just above the strip without covering much.
- */
-function StripTooltip({ point, scope }: { point: TrendSentimentPoint | undefined; scope: string }) {
-  if (!point) return null
-  const counts = point.counts
-  const total = counts
-    ? counts.negative + counts.neutral + counts.positive
-    : point.negative + point.neutral + point.positive
-  return (
-    <div className="flex flex-col gap-1 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-1.5 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
-      <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#929292]">
-        <span className="font-semibold text-[#14181f]">{point.label}</span>·
-        <span className="max-w-48 truncate">{scope}</span>
-        {counts ? <>· {total} mention{total === 1 ? '' : 's'}</> : null}
-        {counts && total > 0 && total < SMALL_SAMPLE_MENTIONS ? (
-          <span className="rounded-full bg-[#fff4dc] px-1.5 font-semibold text-[#9a6700]">small sample</span>
-        ) : null}
-      </p>
-      {total === 0 ? (
-        <p className="m-0 text-[11px] text-[#929292]">No feedback in this period</p>
-      ) : (
-        <p className="m-0 flex items-center gap-3">
-          {SENTIMENT_KEYS.map((key) => (
-            <span className="flex items-center gap-1" key={key}>
-              <span
-                aria-hidden="true"
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: SENTIMENT_DOT[key] }}
-              />
-              <span className="text-[#726f6f]">{sentimentName(key)}</span>
-              <span className="font-semibold text-[#14181f]">{point[key]}%</span>
-              {counts ? <span className="text-[11px] text-[#929292]">({counts[key]})</span> : null}
-            </span>
-          ))}
-        </p>
-      )}
-    </div>
   )
 }
 
@@ -241,6 +153,7 @@ export function TopicTrendsCard({
   const point = hoverIndex !== null ? data[hoverIndex] : undefined
   const previousPoint = hoverIndex !== null && hoverIndex > 0 ? data[hoverIndex - 1] : undefined
   const count = (p: TrendVolumePoint | undefined, id: string) => Number(p?.[id] ?? 0)
+  const periodLabel = point ? String(point.label) : 'Whole period'
 
   return (
     <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5">
@@ -397,12 +310,17 @@ export function TopicTrendsCard({
                   // Pinned just above the strip (x still follows the cursor), so it
                   // never spills past the card's bottom edge.
                   position={{ y: -54 }}
-                  content={({ label }) => (
-                    <StripTooltip
-                      point={stripPoints.find((p) => p.label === label)}
-                      scope={focusEntry ? focusEntry.label : 'All topics'}
-                    />
-                  )}
+                  content={({ label }) => {
+                    const stripPoint = stripPoints.find((p) => p.label === label)
+                    return stripPoint ? (
+                      <PeriodSentimentTooltip
+                        counts={stripPoint.counts}
+                        label={stripPoint.label}
+                        scope={focusEntry ? focusEntry.label : 'All topics'}
+                        shares={stripPoint}
+                      />
+                    ) : null
+                  }}
                   cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }}
                   offset={14}
                 />
@@ -411,11 +329,12 @@ export function TopicTrendsCard({
                     activeDot={false}
                     connectNulls
                     dataKey={key}
-                    fill={SENTIMENT_BAR[key]}
+                    fill={SENTIMENT_COLORS[key]}
                     fillOpacity={1}
                     isAnimationActive={false}
                     key={key}
-                    stroke={SENTIMENT_BAR[key]}
+                    // No stroke: the translucent fills would draw a darker seam along it.
+                    stroke="none"
                     type="monotone"
                   />
                 ))}
@@ -426,7 +345,7 @@ export function TopicTrendsCard({
 
         <div className="flex min-w-0 flex-col border-l border-[#eef0f4] pl-5 max-[900px]:border-t max-[900px]:border-l-0 max-[900px]:pt-4 max-[900px]:pl-0">
           <p aria-live="polite" className="m-0 mb-1.5 text-[12px] font-semibold text-[#14181f]">
-            {point ? String(point.label) : 'Whole period'}
+            {periodLabel}
           </p>
           <div className={cn(ROW_GRID, 'px-2 pb-1 text-[10px] font-medium text-[#929292]')}>
             <span>Topic</span>
@@ -454,11 +373,14 @@ export function TopicTrendsCard({
                 <NegativeCell counts={overallCounts} />
               </div>
             </TooltipTrigger>
-            <TooltipContent side="left">
-              <RowDetail
+            <TooltipContent className="py-1.5" side="left">
+              <PeriodSentimentDetail
                 counts={overallCounts}
-                note="Every topic in this form — including ones not drawn on the chart."
-                title="All topics"
+                delta={overallPrevious ? totalOf(overallCounts) - totalOf(overallPrevious) : null}
+                label={periodLabel}
+                note="Every topic in this form, including ones not drawn on the chart"
+                scope="All topics"
+                shares={sharesOf(overallCounts)}
               />
             </TooltipContent>
           </HoverTooltip>
@@ -514,11 +436,14 @@ export function TopicTrendsCard({
                         <NegativeCell counts={sentiment} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <RowDetail
+                    <TooltipContent className="py-1.5" side="left">
+                      <PeriodSentimentDetail
                         counts={sentiment}
+                        delta={delta}
+                        label={periodLabel}
                         note={pinned ? 'Pinned — click to unpin' : 'Click to keep this topic highlighted'}
-                        title={entry.label}
+                        scope={entry.label}
+                        shares={sharesOf(sentiment)}
                       />
                     </TooltipContent>
                   </HoverTooltip>

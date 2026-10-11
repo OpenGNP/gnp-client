@@ -1,28 +1,67 @@
-import { MessageCircle, Sparkles, X } from 'lucide-react'
+import { ArrowRight, MessageCircle, Sparkles, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { TooltipContentProps } from 'recharts'
 
 import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
+import { SENTIMENT_KEYS, sharesOf } from '../../lib/sentimentTrendSummary'
 import { cn } from '../../lib/utils'
 import type { DemographicFilterGroup } from './FeedbackFilter'
 import { FeedbackSegmentSection } from './FeedbackSegmentSection'
+import { PeriodSentimentTooltip } from './PeriodSentimentTooltip'
 import { SentimentGauge } from './SentimentGauge'
 import { percentOf, SENTIMENT_SCORE_OUT_OF, sentimentScore } from './sentimentScore'
 import { SENTIMENT_COLORS } from './sentimentColors'
 
-function VolumeTooltip({ active, label, payload }: TooltipContentProps) {
-  if (!active || !payload?.length) {
+/** A volume bucket as the bars draw it: the sentiment split, plus anything unsplit. */
+type VolumeBar = {
+  label: string
+  value: number
+  negative: number
+  neutral: number
+  positive: number
+  /** Mentions with no split (an older server) — drawn as a plain bar. */
+  unsplit: number
+  /** Change in mentions vs the bucket before; null for the first one. */
+  delta: number | null
+}
+
+function toVolumeBars(series: NonNullable<TopicSentiment['volumeSeries']>): VolumeBar[] {
+  return series.map((point, i) => {
+    const negative = point.negative ?? 0
+    const neutral = point.neutral ?? 0
+    const positive = point.positive ?? 0
+    const previous = i > 0 ? series[i - 1] : undefined
+    return {
+      label: point.label,
+      value: point.value,
+      negative,
+      neutral,
+      positive,
+      unsplit: Math.max(0, point.value - negative - neutral - positive),
+      delta: previous ? point.value - previous.value : null,
+    }
+  })
+}
+
+function VolumeTooltip({ active, payload }: TooltipContentProps) {
+  const bar = payload?.[0]?.payload as VolumeBar | undefined
+  if (!active || !bar) {
     return null
   }
-  const value = Number(payload[0]?.value ?? 0)
+  // Mentions from an older server have no split: show the count, not a fake 0/0/0.
+  if (bar.unsplit > 0) {
+    return (
+      <PeriodSentimentTooltip
+        delta={bar.delta}
+        label={bar.label}
+        mentions={bar.value}
+        shares={{ negative: 0, neutral: 0, positive: 0 }}
+      />
+    )
+  }
   return (
-    <div className="flex flex-col gap-1 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-2 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
-      <span className="text-[#929292]">{label}</span>
-      <span className="font-medium text-[#14181f]">
-        {value} {value === 1 ? 'mention' : 'mentions'}
-      </span>
-    </div>
+    <PeriodSentimentTooltip counts={bar} delta={bar.delta} label={bar.label} shares={sharesOf(bar)} />
   )
 }
 
@@ -46,12 +85,15 @@ export type TopicDetailPanelProps = {
   demographicFilters?: DemographicFilterGroup[]
   mainDemoSelection?: Record<string, string[]>
   onClose: () => void
+  /** Opens the Trend tab with this topic charted and pinned, to compare it with others. */
+  onCompareInTrend?: () => void
   width: number | null
 }
 
 export function TopicDetailPanel({
   topic,
   onClose,
+  onCompareInTrend,
   width,
   demographicFilters,
   mainDemoSelection,
@@ -187,10 +229,27 @@ export function TopicDetailPanel({
       </div>
 
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
-        <p className="m-0 text-[12px] font-medium text-[#929292]">Topic Trends (by volume)</p>
+        <div className="flex items-center justify-between gap-3">
+          {/* Not "Topic Trends": that's the Trend tab's multi-topic line chart. */}
+          <p className="m-0 text-[12px] font-medium text-[#929292]">Mentions over time</p>
+          {onCompareInTrend ? (
+            <button
+              className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border-0 bg-transparent px-1 text-[12px] font-medium text-[#1e55c5] transition-colors hover:text-[#163f94] hover:underline"
+              onClick={onCompareInTrend}
+              type="button"
+            >
+              Compare with other topics
+              <ArrowRight size={13} />
+            </button>
+          ) : null}
+        </div>
         <div className="h-45 w-full">
           <ResponsiveContainer height="100%" width="100%">
-            <LineChart data={topic.volumeSeries ?? []} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+            <BarChart
+              barCategoryGap="28%"
+              data={toVolumeBars(topic.volumeSeries ?? [])}
+              margin={{ top: 4, right: 8, bottom: 0, left: -20 }}
+            >
               <CartesianGrid stroke="#f0f1f4" vertical={false} />
               <XAxis
                 axisLine={false}
@@ -207,19 +266,23 @@ export function TopicDetailPanel({
               />
               <Tooltip
                 content={VolumeTooltip}
-                cursor={{ stroke: '#d2d8e5', strokeDasharray: '3 3' }}
+                cursor={{ fill: '#f5f7fd' }}
                 isAnimationActive={false}
               />
-              <Line
-                activeDot={{ r: 5, fill: '#1e55c5', stroke: '#fff', strokeWidth: 2 }}
-                dataKey="value"
-                dot={{ r: 3, fill: '#1e55c5', strokeWidth: 0 }}
-                isAnimationActive={false}
-                stroke="#1e55c5"
-                strokeWidth={2}
-                type="monotone"
-              />
-            </LineChart>
+              {/* Bar height is still the mention count; the stack shows what those
+                  mentions felt like. Negative sits at the bottom so it's the easiest
+                  part to compare across periods. */}
+              {SENTIMENT_KEYS.map((key) => (
+                <Bar
+                  dataKey={key}
+                  fill={SENTIMENT_COLORS[key]}
+                  isAnimationActive={false}
+                  key={key}
+                  stackId="volume"
+                />
+              ))}
+              <Bar dataKey="unsplit" fill="#1e55c5" isAnimationActive={false} stackId="volume" />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

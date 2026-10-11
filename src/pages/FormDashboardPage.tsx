@@ -185,6 +185,8 @@ export function FormDashboardPage({
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  // Pinned line on the Trend tab's Topic Trends card (see TrendView).
+  const [trendPinned, setTrendPinned] = useState<string | null>(null)
   // Themes-tab demographic filter: question label → chosen answers (server-side).
   const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
 
@@ -335,6 +337,19 @@ export function FormDashboardPage({
   // The status row + Response tab need both; themes/trend each fill in on their own.
   const formReady = form !== null && responses !== null
   const trendReady = trend !== null && themes !== null
+
+  // Themes panel → Trend tab, with that topic charted and pinned. Range + demographics
+  // are shared already. The panel's selection is kept, so going back to Themes reopens it.
+  const compareInTrend = (topicId: string) => {
+    const charted = topicSel ?? trend?.topicVolumeSeries.map((s) => s.id) ?? []
+    if (!charted.includes(topicId)) {
+      // Chart full: it replaces the last (lowest-ranked) line.
+      changeTopicSel([...charted.slice(0, TREND_SERIES_MAX - 1), topicId])
+    }
+    setTrendPinned(topicId)
+    setActiveView('trend')
+    window.scrollTo({ top: 0 })
+  }
 
   const selectedTopic =
     activeView === 'themes' && themes
@@ -669,6 +684,8 @@ export function FormDashboardPage({
                       </>
                     ) : null
                   }
+                  onPinnedChange={setTrendPinned}
+                  pinned={trendPinned}
                   trend={trend}
                 />
               ) : trend.totalMentions === 0 ? (
@@ -694,6 +711,7 @@ export function FormDashboardPage({
           key={selectedTopic.id}
           mainDemoSelection={demoSel}
           onClose={() => setSelectedTopicId(null)}
+          onCompareInTrend={() => compareInTrend(selectedTopic.id)}
           topic={selectedTopic}
           width={detailPanelWidth}
         />
