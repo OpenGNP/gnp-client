@@ -105,6 +105,11 @@ export type TopicMovement = {
   /** Positive / negative mentions: current count − previous count. */
   positiveDelta: number
   negativeDelta: number
+  /** The raw counts behind those deltas (row hover detail). Missing from older API responses. */
+  currentPositive?: number
+  previousPositive?: number
+  currentNegative?: number
+  previousNegative?: number
 }
 
 export type EmergingIssue = {
@@ -129,9 +134,12 @@ export type TrendVolumePoint = Record<string, number | string>
 
 export type TrendSentimentPoint = {
   label: string
+  /** Share of the period's mentions (%). */
   negative: number
   neutral: number
   positive: number
+  /** Raw mention counts behind the percentages. Missing from older API responses. */
+  counts?: SentimentCounts
 }
 
 /** Raw mention counts by sentiment (not percentages). */
@@ -170,6 +178,8 @@ export type FormTrendAnalytics = {
   sentimentSeries: TrendSentimentPoint[]
   risingTopics: TopicMovement[]
   decliningTopics: TopicMovement[]
+  /** How a topic qualifies for Rising/Declining (shown in the cards' info tooltip). */
+  movementRule?: { minDelta: number; limit: number }
   emergingIssues: EmergingIssue[]
   timelineEvents: TrendTimelineEvent[]
 }

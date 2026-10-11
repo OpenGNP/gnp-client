@@ -2,12 +2,14 @@ import {
   ArrowDown,
   ArrowUp,
   Frown,
+  Info,
   Minus,
   Smile,
   Sparkle,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
+import { useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -17,7 +19,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { TooltipContentProps } from 'recharts'
 
 import type {
   EmergingIssue,
@@ -26,6 +27,14 @@ import type {
   TrendSentimentPoint,
   TrendTimelineEvent,
 } from '../../data/dashboardAnalytics'
+import { cn } from '../../lib/utils'
+import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import {
+  SENTIMENT_KEYS,
+  SMALL_SAMPLE_MENTIONS,
+  sentimentSnapshot,
+  type SentimentKey,
+} from '../../lib/sentimentTrendSummary'
 import { TopicTrendsCard } from './TopicTrendsCard'
 
 const SENTIMENT_AREA = {
@@ -50,105 +59,184 @@ function formatEventDate(iso: string) {
   })
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: color }}
-      />
-      <span className="text-[12px] leading-5 text-[#404040]">{label}</span>
-    </span>
-  )
-}
-
 function ChartCard({
   title,
   legend,
   chartHeight,
+  stretch = false,
+  footer,
   action,
   children,
 }: {
   title: string
-  legend: React.ReactNode
+  /** Optional row above the chart. */
+  legend?: React.ReactNode
   chartHeight: number
+  /** Take the container's full height (the chart stays `chartHeight`; `footer` sits at the bottom). */
+  stretch?: boolean
+  /** Content under the chart. */
+  footer?: React.ReactNode
   /** Controls that only affect this chart, shown at the right of its title. */
   action?: React.ReactNode
   children: React.ReactElement
 }) {
   return (
-    <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5">
+    <section
+      className={cn(
+        'flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5',
+        stretch && 'h-full',
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
           {title}
         </h2>
         {action ? <div className="flex items-center gap-2.5">{action}</div> : null}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3.75 gap-y-1.5 pt-1 pb-2">{legend}</div>
-      <div className="w-full" style={{ height: chartHeight }}>
+      {legend ? (
+        <div className="flex flex-wrap items-center gap-x-3.75 gap-y-1.5 pt-1 pb-2">{legend}</div>
+      ) : null}
+      <div className="w-full shrink-0" style={{ height: chartHeight }}>
         <ResponsiveContainer height="100%" width="100%">
           {children}
         </ResponsiveContainer>
       </div>
+      {footer ? <div className="mt-auto">{footer}</div> : null}
     </section>
   )
 }
 
-function TrendTooltipCard({ children }: { children: React.ReactNode }) {
+function SentimentShare({
+  sentiment,
+  share,
+  count,
+  change,
+}: {
+  sentiment: SentimentKey
+  /** null for a period with no feedback. */
+  share: number | null
+  /** Mentions behind the share (null when unknown). */
+  count: number | null
+  change: number | null
+}) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-2 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
-      {children}
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="flex items-center gap-1.5 text-[11px] text-[#726f6f]">
+        <span
+          aria-hidden="true"
+          className="size-2 shrink-0 rounded-full"
+          style={{ backgroundColor: SENTIMENT_DOT[sentiment] }}
+        />
+        {sentiment[0]!.toUpperCase() + sentiment.slice(1)}
+      </span>
+      <span className="flex items-baseline gap-1.5">
+        <span className="text-[16px] font-semibold text-[#14181f]">
+          {share === null ? '—' : `${share}%`}
+        </span>
+        {change === null ? null : change === 0 ? (
+          <span className="text-[11px] text-[#929292]">–</span>
+        ) : (
+          // Neutral colour, like the rest of the tab — the sentiment name says whether it's good.
+          <span className="inline-flex items-center text-[11px] font-semibold text-[#3f4045]">
+            {change > 0 ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
+            {Math.abs(change)} pts
+          </span>
+        )}
+      </span>
+      {count !== null ? (
+        <span className="text-[11px] text-[#929292]">
+          {count} mention{count === 1 ? '' : 's'}
+        </span>
+      ) : null}
     </div>
   )
 }
 
-function SentimentTrendTooltip({ active, label, payload }: TooltipContentProps) {
-  if (!active || !payload?.length) {
-    return null
-  }
-
-  const byKey = new Map(payload.map((entry) => [entry.dataKey, entry]))
-
-  return (
-    <TrendTooltipCard>
-      <span className="font-medium text-[#14181f]">{label}</span>
-      <div className="flex flex-col gap-1">
-        {(['negative', 'neutral', 'positive'] as const).map((key) => {
-          const entry = byKey.get(key)
-          if (!entry) {
-            return null
-          }
-          return (
-            <div className="flex items-center gap-2" key={key}>
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: SENTIMENT_DOT[key] }}
-              />
-              <span className="text-[#404040]">{key[0].toUpperCase() + key.slice(1)}</span>
-              <span className="ml-auto pl-3 font-medium text-[#14181f]">{entry.value}%</span>
-            </div>
-          )
-        })}
-      </div>
-    </TrendTooltipCard>
-  )
-}
-
+/**
+ * Stacked sentiment shares over time, with the numbers spelled out underneath:
+ * each share for the latest period (or the hovered one), the mentions behind it,
+ * and how many points it moved since the first period with feedback. A small
+ * sample is flagged, since 100% of one mention isn't 100% of fifty. The numbers
+ * replace a floating tooltip, so nothing covers the chart.
+ */
 function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const hovered = hoverIndex !== null ? data[hoverIndex] : undefined
+  const hoveredEmpty =
+    hovered !== undefined && hovered.negative + hovered.neutral + hovered.positive === 0
+  const snapshot = sentimentSnapshot(data, hoverIndex)
+  const smallSample = snapshot?.total != null && snapshot.total < SMALL_SAMPLE_MENTIONS
+  // Each band is drawn as its own [bottom, top] range (positive at the bottom,
+  // negative on top) instead of recharts stacking — stacking counts a missing value
+  // as 0, so a period with no feedback (0/0/0 from the API) would show sentiment
+  // collapsing to nothing. As ranges, an empty period is a gap the bands bridge.
+  const chartData = data.map((point) =>
+    point.negative + point.neutral + point.positive === 0
+      ? { label: point.label, positive: null, neutral: null, negative: null }
+      : {
+          label: point.label,
+          positive: [0, point.positive],
+          neutral: [point.positive, point.positive + point.neutral],
+          negative: [point.positive + point.neutral, 100],
+        },
+  )
+
+  const footer = snapshot ? (
+    <div className="flex flex-col gap-2 border-t border-[#eef0f4] pt-3">
+      <p aria-live="polite" className="m-0 text-[11px] text-[#929292]">
+        {hoveredEmpty ? (
+          `${hovered.label} · no feedback`
+        ) : (
+          <>
+            {hovered ? snapshot.label : `Latest · ${snapshot.label}`}
+            {snapshot.total !== null
+              ? ` · ${snapshot.total} mention${snapshot.total === 1 ? '' : 's'}`
+              : ''}
+            {snapshot.baselineLabel ? ` · vs ${snapshot.baselineLabel}` : ''}
+            {/* Percentages of a handful of mentions swing wildly — say so. */}
+            {smallSample ? (
+              <span
+                className="ml-1.5 rounded-full bg-[#fff4dc] px-1.5 py-px font-semibold text-[#9a6700]"
+                title={`Fewer than ${SMALL_SAMPLE_MENTIONS} mentions — read the percentages with care`}
+              >
+                small sample
+              </span>
+            ) : null}
+          </>
+        )}
+      </p>
+      {/* Kept on screen (as —) for an empty period, so the card doesn't jump. */}
+      <div className="grid grid-cols-3 gap-2">
+        {SENTIMENT_KEYS.map((key) => (
+          <SentimentShare
+            change={!hoveredEmpty && snapshot.changes ? snapshot.changes[key] : null}
+            count={!hoveredEmpty && snapshot.counts ? snapshot.counts[key] : null}
+            key={key}
+            sentiment={key}
+            share={hoveredEmpty ? null : snapshot.shares[key]}
+          />
+        ))}
+      </div>
+    </div>
+  ) : null
+
   return (
     <ChartCard
-      chartHeight={184}
-      legend={(['negative', 'neutral', 'positive'] as const).map((key) => (
-        <LegendDot
-          color={SENTIMENT_DOT[key]}
-          key={key}
-          label={key[0].toUpperCase() + key.slice(1)}
-        />
-      ))}
+      chartHeight={170}
+      footer={footer}
+      // Shares the fixed-height row with Rising / Declining.
+      stretch
       title="Sentiment Trend"
     >
-      <AreaChart data={data} margin={{ top: 12, right: 18, bottom: 0, left: 4 }}>
+      <AreaChart
+        data={chartData}
+        margin={{ top: 8, right: 18, bottom: 0, left: 4 }}
+        onMouseLeave={() => setHoverIndex(null)}
+        onMouseMove={(state) => {
+          const index = Number(state.activeTooltipIndex)
+          setHoverIndex(Number.isInteger(index) ? index : null)
+        }}
+      >
         <CartesianGrid stroke="#f3f5f8" vertical={false} />
         <XAxis
           axisLine={false}
@@ -164,37 +252,38 @@ function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
           tick={AXIS_TICK}
           tickFormatter={(value: number) => `${value}%`}
           tickLine={false}
-          ticks={[0, 25, 50, 75, 100]}
-          width={44}
+          ticks={[0, 50, 100]}
+          width={40}
         />
-        <Tooltip content={SentimentTrendTooltip} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
+        {/* Cursor only — the numbers below the chart are the readout. */}
+        <Tooltip content={() => null} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
         <Area
           activeDot={{ r: 4 }}
+          connectNulls
           dataKey="positive"
           fill={SENTIMENT_AREA.positive}
           fillOpacity={1}
           isAnimationActive={false}
-          stackId="sentiment"
           stroke={SENTIMENT_AREA.positive}
           type="monotone"
         />
         <Area
           activeDot={{ r: 4 }}
+          connectNulls
           dataKey="neutral"
           fill={SENTIMENT_AREA.neutral}
           fillOpacity={1}
           isAnimationActive={false}
-          stackId="sentiment"
           stroke={SENTIMENT_AREA.neutral}
           type="monotone"
         />
         <Area
           activeDot={{ r: 4 }}
+          connectNulls
           dataKey="negative"
           fill={SENTIMENT_AREA.negative}
           fillOpacity={1}
           isAnimationActive={false}
-          stackId="sentiment"
           stroke={SENTIMENT_AREA.negative}
           type="monotone"
         />
@@ -226,13 +315,10 @@ function SentimentDelta({
 }
 
 function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
-  const title = `${row.currentMentions} now vs ${row.previousMentions} before`
-
   if (row.status === 'new') {
     return (
       <span
         className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#1e55c5]"
-        title={title}
       >
         <Sparkle size={13} />
         New
@@ -248,7 +334,6 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
     return (
       <span
         className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#929292]"
-        title={title}
       >
         <Minus size={15} />
         0
@@ -257,11 +342,11 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
   }
 
   const Arrow = row.delta > 0 ? ArrowUp : ArrowDown
-  const tone = row.delta > 0 ? 'text-[#269d42]' : 'text-[#f63b56]'
+  // Neutral on purpose: more mentions isn't good or bad by itself (it may be more
+  // complaints) — the sentiment faces beside it carry the good/bad colour.
   return (
     <span
-      className={`flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] ${tone}`}
-      title={title}
+      className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#14181f]"
     >
       <Arrow size={15} />
       {row.delta > 0 ? '+' : ''}
@@ -270,19 +355,103 @@ function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
   )
 }
 
-function TopicMovementRow({ row }: { row: TopicMovement }) {
+function formatSigned(value: number) {
+  return value > 0 ? `+${value}` : value < 0 ? `−${Math.abs(value)}` : '0'
+}
+
+/** Hover detail for a Rising/Declining row: now vs before, for mentions and sentiment. */
+function MovementTooltipBody({ row, comparisonLabel }: { row: TopicMovement; comparisonLabel: string }) {
+  const hasCounts = row.currentPositive !== undefined && row.previousPositive !== undefined
+  const lines = [
+    { label: 'Mentions', now: row.currentMentions, before: row.previousMentions, change: row.delta },
+    {
+      label: 'Positive',
+      now: row.currentPositive,
+      before: row.previousPositive,
+      change: row.positiveDelta,
+    },
+    {
+      label: 'Negative',
+      now: row.currentNegative,
+      before: row.previousNegative,
+      change: row.negativeDelta,
+    },
+  ]
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div>
+        <p className="m-0 max-w-72 font-semibold whitespace-normal text-[#14181f]">{row.label}</p>
+        <p className="m-0 text-[11px] text-[#929292]">{comparisonLabel}</p>
+      </div>
+      <table className="border-collapse text-[12px]">
+        <thead>
+          <tr className="text-[10px] text-[#929292]">
+            <th className="pr-4 text-left font-medium" scope="col">
+              <span className="sr-only">Metric</span>
+            </th>
+            {hasCounts ? (
+              <>
+                <th className="pr-3 text-right font-medium" scope="col">Now</th>
+                <th className="pr-3 text-right font-medium" scope="col">Before</th>
+              </>
+            ) : null}
+            <th className="text-right font-medium" scope="col">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line) => (
+            <tr key={line.label}>
+              <th className="pr-4 text-left font-medium text-[#726f6f]" scope="row">
+                {line.label}
+              </th>
+              {hasCounts ? (
+                <>
+                  <td className="pr-3 text-right font-semibold text-[#14181f]">{line.now}</td>
+                  <td className="pr-3 text-right text-[#726f6f]">{line.before}</td>
+                </>
+              ) : null}
+              <td className="text-right font-semibold text-[#14181f]">{formatSigned(line.change)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {row.status === 'new' ? (
+        <p className="m-0 text-[11px] text-[#1e55c5]">New — not mentioned before this period</p>
+      ) : null}
+    </div>
+  )
+}
+
+function TopicMovementRow({ row, comparisonLabel }: { row: TopicMovement; comparisonLabel: string }) {
   return (
     <div className="flex items-center gap-2 py-2.5 pr-1 pl-2.5">
-      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-[0.12px] text-black">
+      {/* Long AI-generated names wrap to two lines before truncating; the full name
+          is on hover (and at the top of the numbers' tooltip). */}
+      <span
+        className="line-clamp-2 min-w-0 flex-1 text-[12px] leading-4 font-semibold tracking-[0.12px] break-words text-black"
+        title={row.label}
+      >
         {row.label}
       </span>
-      <div className="flex w-36 shrink-0 items-center justify-between">
-        <VolumeChangeIndicator row={row} />
-        <div className="flex items-center gap-1">
-          <SentimentDelta face="positive" value={row.positiveDelta} />
-          <SentimentDelta face="negative" value={row.negativeDelta} />
-        </div>
-      </div>
+      <HoverTooltip>
+        <TooltipTrigger asChild>
+          {/* Focusable so the detail is reachable by keyboard too. */}
+          <div
+            aria-label={`${row.label}: ${row.currentMentions} mentions now, ${row.previousMentions} before`}
+            className="flex w-36 shrink-0 cursor-default items-center justify-between rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40"
+            tabIndex={0}
+          >
+            <VolumeChangeIndicator row={row} />
+            <div className="flex items-center gap-1">
+              <SentimentDelta face="positive" value={row.positiveDelta} />
+              <SentimentDelta face="negative" value={row.negativeDelta} />
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent align="end" side="top">
+          <MovementTooltipBody comparisonLabel={comparisonLabel} row={row} />
+        </TooltipContent>
+      </HoverTooltip>
     </div>
   )
 }
@@ -292,31 +461,59 @@ function TopicMovementCard({
   icon,
   comparisonLabel,
   rows,
+  rule,
+  direction,
 }: {
   title: string
   icon: React.ReactNode
   comparisonLabel: string
   rows: TopicMovement[]
+  rule: { minDelta: number; limit: number }
+  direction: 'rising' | 'declining'
 }) {
   return (
-    <section className="flex flex-col gap-2 rounded-[15px] border border-[#f3f4f5] bg-white px-2 py-2">
+    <section className="flex h-full flex-col gap-2 rounded-[15px] border border-[#f3f4f5] bg-white px-2 py-2">
       <div className="flex h-7 items-center gap-2.5 pl-2.25">
         {icon}
         <h3 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
           {title}
         </h3>
+        <HoverTooltip>
+          <TooltipTrigger asChild>
+            <button
+              aria-label={`How ${title} is worked out`}
+              className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
+              type="button"
+            >
+              <Info size={15} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-70 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
+            Topics whose mentions went {direction === 'rising' ? 'up' : 'down'} by at least{' '}
+            {rule.minDelta} ({comparisonLabel}). The top {rule.limit} are shown. Hover a row's numbers
+            for the details.
+          </TooltipContent>
+        </HoverTooltip>
       </div>
-      <div className="flex items-start justify-between gap-2 pr-1 pl-2.5 text-[10px] leading-4.5 font-medium tracking-[0.1px] text-[#73777e]">
-        <span className="min-w-0">Topic: Change ({comparisonLabel})</span>
-        <div className="flex w-36 shrink-0 items-center justify-between">
-          <span>Volume</span>
-          <span>Sentiment</span>
+      {rows.length > 0 ? (
+        <div className="flex items-start justify-between gap-2 pr-1 pl-2.5 text-[10px] leading-4.5 font-medium tracking-[0.1px] text-[#73777e]">
+          <span className="min-w-0">Topic: Change ({comparisonLabel})</span>
+          <div className="flex w-36 shrink-0 items-center justify-between">
+            <span>Volume</span>
+            <span>Sentiment</span>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-col">
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {rows.map((row) => (
-          <TopicMovementRow key={row.id} row={row} />
+          <TopicMovementRow comparisonLabel={comparisonLabel} key={row.id} row={row} />
         ))}
+        {/* The card keeps the height of a full list, so say why it isn't full. */}
+        {rows.length < rule.limit ? (
+          <p className="m-0 flex flex-1 items-center justify-center px-4 py-3 text-center text-[12px] leading-4.5 text-[#929292]">
+            {rows.length === 0 ? 'No topics to show' : 'No more topics to show'}
+          </p>
+        ) : null}
       </div>
     </section>
   )
@@ -396,6 +593,7 @@ export type TrendViewProps = {
 }
 
 export function TrendView({ trend, topicControl }: TrendViewProps) {
+  const movementRule = trend.movementRule ?? { minDelta: 2, limit: 5 }
   return (
     <div className="flex flex-col gap-4.5">
       {/* Full width: the chart plus its topic-detail side panel. */}
@@ -407,29 +605,35 @@ export function TrendView({ trend, topicControl }: TrendViewProps) {
         summaries={trend.topicSummaries ?? []}
       />
 
-      <div className="grid grid-cols-[795fr_653fr] gap-4.5 max-[1160px]:grid-cols-1">
-        <div className="@container min-w-0">
-          <div className="grid grid-cols-1 gap-4.5 @min-[700px]:grid-cols-2">
-            <TopicMovementCard
-              comparisonLabel={trend.comparisonLabel}
-              icon={<TrendingUp className="text-[#1e55c5]" size={22} />}
-              rows={trend.risingTopics}
-              title="Rising Topics"
-            />
-            <TopicMovementCard
-              comparisonLabel={trend.comparisonLabel}
-              icon={<TrendingDown className="text-[#1e55c5]" size={22} />}
-              rows={trend.decliningTopics}
-              title="Declining Topics"
-            />
-          </div>
-        </div>
-        <div className="min-w-0">
+      {/* Rising | Declining | Sentiment Trend — what changed, then how people feel.
+          One fixed height for all three (sized for a full list of `rule.limit` rows
+          with two-line names), so the row never jumps when filters change.
+          Stacked on phones, each card takes its natural height. */}
+      <div className="grid h-90 grid-cols-3 gap-4.5 max-[1160px]:h-auto max-[1160px]:grid-cols-2 max-[1160px]:auto-rows-[22.5rem] max-[900px]:grid-cols-1 max-[900px]:auto-rows-auto">
+        <TopicMovementCard
+          comparisonLabel={trend.comparisonLabel}
+          direction="rising"
+          icon={<TrendingUp className="text-[#1e55c5]" size={22} />}
+          rows={trend.risingTopics}
+          rule={movementRule}
+          title="Rising Topics"
+        />
+        <TopicMovementCard
+          comparisonLabel={trend.comparisonLabel}
+          direction="declining"
+          icon={<TrendingDown className="text-[#1e55c5]" size={22} />}
+          rows={trend.decliningTopics}
+          rule={movementRule}
+          title="Declining Topics"
+        />
+        {/* Spans both columns when the row drops to two, so it doesn't sit alone. */}
+        <div className="min-w-0 max-[1160px]:col-span-2 max-[900px]:col-span-1 max-[900px]:h-75">
           <SentimentTrendCard data={trend.sentimentSeries} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4.5 max-[1160px]:grid-cols-1">
+      {/* items-start: short cards (few issues/events) keep their own height. */}
+      <div className="grid grid-cols-2 items-start gap-4.5 max-[900px]:grid-cols-1">
         <EmergingIssuesCard issues={trend.emergingIssues} />
         <TimelineCard events={trend.timelineEvents} />
       </div>
