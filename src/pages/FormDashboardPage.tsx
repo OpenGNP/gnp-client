@@ -14,6 +14,7 @@ import { useParams } from 'react-router-dom'
 import type { FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
 import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
+import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
@@ -327,6 +328,29 @@ export function FormDashboardPage({
       />
     ) : null
 
+  // The chosen demographic answers as removable chips, on a line under the filter
+  // row (the date range shows itself on its own button, with its own ✕).
+  const activeFilterChips: ActiveFilterChip[] = Object.entries(demoSel).flatMap(
+    ([label, values]) =>
+      values.map((value) => ({
+        id: `demo:${label}:${value}`,
+        group: label,
+        value,
+        onRemove: () => toggleDemo(label, value),
+      })),
+  )
+  const activeFilterBar = (
+    <ActiveFilterBar
+      chips={activeFilterChips}
+      // Pulled up under the filter row it belongs to (the column's gap is 20px).
+      className="-mt-2"
+      onClearAll={() => {
+        resetRange()
+        clearDemo()
+      }}
+    />
+  )
+
   return (
     <div>
       <FormDetailTabs
@@ -396,6 +420,7 @@ export function FormDashboardPage({
                       ) : null}
                     </div>
                   ) : null}
+                  {themes.totalMentions > 0 ? activeFilterBar : null}
                   <EmptyNote>
                     {themes.totalMentions === 0
                       ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
@@ -417,6 +442,7 @@ export function FormDashboardPage({
                       <UpdatingIndicator />
                     ) : null}
                   </div>
+                  {activeFilterBar}
                   <div className="flex flex-wrap items-center gap-4">
                     <StatCard
                       deltaClassName="text-[#0b842d]"
@@ -589,6 +615,7 @@ export function FormDashboardPage({
                 {trendPending ? <UpdatingIndicator /> : null}
               </div>
             ) : null}
+            {activeView === 'trend' && trend && trend.totalMentions > 0 ? activeFilterBar : null}
 
             {activeView === 'trend' && trend ? (
               trend.topicVolumeSeries.length > 0 ? (

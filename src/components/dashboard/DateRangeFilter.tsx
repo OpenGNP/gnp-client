@@ -1,9 +1,10 @@
-import { Calendar as CalendarIcon, SlidersHorizontal } from 'lucide-react'
+import { Calendar as CalendarIcon, SlidersHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 
 import { Calendar } from '../ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { cn } from '../../lib/utils'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -141,6 +142,8 @@ export function DateRangeFilter({
 }: DateRangeFilterProps = {}) {
   const today = new Date()
   const [open, setOpen] = useState(false)
+  // Narrowed away from the default window — the trigger shows it's doing something.
+  const isActive = Boolean(onReset) && !isDefault
   const [draftPreset, setDraftPreset] = useState<PresetKey>('custom')
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined)
   const [visibleMonth, setVisibleMonth] = useState<Date>(today)
@@ -200,15 +203,35 @@ export function DateRangeFilter({
     <div className="flex flex-col items-start gap-2">
       <span className="text-[9.5px] font-medium text-black">Show reports for:</span>
       <Popover onOpenChange={handleOpenChange} open={open}>
-        <PopoverTrigger asChild>
-          <button
-            className="inline-flex h-11.25 min-w-33.75 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]"
-            type="button"
-          >
-            <SlidersHorizontal size={16} />
-            {label ?? formatRange(appliedRange)}
-          </button>
-        </PopoverTrigger>
+        <div className="relative">
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                'inline-flex h-11.25 min-w-33.75 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors',
+                isActive
+                  ? 'bg-[#edf2fd] pr-9 hover:bg-[#e2eafb] data-[state=open]:bg-[#e2eafb]'
+                  : 'bg-white hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]',
+              )}
+              type="button"
+            >
+              <SlidersHorizontal size={16} />
+              {label ?? formatRange(appliedRange)}
+            </button>
+          </PopoverTrigger>
+          {/* One-click back to "All feedback" — a sibling of the trigger (not inside
+              it) so it doesn't also open the popover. */}
+          {isActive ? (
+            <button
+              aria-label="Reset date range to all feedback"
+              className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[#1e55c5] transition-colors hover:bg-[#d6e2fb]"
+              onClick={handleResetClick}
+              title="Show all feedback"
+              type="button"
+            >
+              <X size={14} strokeWidth={2.4} />
+            </button>
+          ) : null}
+        </div>
         <PopoverContent
           align="start"
           className="w-75 max-h-(--radix-popover-content-available-height) overflow-y-auto rounded-[10px] border border-[#d1d1d1] bg-white p-0 shadow-[0_12px_32px_rgba(15,23,42,0.12)]"

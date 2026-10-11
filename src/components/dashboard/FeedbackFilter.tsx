@@ -83,27 +83,48 @@ export function FeedbackFilter({
   variant = 'compact',
 }: FeedbackFilterProps) {
   const labeled = variant === 'labeled'
-  const filterLabel = `Filter${activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}`
+  const isActive = activeFilterCount > 0
+  // A filled count badge instead of "(n)" — readable at a glance.
+  const countBadge = isActive ? (
+    <span
+      aria-label={`${activeFilterCount} active`}
+      className="inline-flex min-w-4.5 items-center justify-center rounded-full bg-[#1e55c5] px-1 text-[10px] leading-4.5 font-bold text-white"
+    >
+      {activeFilterCount}
+    </span>
+  ) : null
 
   const popover = (
     <Popover>
       <PopoverTrigger asChild>
         {labeled ? (
           <Button
-            className="inline-flex h-11.25 min-w-30 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]"
+            className={cn(
+              'inline-flex h-11.25 min-w-30 items-center justify-center gap-1.75 rounded-[10px] border border-[#1e55c5] px-4 text-[12px] font-semibold whitespace-nowrap text-[#1e55c5] transition-colors',
+              isActive
+                ? 'bg-[#edf2fd] hover:bg-[#e2eafb] data-[state=open]:bg-[#e2eafb]'
+                : 'bg-white hover:bg-[#f7f8fb] data-[state=open]:bg-[#f7f8fb]',
+            )}
             type="button"
           >
             <Filter size={16} />
-            {filterLabel}
+            Filter
+            {countBadge}
             <ChevronDown size={16} />
           </Button>
         ) : (
           <Button
-            className="h-8.75 gap-1.75 rounded-[10px] border-[#e6e7eb] px-2.5 text-[12px] text-black"
+            className={cn(
+              'h-8.75 gap-1.75 rounded-[10px] px-2.5 text-[12px]',
+              isActive
+                ? 'border-[#1e55c5] bg-[#edf2fd] text-[#1e55c5] hover:bg-[#e2eafb]'
+                : 'border-[#e6e7eb] text-black',
+            )}
             variant="outline"
           >
             <Filter size={14} />
-            {filterLabel}
+            Filter
+            {countBadge}
             <ChevronDown size={14} />
           </Button>
         )}
