@@ -37,10 +37,50 @@ export type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Who last signed in on this browser — just the numeric id, not a credential, and
+// kept even after their token is gone (expired / logged out). AppGate attaches it
+// to the "return here after sign-in" state, so if a *different* account signs in,
+// LoginPage sends them Home instead of to the previous user's page.
+const LAST_USER_KEY = 'gnp.auth.lastUserId'
+
+function rememberSignedInUser(user: AuthUser): void {
+  try {
+    window.localStorage.setItem(LAST_USER_KEY, String(user.id))
+  } catch {
+    // Storage unavailable — the redirect check just falls back to "unknown".
+  }
+}
+
+export function readLastSignedInUserId(): number | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_USER_KEY)
+    const id = raw === null ? NaN : Number(raw)
+    return Number.isInteger(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Where to go once signed in: back to `from` only when it was the same account
+ * that left it (or nobody was signed in here before — e.g. a link someone shared),
+ * otherwise Home.
+ */
+export function postSignInPath(
+  state: { from?: string; forUserId?: number | null } | null,
+  user: AuthUser,
+): string {
+  const from = state?.from
+  if (!from) return '/'
+  const previous = state?.forUserId ?? null
+  return previous === null || previous === user.id ? from : '/'
+}
+
 /** POSTs to /auth/login, stores the returned token, and resolves the signed-in user. */
 export async function login(email: string, password: string): Promise<AuthUser> {
   const { user, token } = await apiPost<LoginResponse>('/auth/login', { email, password })
   setAuthToken(token)
+  rememberSignedInUser(user)
   return user
 }
 
@@ -51,6 +91,7 @@ export async function loginWithMicrosoft(idToken: string, accessToken?: string):
     accessToken: accessToken || undefined,
   })
   setAuthToken(token)
+  rememberSignedInUser(user)
   return user
 }
 
@@ -78,7 +119,9 @@ export async function logout(): Promise<void> {
 async function bootstrapSession(): Promise<AuthUser | null> {
   if (getAuthToken()) {
     try {
-      return await apiGet<AuthUser>('/users/me')
+      const user = await apiGet<AuthUser>('/users/me')
+      rememberSignedInUser(user)
+      return user
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) {
         throw error

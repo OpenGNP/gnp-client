@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 
-import { useAuth } from '../lib/auth'
+import { readLastSignedInUserId, useAuth } from '../lib/auth'
 import { AppShellSkeleton } from './skeletons/AppShellSkeleton'
 
 /**
@@ -24,7 +24,15 @@ export function AppGate({ children }: { children: ReactNode }) {
     return (
       <Navigate
         replace
-        state={signedOut ? undefined : { from: `${location.pathname}${location.search}` }}
+        state={
+          signedOut
+            ? undefined
+            : {
+                from: `${location.pathname}${location.search}`,
+                // Whose page this was — a different account signing in goes Home.
+                forUserId: readLastSignedInUserId(),
+              }
+        }
         to="/login"
       />
     )

@@ -7,7 +7,7 @@ import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import { ApiError } from '../lib/api'
-import { useAuth } from '../lib/auth'
+import { postSignInPath, useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 
 export function LoginPage() {
@@ -20,11 +20,11 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [microsoftBusy, setMicrosoftBusy] = useState(false)
 
-  // Already signed in (e.g. dev auto-login resolved, or a direct visit while a
-  // session is live) — bounce to wherever AppGate sent us from, or home.
+  // Signed in (just now, or already) — back to where AppGate sent us from, but only
+  // if it's the same account that was there; a different account starts at Home.
   if (status === 'ready' && user) {
-    const from = (location.state as { from?: string } | null)?.from
-    return <Navigate replace to={from || '/'} />
+    const state = location.state as { from?: string; forUserId?: number | null } | null
+    return <Navigate replace to={postSignInPath(state, user)} />
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
