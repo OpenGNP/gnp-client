@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 
 import { TopicTrendsCard } from '../src/components/dashboard/TopicTrendsCard'
 
@@ -15,9 +16,13 @@ const series = [
   { id: '2', label: 'Parking' },
 ]
 
-function renderCard() {
-  render(
+function Card() {
+  const [pinned, setPinned] = useState<string | null>(null)
+  return (
     <TopicTrendsCard
+      onPinnedTopicChange={setPinned}
+      pinnedTopic={pinned}
+      sentimentSeries={[]}
       data={[
         { label: 'W1', '1': 3, '2': 5 },
         { label: 'W2', '1': 9, '2': 4 },
@@ -37,8 +42,12 @@ function renderCard() {
         { id: '1', mentions: 12, negative: 8, neutral: 3, positive: 1 },
         { id: '2', mentions: 9, negative: 1, neutral: 3, positive: 5 },
       ]}
-    />,
+    />
   )
+}
+
+function renderCard() {
+  render(<Card />)
 }
 
 describe('TopicTrendsCard side panel', () => {
@@ -46,11 +55,9 @@ describe('TopicTrendsCard side panel', () => {
     renderCard()
     expect(screen.getByText('Whole period')).toBeInTheDocument()
     const rows = screen.getAllByRole('button', { name: /Canteen|Parking/ })
-    expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringContaining('Canteen12'),
-      expect.stringContaining('Parking9'),
-    ])
-    expect(within(rows[0]!).getByText('67% neg')).toBeInTheDocument()
+    // One line per topic: name, mentions, (no Δ for the whole period), % negative.
+    expect(rows.map((row) => row.textContent)).toEqual(['Canteen1267%', 'Parking911%'])
+    expect(within(rows[0]!).getByText('67%')).toBeInTheDocument()
   })
 
   it('clicking a row pins that topic, clicking again releases it', async () => {

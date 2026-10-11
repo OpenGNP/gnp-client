@@ -10,46 +10,15 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { useState } from 'react'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 
 import type {
   EmergingIssue,
   FormTrendAnalytics,
   TopicMovement,
-  TrendSentimentPoint,
   TrendTimelineEvent,
 } from '../../data/dashboardAnalytics'
-import { cn } from '../../lib/utils'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-import {
-  SENTIMENT_KEYS,
-  SMALL_SAMPLE_MENTIONS,
-  sentimentSnapshot,
-  type SentimentKey,
-} from '../../lib/sentimentTrendSummary'
 import { TopicTrendsCard } from './TopicTrendsCard'
-
-const SENTIMENT_AREA = {
-  positive: '#B5E6B1',
-  neutral: '#FED871',
-  negative: '#FD798F',
-} as const
-
-const SENTIMENT_DOT = {
-  negative: '#F63B56',
-  neutral: '#FEB535',
-  positive: '#51C66D',
-} as const
-
-const AXIS_TICK = { fill: '#73777e', fontSize: 10 } as const
 
 function formatEventDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -57,239 +26,6 @@ function formatEventDate(iso: string) {
     month: 'short',
     year: 'numeric',
   })
-}
-
-function ChartCard({
-  title,
-  legend,
-  chartHeight,
-  stretch = false,
-  footer,
-  action,
-  children,
-}: {
-  title: string
-  /** Optional row above the chart. */
-  legend?: React.ReactNode
-  chartHeight: number
-  /** Take the container's full height (the chart stays `chartHeight`; `footer` sits at the bottom). */
-  stretch?: boolean
-  /** Content under the chart. */
-  footer?: React.ReactNode
-  /** Controls that only affect this chart, shown at the right of its title. */
-  action?: React.ReactNode
-  children: React.ReactElement
-}) {
-  return (
-    <section
-      className={cn(
-        'flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5',
-        stretch && 'h-full',
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-        <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-          {title}
-        </h2>
-        {action ? <div className="flex items-center gap-2.5">{action}</div> : null}
-      </div>
-      {legend ? (
-        <div className="flex flex-wrap items-center gap-x-3.75 gap-y-1.5 pt-1 pb-2">{legend}</div>
-      ) : null}
-      <div className="w-full shrink-0" style={{ height: chartHeight }}>
-        <ResponsiveContainer height="100%" width="100%">
-          {children}
-        </ResponsiveContainer>
-      </div>
-      {footer ? <div className="mt-auto">{footer}</div> : null}
-    </section>
-  )
-}
-
-function SentimentShare({
-  sentiment,
-  share,
-  count,
-  change,
-}: {
-  sentiment: SentimentKey
-  /** null for a period with no feedback. */
-  share: number | null
-  /** Mentions behind the share (null when unknown). */
-  count: number | null
-  change: number | null
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="flex items-center gap-1.5 text-[11px] text-[#726f6f]">
-        <span
-          aria-hidden="true"
-          className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: SENTIMENT_DOT[sentiment] }}
-        />
-        {sentiment[0]!.toUpperCase() + sentiment.slice(1)}
-      </span>
-      <span className="flex items-baseline gap-1.5">
-        <span className="text-[16px] font-semibold text-[#14181f]">
-          {share === null ? '—' : `${share}%`}
-        </span>
-        {change === null ? null : change === 0 ? (
-          <span className="text-[11px] text-[#929292]">–</span>
-        ) : (
-          // Neutral colour, like the rest of the tab — the sentiment name says whether it's good.
-          <span className="inline-flex items-center text-[11px] font-semibold text-[#3f4045]">
-            {change > 0 ? <ArrowUp size={11} strokeWidth={2.6} /> : <ArrowDown size={11} strokeWidth={2.6} />}
-            {Math.abs(change)} pts
-          </span>
-        )}
-      </span>
-      {count !== null ? (
-        <span className="text-[11px] text-[#929292]">
-          {count} mention{count === 1 ? '' : 's'}
-        </span>
-      ) : null}
-    </div>
-  )
-}
-
-/**
- * Stacked sentiment shares over time, with the numbers spelled out underneath:
- * each share for the latest period (or the hovered one), the mentions behind it,
- * and how many points it moved since the first period with feedback. A small
- * sample is flagged, since 100% of one mention isn't 100% of fifty. The numbers
- * replace a floating tooltip, so nothing covers the chart.
- */
-function SentimentTrendCard({ data }: { data: TrendSentimentPoint[] }) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-  const hovered = hoverIndex !== null ? data[hoverIndex] : undefined
-  const hoveredEmpty =
-    hovered !== undefined && hovered.negative + hovered.neutral + hovered.positive === 0
-  const snapshot = sentimentSnapshot(data, hoverIndex)
-  const smallSample = snapshot?.total != null && snapshot.total < SMALL_SAMPLE_MENTIONS
-  // Each band is drawn as its own [bottom, top] range (positive at the bottom,
-  // negative on top) instead of recharts stacking — stacking counts a missing value
-  // as 0, so a period with no feedback (0/0/0 from the API) would show sentiment
-  // collapsing to nothing. As ranges, an empty period is a gap the bands bridge.
-  const chartData = data.map((point) =>
-    point.negative + point.neutral + point.positive === 0
-      ? { label: point.label, positive: null, neutral: null, negative: null }
-      : {
-          label: point.label,
-          positive: [0, point.positive],
-          neutral: [point.positive, point.positive + point.neutral],
-          negative: [point.positive + point.neutral, 100],
-        },
-  )
-
-  const footer = snapshot ? (
-    <div className="flex flex-col gap-2 border-t border-[#eef0f4] pt-3">
-      <p aria-live="polite" className="m-0 text-[11px] text-[#929292]">
-        {hoveredEmpty ? (
-          `${hovered.label} · no feedback`
-        ) : (
-          <>
-            {hovered ? snapshot.label : `Latest · ${snapshot.label}`}
-            {snapshot.total !== null
-              ? ` · ${snapshot.total} mention${snapshot.total === 1 ? '' : 's'}`
-              : ''}
-            {snapshot.baselineLabel ? ` · vs ${snapshot.baselineLabel}` : ''}
-            {/* Percentages of a handful of mentions swing wildly — say so. */}
-            {smallSample ? (
-              <span
-                className="ml-1.5 rounded-full bg-[#fff4dc] px-1.5 py-px font-semibold text-[#9a6700]"
-                title={`Fewer than ${SMALL_SAMPLE_MENTIONS} mentions — read the percentages with care`}
-              >
-                small sample
-              </span>
-            ) : null}
-          </>
-        )}
-      </p>
-      {/* Kept on screen (as —) for an empty period, so the card doesn't jump. */}
-      <div className="grid grid-cols-3 gap-2">
-        {SENTIMENT_KEYS.map((key) => (
-          <SentimentShare
-            change={!hoveredEmpty && snapshot.changes ? snapshot.changes[key] : null}
-            count={!hoveredEmpty && snapshot.counts ? snapshot.counts[key] : null}
-            key={key}
-            sentiment={key}
-            share={hoveredEmpty ? null : snapshot.shares[key]}
-          />
-        ))}
-      </div>
-    </div>
-  ) : null
-
-  return (
-    <ChartCard
-      chartHeight={170}
-      footer={footer}
-      // Shares the fixed-height row with Rising / Declining.
-      stretch
-      title="Sentiment Trend"
-    >
-      <AreaChart
-        data={chartData}
-        margin={{ top: 8, right: 18, bottom: 0, left: 4 }}
-        onMouseLeave={() => setHoverIndex(null)}
-        onMouseMove={(state) => {
-          const index = Number(state.activeTooltipIndex)
-          setHoverIndex(Number.isInteger(index) ? index : null)
-        }}
-      >
-        <CartesianGrid stroke="#f3f5f8" vertical={false} />
-        <XAxis
-          axisLine={false}
-          dataKey="label"
-          interval="preserveStartEnd"
-          minTickGap={24}
-          tick={AXIS_TICK}
-          tickLine={false}
-        />
-        <YAxis
-          axisLine={false}
-          domain={[0, 100]}
-          tick={AXIS_TICK}
-          tickFormatter={(value: number) => `${value}%`}
-          tickLine={false}
-          ticks={[0, 50, 100]}
-          width={40}
-        />
-        {/* Cursor only — the numbers below the chart are the readout. */}
-        <Tooltip content={() => null} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
-        <Area
-          activeDot={{ r: 4 }}
-          connectNulls
-          dataKey="positive"
-          fill={SENTIMENT_AREA.positive}
-          fillOpacity={1}
-          isAnimationActive={false}
-          stroke={SENTIMENT_AREA.positive}
-          type="monotone"
-        />
-        <Area
-          activeDot={{ r: 4 }}
-          connectNulls
-          dataKey="neutral"
-          fill={SENTIMENT_AREA.neutral}
-          fillOpacity={1}
-          isAnimationActive={false}
-          stroke={SENTIMENT_AREA.neutral}
-          type="monotone"
-        />
-        <Area
-          activeDot={{ r: 4 }}
-          connectNulls
-          dataKey="negative"
-          fill={SENTIMENT_AREA.negative}
-          fillOpacity={1}
-          isAnimationActive={false}
-          stroke={SENTIMENT_AREA.negative}
-          type="monotone"
-        />
-      </AreaChart>
-    </ChartCard>
-  )
 }
 
 function SentimentDelta({
@@ -594,22 +330,29 @@ export type TrendViewProps = {
 
 export function TrendView({ trend, topicControl }: TrendViewProps) {
   const movementRule = trend.movementRule ?? { minDelta: 2, limit: 5 }
+  // Pinned topic in Topic Trends (it also switches that card's sentiment strip).
+  // Ignored once it's no longer on the chart (e.g. the topic picker removed it).
+  const [pinned, setPinned] = useState<string | null>(null)
+  const pinnedTopic = trend.topicVolumeSeries.some((entry) => entry.id === pinned) ? pinned : null
+
   return (
     <div className="flex flex-col gap-4.5">
-      {/* Full width: the chart plus its topic-detail side panel. */}
+      {/* Full width: volume lines + the sentiment strip under them, and the topic
+          detail side panel. */}
       <TopicTrendsCard
         action={topicControl}
         data={trend.volumeSeries}
+        onPinnedTopicChange={setPinned}
+        pinnedTopic={pinnedTopic}
         sentimentByTopic={trend.topicSentimentSeries ?? {}}
+        sentimentSeries={trend.sentimentSeries}
         series={trend.topicVolumeSeries}
         summaries={trend.topicSummaries ?? []}
       />
 
-      {/* Rising | Declining | Sentiment Trend — what changed, then how people feel.
-          One fixed height for all three (sized for a full list of `rule.limit` rows
-          with two-line names), so the row never jumps when filters change.
-          Stacked on phones, each card takes its natural height. */}
-      <div className="grid h-90 grid-cols-3 gap-4.5 max-[1160px]:h-auto max-[1160px]:grid-cols-2 max-[1160px]:auto-rows-[22.5rem] max-[900px]:grid-cols-1 max-[900px]:auto-rows-auto">
+      {/* Rising | Declining, half the row each. Both take the taller card's height
+          (grid stretch), so the shorter one's note fills its spare space. */}
+      <div className="grid grid-cols-2 gap-4.5 max-[900px]:grid-cols-1">
         <TopicMovementCard
           comparisonLabel={trend.comparisonLabel}
           direction="rising"
@@ -626,10 +369,6 @@ export function TrendView({ trend, topicControl }: TrendViewProps) {
           rule={movementRule}
           title="Declining Topics"
         />
-        {/* Spans both columns when the row drops to two, so it doesn't sit alone. */}
-        <div className="min-w-0 max-[1160px]:col-span-2 max-[900px]:col-span-1 max-[900px]:h-75">
-          <SentimentTrendCard data={trend.sentimentSeries} />
-        </div>
       </div>
 
       {/* items-start: short cards (few issues/events) keep their own height. */}

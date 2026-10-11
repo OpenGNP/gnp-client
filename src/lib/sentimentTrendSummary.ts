@@ -3,66 +3,70 @@ import type { SentimentCounts, TrendSentimentPoint } from '../data/dashboardAnal
 export const SENTIMENT_KEYS = ['negative', 'neutral', 'positive'] as const
 export type SentimentKey = (typeof SENTIMENT_KEYS)[number]
 
-const isEmpty = (point: TrendSentimentPoint) =>
-  point.negative + point.neutral + point.positive === 0
+/** Below this many mentions in a period, its percentages swing too easily to trust. */
+export const SMALL_SAMPLE_MENTIONS = 5
 
-export type SentimentSnapshot = {
-  /** Period being described (the hovered one, or the latest with data). */
+/**
+ * One topic's sentiment as Sentiment Trend points: per-period counts (from the trend
+ * API's `topicSentimentSeries`) turned into rounded shares, labelled like the chart.
+ */
+export function topicSentimentPoints(
+  labels: string[],
+  counts: SentimentCounts[],
+): TrendSentimentPoint[] {
+  return labels.map((label, i) => {
+    const c = counts[i] ?? { negative: 0, neutral: 0, positive: 0 }
+    const total = c.negative + c.neutral + c.positive
+    if (total === 0) return { label, negative: 0, neutral: 0, positive: 0, counts: c }
+    const negative = Math.round((c.negative / total) * 100)
+    const neutral = Math.round((c.neutral / total) * 100)
+    return { label, negative, neutral, positive: 100 - negative - neutral, counts: c }
+  })
+}
+
+/** Sums sentiment counts (e.g. every period of a window). */
+export function sumSentiment(counts: (SentimentCounts | undefined)[]): SentimentCounts {
+  return counts.reduce<SentimentCounts>(
+    (sum, c) => ({
+      negative: sum.negative + (c?.negative ?? 0),
+      neutral: sum.neutral + (c?.neutral ?? 0),
+      positive: sum.positive + (c?.positive ?? 0),
+    }),
+    { negative: 0, neutral: 0, positive: 0 },
+  )
+}
+
+/** Rounded shares (%) of a set of counts, summing to 100 (all 0 when empty). */
+export function sharesOf(counts: SentimentCounts): Record<SentimentKey, number> {
+  const total = counts.negative + counts.neutral + counts.positive
+  if (total === 0) return { negative: 0, neutral: 0, positive: 0 }
+  const negative = Math.round((counts.negative / total) * 100)
+  const neutral = Math.round((counts.neutral / total) * 100)
+  return { negative, neutral, positive: 100 - negative - neutral }
+}
+
+export type SentimentBand = {
   label: string
-  /** Share of each sentiment in that period (%). */
-  shares: Record<SentimentKey, number>
-  /** The mention counts behind those shares (null when the API didn't send them). */
-  counts: SentimentCounts | null
-  /** All mentions in that period (null when unknown). */
-  total: number | null
-  /**
-   * Percentage-point change of each share vs the first period with data, or null
-   * when there's nothing earlier to compare against.
-   */
-  changes: Record<SentimentKey, number> | null
-  /** Label of the first period with data (the comparison baseline). */
-  baselineLabel: string | null
+  positive: [number, number] | null
+  neutral: [number, number] | null
+  negative: [number, number] | null
 }
 
 /**
- * Sentiment Trend's numbers under the chart. Periods with no feedback are skipped
- * (the API reports them as 0/0/0), so "since …" always means the first real data.
- * `index` picks a period (chart hover); otherwise the latest period with data.
+ * Chart data for stacked sentiment shares, drawn as explicit [bottom, top] ranges
+ * (positive at the bottom, negative on top). Recharts' own stacking counts a missing
+ * value as 0, so a period with no feedback would show sentiment collapsing to
+ * nothing; as ranges, an empty period is a null the bands bridge (`connectNulls`).
  */
-export function sentimentSnapshot(
-  data: TrendSentimentPoint[],
-  index: number | null = null,
-): SentimentSnapshot | null {
-  const withData = data.map((point, i) => ({ point, i })).filter(({ point }) => !isEmpty(point))
-  if (withData.length === 0) return null
-
-  const baseline = withData[0]!
-  const hovered = index !== null ? data[index] : undefined
-  const target = hovered && !isEmpty(hovered) ? { point: hovered, i: index! } : withData[withData.length - 1]!
-  const shares = {
-    negative: target.point.negative,
-    neutral: target.point.neutral,
-    positive: target.point.positive,
-  }
-  const counts = target.point.counts ?? null
-  const changes =
-    target.i === baseline.i
-      ? null
+export function sentimentBands(points: TrendSentimentPoint[]): SentimentBand[] {
+  return points.map((point) =>
+    point.negative + point.neutral + point.positive === 0
+      ? { label: point.label, positive: null, neutral: null, negative: null }
       : {
-          negative: target.point.negative - baseline.point.negative,
-          neutral: target.point.neutral - baseline.point.neutral,
-          positive: target.point.positive - baseline.point.positive,
-        }
-
-  return {
-    label: target.point.label,
-    shares,
-    counts,
-    total: counts ? counts.negative + counts.neutral + counts.positive : null,
-    changes,
-    baselineLabel: changes ? baseline.point.label : null,
-  }
+          label: point.label,
+          positive: [0, point.positive],
+          neutral: [point.positive, point.positive + point.neutral],
+          negative: [point.positive + point.neutral, 100],
+        },
+  )
 }
-
-/** Below this many mentions in a period, its percentages swing too easily to trust. */
-export const SMALL_SAMPLE_MENTIONS = 5

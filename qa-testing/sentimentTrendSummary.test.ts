@@ -1,58 +1,55 @@
-import { sentimentSnapshot } from '../src/lib/sentimentTrendSummary'
+import {
+  sentimentBands,
+  sharesOf,
+  sumSentiment,
+  topicSentimentPoints,
+} from '../src/lib/sentimentTrendSummary'
 
-const point = (label: string, negative: number, neutral: number, positive: number) => ({
-  label,
-  negative,
-  neutral,
-  positive,
-})
-const withCounts = (label: string, negative: number, neutral: number, positive: number) => {
-  const total = negative + neutral + positive
-  return {
-    ...point(label, Math.round((negative / total) * 100), Math.round((neutral / total) * 100), 0),
-    counts: { negative, neutral, positive },
-  }
-}
+describe('sentiment helpers', () => {
+  it('sums counts across periods, skipping missing ones', () => {
+    expect(
+      sumSentiment([
+        { negative: 1, neutral: 2, positive: 3 },
+        undefined,
+        { negative: 4, neutral: 0, positive: 1 },
+      ]),
+    ).toEqual({ negative: 5, neutral: 2, positive: 4 })
+  })
 
-const series = [
-  point('1 Sep', 0, 0, 0), // no feedback that week — skipped
-  point('8 Sep', 30, 30, 40),
-  point('15 Sep', 35, 30, 35),
-  point('22 Sep', 45, 30, 25),
-  point('29 Sep', 0, 0, 0),
-]
-
-describe('sentimentSnapshot', () => {
-  it('describes the latest period with data, vs the first period with data', () => {
-    expect(sentimentSnapshot(series)).toEqual({
-      label: '22 Sep',
-      shares: { negative: 45, neutral: 30, positive: 25 },
-      counts: null,
-      total: null,
-      changes: { negative: 15, neutral: 0, positive: -15 },
-      baselineLabel: '8 Sep',
+  it('turns counts into shares that add up to 100', () => {
+    expect(sharesOf({ negative: 1, neutral: 1, positive: 1 })).toEqual({
+      negative: 33,
+      neutral: 33,
+      positive: 34,
+    })
+    expect(sharesOf({ negative: 0, neutral: 0, positive: 0 })).toEqual({
+      negative: 0,
+      neutral: 0,
+      positive: 0,
     })
   })
 
-  it('follows the hovered period', () => {
-    expect(sentimentSnapshot(series, 2)?.label).toBe('15 Sep')
-    expect(sentimentSnapshot(series, 2)?.changes).toEqual({ negative: 5, neutral: 0, positive: -5 })
+  it("builds a topic's per-period points with counts", () => {
+    expect(
+      topicSentimentPoints(['W1', 'W2'], [
+        { negative: 3, neutral: 0, positive: 1 },
+        { negative: 0, neutral: 0, positive: 0 },
+      ]),
+    ).toEqual([
+      { label: 'W1', negative: 75, neutral: 0, positive: 25, counts: { negative: 3, neutral: 0, positive: 1 } },
+      { label: 'W2', negative: 0, neutral: 0, positive: 0, counts: { negative: 0, neutral: 0, positive: 0 } },
+    ])
   })
 
-  it('has no comparison for the baseline itself or a single period', () => {
-    expect(sentimentSnapshot(series, 1)?.changes).toBeNull()
-    expect(sentimentSnapshot([point('8 Sep', 30, 30, 40)])?.changes).toBeNull()
-  })
-
-  it('is null with no data at all', () => {
-    expect(sentimentSnapshot([point('1 Sep', 0, 0, 0)])).toBeNull()
-  })
-})
-
-describe('sentimentSnapshot counts', () => {
-  it('carries the raw counts so 100% of one mention can be told apart', () => {
-    const snap = sentimentSnapshot([withCounts('8 Sep', 3, 2, 5), withCounts('15 Sep', 1, 0, 0)])
-    expect(snap?.counts).toEqual({ negative: 1, neutral: 0, positive: 0 })
-    expect(snap?.total).toBe(1)
+  it('draws bands as ranges and leaves empty periods as gaps (not a drop to 0)', () => {
+    expect(
+      sentimentBands([
+        { label: 'W1', negative: 30, neutral: 30, positive: 40 },
+        { label: 'W2', negative: 0, neutral: 0, positive: 0 },
+      ]),
+    ).toEqual([
+      { label: 'W1', positive: [0, 40], neutral: [40, 70], negative: [70, 100] },
+      { label: 'W2', positive: null, neutral: null, negative: null },
+    ])
   })
 })
