@@ -28,6 +28,22 @@ export function getDefaultOpenFolderIds(projects: ProjectTreeItem[]) {
   return folderIds
 }
 
+/**
+ * The sidebar node id for the form a `/forms/:ref` URL points at. `ref` is normally
+ * the form's urlId; a legacy numeric id (about to be redirected) maps directly.
+ */
+export function formNodeIdForRef(projects: ProjectTreeItem[], ref: string): string {
+  const find = (items: ProjectTreeItem[]): ProjectTreeItem | undefined => {
+    for (const item of items) {
+      if (item.type === 'document' && item.urlId === ref) return item
+      const found = item.children ? find(item.children) : undefined
+      if (found) return found
+    }
+    return undefined
+  }
+  return find(projects)?.id ?? formNodeId(ref)
+}
+
 export function getSelectedProjectId(pathname: string) {
   // A form route selects the form; a folder route selects that folder.
   for (const prefix of ['/forms/', '/files/']) {

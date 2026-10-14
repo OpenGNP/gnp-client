@@ -11,6 +11,7 @@ import { SkeletonRegion } from '../components/ui/skeleton'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
+import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
 import { formNodeId } from '../utils/projectTree'
 
@@ -152,7 +153,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
                 updatedAt={formatRelativeTime(form.updatedAt ?? form.createdAt)}
                 onDelete={() => handleDeleteForm(form.id)}
                 onMove={() => onMoveItem(formNodeId(form.id))}
-                onOpen={() => navigate(`/forms/${form.id}`)}
+                onOpen={() => navigate(formPath(form.urlId))}
                 onRename={(name) => handleRenameForm(form.id, name)}
               />
             ))}

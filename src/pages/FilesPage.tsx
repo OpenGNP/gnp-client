@@ -31,6 +31,7 @@ import {
 } from '../components/ui/dropdown-menu'
 import type { ProjectTreeItem } from '../data/dashboard'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
+import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
 import { cn } from '../lib/utils'
 import { getFolderPath } from '../utils/projectTree'
@@ -134,8 +135,8 @@ export function FilesPage({
     navigate(`/files/${encodeURIComponent(id)}`)
   }
 
-  function openForm(id: string) {
-    navigate(`/forms/${encodeURIComponent(id)}`)
+  function openForm(file: ProjectTreeItem) {
+    navigate(file.urlId ? formPath(file.urlId) : `/forms/${encodeURIComponent(file.formId ?? file.id)}`)
   }
 
   function deleteItem(item: ProjectTreeItem) {
@@ -324,7 +325,7 @@ export function FilesPage({
                             onDragEnd={endDrag}
                             onDragStart={setDraggingId}
                             onMove={() => onMoveItem(file.id)}
-                            onOpen={() => openForm(file.formId ?? file.id)}
+                            onOpen={() => openForm(file)}
                             onRename={(name) => onRenameItem(file.id, name)}
                             title={file.label}
                             updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}

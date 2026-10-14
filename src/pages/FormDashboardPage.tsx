@@ -11,11 +11,11 @@ import {
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
 
 import type { FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
 import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
+import { FormLoadError } from '../components/FormLoadError'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
@@ -29,6 +29,7 @@ import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import { Switch } from '../components/ui/switch'
 import { useHideNames } from '../hooks/useHideNames'
+import { useRouteForm } from '../hooks/useRouteForm'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
@@ -36,7 +37,6 @@ import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
 import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
 import { useNow } from '../hooks/useNow'
-import { ApiError } from '../lib/api'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
 import { ContentSkeleton } from '../components/skeletons/DashboardSkeleton'
@@ -171,9 +171,10 @@ export function FormDashboardPage({
   showSidebarToggle = false,
   onToggleSidebar,
 }: FormDashboardPageProps) {
-  const { projectId } = useParams()
-  const formId = Number(projectId)
-  const hasValidId = Number.isInteger(formId) && formId > 0
+  // The URL carries the form's urlId; the API calls use its numeric id.
+  const routeForm = useRouteForm()
+  const formId = routeForm.formId ?? 0
+  const hasValidId = routeForm.formId !== null
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
@@ -303,17 +304,20 @@ export function FormDashboardPage({
     }
   }
 
-  const loadFailure = !hasValidId
-    ? "This form hasn't been saved yet, so there's no dashboard."
-    : formResult.error ??
-      responsesResult.error ??
-      (themesResult.isError && !themes ? themesResult.error : null)
-  const loadError =
-    typeof loadFailure === 'string'
-      ? loadFailure
-      : loadFailure instanceof ApiError
-        ? loadFailure.message
-        : 'Could not load this dashboard.'
+  const loadFailure =
+    routeForm.status === 'error'
+      ? (routeForm.error ?? "This form hasn't been saved yet, so there's no dashboard.")
+      : !hasValidId
+        ? null // still resolving the URL — the page shows its loading placeholders
+        : (formResult.error ??
+          responsesResult.error ??
+          (themesResult.isError && !themes ? themesResult.error : null))
+  function retryLoad() {
+    if (routeForm.status === 'error') return routeForm.retry()
+    if (formResult.isError) void formResult.refetch()
+    if (responsesResult.isError) void responsesResult.refetch()
+    if (themesResult.isError) void themesResult.refetch()
+  }
 
   // Only an error replaces the page. While loading, the static chrome (tabs,
   // headings, card labels, filter controls) renders right away and each
@@ -326,14 +330,14 @@ export function FormDashboardPage({
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />
-        <div className="flex min-h-100 flex-col items-center justify-center gap-4 px-14 py-16 text-center">
-          <p className="m-0 text-[14px] text-[#726f6f]">{loadError}</p>
-          <Link
-            className="rounded-[5px] border border-[#d7dbe6] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3f4045] no-underline transition-colors hover:bg-[#f7f8fb]"
-            to="/"
-          >
-            Back to Home
-          </Link>
+        <div className="flex min-h-100 items-center justify-center px-4 py-16">
+          <FormLoadError
+            error={loadFailure}
+            fallbackMessage={
+              typeof loadFailure === 'string' ? loadFailure : 'Could not load this dashboard.'
+            }
+            onRetry={retryLoad}
+          />
         </div>
       </div>
     )

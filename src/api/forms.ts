@@ -22,6 +22,8 @@ export type FormSection = "demographic" | "feedback";
 /** Row shape returned by `GET /api/forms` (see gnp-server formService.listByAdmin). */
 export type ApiForm = {
   id: number;
+  /** Id for the app's own URLs (`/forms/:urlId`) — unguessable, unlike `id`. */
+  urlId: string;
   formTitle: string | null;
   formDescription: string | null;
   status: string | null;
@@ -82,6 +84,8 @@ export type ApiFormDetail = {
   updatedAt: string | null;
   /** Unguessable id for the respondent-facing URL (`/f/:token`), not the sequential form id. */
   publicToken: string;
+  /** Id for the app's own URLs (`/forms/:urlId`); separate from publicToken. */
+  urlId: string;
   formFields: ApiFormField[];
   formAllowedUsers: ApiFormAllowedUser[];
 };
@@ -219,8 +223,15 @@ export function removeFormCoverImage(id: number): Promise<null> {
 /** `POST /api/forms` returns the raw inserted row; callers only need its id. */
 export function createForm(
   payload: CreateFormPayload,
-): Promise<{ id: number }> {
-  return apiPost<{ id: number }>("/forms", payload);
+): Promise<{ id: number; urlId: string }> {
+  return apiPost<{ id: number; urlId: string }>("/forms", payload);
+}
+
+/** A form reference from an app URL (urlId, or a legacy numeric id) → its ids. */
+export type FormRef = { id: number; urlId: string };
+
+export function resolveFormRef(ref: string): Promise<FormRef> {
+  return apiGet<FormRef>(`/forms/ref/${encodeURIComponent(ref)}`);
 }
 
 export function updateForm(

@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo } from 'react'
 
 import type { ApiFolder } from '../api/folders'
 import type { ApiForm } from '../api/forms'
-import { foldersQuery, formsQuery } from '../api/queries'
+import { foldersQuery, formRefQuery, formsQuery } from '../api/queries'
 import type { ProjectTreeItem } from '../data/dashboard'
 import { formNodeId } from '../utils/projectTree'
 
@@ -35,6 +35,18 @@ export function useWorkspaceTree(): WorkspaceTree {
   const formsResult = useQuery(formsQuery())
   const folders = foldersResult.data
   const forms = formsResult.data
+
+  // Seed each form's URL → id lookup (useRouteForm), so opening a form from the app
+  // doesn't wait on a resolve request before its own data can load.
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    for (const form of forms ?? []) {
+      const { queryKey } = formRefQuery(form.urlId)
+      if (!queryClient.getQueryData(queryKey)) {
+        queryClient.setQueryData(queryKey, { id: form.id, urlId: form.urlId })
+      }
+    }
+  }, [forms, queryClient])
 
   // Memoized on the two data references — React Query keeps them stable until the
   // data actually changes, and useProjectTree re-seeds whenever this changes.
@@ -69,6 +81,7 @@ function buildTree(folders: ApiFolder[], forms: ApiForm[]): ProjectTreeItem[] {
       label: form.formTitle ?? 'Untitled form',
       type: 'document',
       formId: String(form.id),
+      urlId: form.urlId,
       updatedAt: form.updatedAt,
       createdAt: form.createdAt,
     }

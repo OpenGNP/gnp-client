@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
 
 import {
   removeFormCoverImage,
@@ -20,6 +19,8 @@ import {
   type FormAccessSettings,
 } from '../hooks/useFormAccessSettings'
 import { useFormEditorModel } from '../hooks/useFormEditorModel'
+import { useRouteForm } from '../hooks/useRouteForm'
+import { FormLoadError } from '../components/FormLoadError'
 import { ApiError } from '../lib/api'
 import {
   accessSettingsFromForm,
@@ -41,9 +42,10 @@ export function EditFormPage({
   onToggleSidebar,
   onMove,
 }: EditFormPageProps) {
-  const { projectId } = useParams()
-  const formId = Number(projectId)
-  const hasValidId = Number.isInteger(formId) && formId > 0
+  // The URL carries the form's urlId; the API calls use its numeric id.
+  const routeForm = useRouteForm()
+  const formId = routeForm.formId ?? 0
+  const hasValidId = routeForm.formId !== null
 
   const queryClient = useQueryClient()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -112,26 +114,25 @@ export function EditFormPage({
     seedFrom(formData)
   }
 
-  const loadStatus = !hasValidId
-    ? 'error'
-    : seededFormId === formId
-      ? 'ready'
-      : formResult.isError
-        ? 'error'
-        : 'loading'
-  const loadError = !hasValidId
-    ? "This form hasn't been saved yet, so there's nothing to edit."
-    : formResult.error instanceof ApiError
-      ? formResult.error.message
+  const loadStatus =
+    routeForm.status === 'error'
+      ? 'error'
+      : !hasValidId
+        ? 'loading' // still resolving the URL
+        : seededFormId === formId
+          ? 'ready'
+          : formResult.isError
+            ? 'error'
+            : 'loading'
+  const failure = routeForm.status === 'error' ? routeForm.error : formResult.error
+  const loadError =
+    routeForm.status === 'error' && !failure
+      ? "This form hasn't been saved yet, so there's nothing to edit."
       : 'Something went wrong loading this form.'
 
-  // Not yours (403) or gone (404) — see gnp-server getOwnedForm.
-  const isNotAvailable =
-    formResult.error instanceof ApiError &&
-    (formResult.error.status === 403 || formResult.error.status === 404)
-
   function retryLoad() {
-    void formResult.refetch()
+    if (routeForm.status === 'error') routeForm.retry()
+    else void formResult.refetch()
   }
 
   async function handleSave(publish: boolean) {
@@ -245,25 +246,8 @@ export function EditFormPage({
         {loadStatus === 'loading' ? (
           <FormEditorSkeleton />
         ) : loadStatus === 'error' ? (
-          <div className="mx-auto flex max-w-[978px] flex-wrap items-center gap-3 pt-10 text-[14px] text-[#e0507a]">
-            <span>{loadError}</span>
-            {/* Retrying only helps a network/server blip — not a form that isn't
-                yours or no longer exists. */}
-            {hasValidId && !isNotAvailable ? (
-              <button
-                className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
-                onClick={retryLoad}
-                type="button"
-              >
-                Try again
-              </button>
-            ) : null}
-            <Link
-              className="rounded-[5px] border border-[#d7dbe6] bg-white px-3 py-1 text-[13px] font-medium text-[#3f4045] no-underline transition-colors hover:bg-[#f7f8fb]"
-              to="/"
-            >
-              Back to Home
-            </Link>
+          <div className="flex justify-center pt-16">
+            <FormLoadError error={failure} fallbackMessage={loadError} onRetry={retryLoad} />
           </div>
         ) : (
           <div

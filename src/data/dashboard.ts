@@ -12,6 +12,8 @@ export type ProjectTreeItem = {
   type: 'folder' | 'document'
   active?: boolean
   formId?: string
+  /** Documents only: the form's id in app URLs (`/forms/:urlId`). */
+  urlId?: string
   open?: boolean
   children?: ProjectTreeItem[]
   // Documents only — carried through from the API so the Files page's FormCard can

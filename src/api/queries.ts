@@ -8,13 +8,14 @@ import {
   type TrendQuery,
 } from './analytics'
 import { listFolders } from './folders'
-import { getForm, getPublicFormByToken, listForms } from './forms'
+import { getForm, getPublicFormByToken, listForms, resolveFormRef } from './forms'
 
 /** Every query key lives here so invalidation can't drift from the queries themselves. */
 export const queryKeys = {
   forms: ['forms'] as const,
   folders: ['folders'] as const,
   form: (id: number) => ['form', id] as const,
+  formRef: (ref: string) => ['form-ref', ref] as const,
   analytics: (id: number) => ['analytics', id] as const,
   responses: (id: number) => ['analytics', id, 'responses'] as const,
   themes: (id: number, query: ThemeQuery) => ['analytics', id, 'themes', query] as const,
@@ -25,6 +26,15 @@ export const queryKeys = {
 export const formsQuery = () => queryOptions({ queryKey: queryKeys.forms, queryFn: () => listForms() })
 
 export const foldersQuery = () => queryOptions({ queryKey: queryKeys.folders, queryFn: listFolders })
+
+/** A URL's form reference → ids. Never changes for a given ref, so it's cached for good. */
+export const formRefQuery = (ref: string) =>
+  queryOptions({
+    queryKey: queryKeys.formRef(ref),
+    queryFn: () => resolveFormRef(ref),
+    staleTime: Infinity,
+    retry: false,
+  })
 
 export const formQuery = (id: number) =>
   queryOptions({ queryKey: queryKeys.form(id), queryFn: () => getForm(id) })

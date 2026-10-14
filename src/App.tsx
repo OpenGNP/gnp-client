@@ -11,6 +11,7 @@ import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation
 import { NARROW_VIEWPORT_QUERY, Sidebar, type MoveTarget } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
+import { formPath } from './lib/formPath'
 import { useAuth, useHasOrganization } from './lib/auth'
 import { buildCreateFormPayload } from './lib/formMapping'
 import { defaultFormAccessSettingsFor, useFormAccessSettings } from './hooks/useFormAccessSettings'
@@ -27,6 +28,7 @@ import {
   findParentFolderId,
   findProjectById,
   formNodeId,
+  formNodeIdForRef,
   getSelectedProjectId,
   isNameTaken,
   removeFolderPromotingChildren,
@@ -124,7 +126,7 @@ function App() {
   const selectedNodeId = !selectedProjectId
     ? ''
     : location.pathname.startsWith('/forms/')
-      ? formNodeId(selectedProjectId)
+      ? formNodeIdForRef(projects, selectedProjectId)
       : selectedProjectId
   const activeNav =
     location.pathname === '/' ? 'home' : location.pathname.startsWith('/files') ? 'files' : null
@@ -208,11 +210,12 @@ function App() {
         label: payload.formTitle,
         type: 'document',
         formId: idStr,
+        urlId: created.urlId,
       })
       setIsCreateFormSettingsOpen(false)
       setCreateFormModel(emptyFormEditorModel)
       setCreateFormAccessSettings(newFormAccessSettings)
-      navigate(`/forms/${idStr}`)
+      navigate(formPath(created.urlId))
     } catch (error) {
       window.alert(
         error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
@@ -246,9 +249,10 @@ function App() {
         label: title,
         type: 'document',
         formId: idStr,
+        urlId: created.urlId,
       })
       setIsCreateFormSettingsOpen(false)
-      navigate(`/forms/${idStr}`)
+      navigate(formPath(created.urlId))
     } catch (error) {
       window.alert(
         error instanceof ApiError ? error.message : 'Could not create the form. Please try again.',
@@ -460,7 +464,9 @@ function App() {
     const path =
       project.type === 'folder'
         ? `/files/${encodeURIComponent(project.id)}`
-        : `/forms/${encodeURIComponent(project.formId ?? project.id)}`
+        : project.urlId
+          ? formPath(project.urlId)
+          : `/forms/${encodeURIComponent(project.formId ?? project.id)}`
     navigate(path)
   }
 
@@ -587,7 +593,7 @@ function App() {
             path="/forms/:projectId"
             element={
               <EditFormPage
-                onMove={() => handleOpenMove(formNodeId(selectedProjectId))}
+                onMove={() => handleOpenMove(selectedNodeId)}
                 onToggleSidebar={() => setSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />
