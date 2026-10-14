@@ -35,7 +35,7 @@ import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
-import { useDetailPanelWidth } from '../hooks/useDetailPanelWidth'
+import { useDetailPanelLayout } from '../hooks/useDetailPanelLayout'
 import { useNow } from '../hooks/useNow'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
@@ -178,7 +178,7 @@ export function FormDashboardPage({
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
-  const detailPanelWidth = useDetailPanelWidth()
+  const detailPanelLayout = useDetailPanelLayout()
   const now = useNow()
 
   // Themes + Trend tabs share one date `range`, fetched separately from form/responses
@@ -438,8 +438,8 @@ export function FormDashboardPage({
         <div
           className="w-full"
           style={
-            selectedTopic && detailPanelWidth !== null
-              ? { paddingRight: detailPanelWidth }
+            selectedTopic && detailPanelLayout.mode === 'docked'
+              ? { paddingRight: detailPanelLayout.width }
               : undefined
           }
         >
@@ -581,9 +581,9 @@ export function FormDashboardPage({
 
                     <StatCard
                       deltaClassName="text-[#881921]"
-                      deltaLabel={
-                        themes.highIntenseTopics.length > 0 ? 'needs attention' : undefined
-                      }
+                      // deltaLabel={
+                      //   themes.highIntenseTopics.length > 0 ? 'needs attention' : undefined
+                      // }
                       icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#ffeaeb]"
                       label="High Intense Topic"
@@ -755,7 +755,7 @@ export function FormDashboardPage({
           hideNames={hideNames}
           onCompareInTrend={() => compareInTrend(selectedTopic.id)}
           topic={selectedTopic}
-          width={detailPanelWidth}
+          layout={detailPanelLayout}
         />
       ) : null}
     </div>
