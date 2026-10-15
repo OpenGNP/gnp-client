@@ -107,26 +107,31 @@ export function SentimentGauge({
             <path d={arcPath(START_DEG, END_DEG)} fill="#eef0f4" />
           )}
 
-          <line
-            stroke="#14181f"
-            strokeLinecap="round"
-            strokeWidth={2}
-            x1={CX}
-            x2={headBase.x}
-            y1={CY}
-            y2={headBase.y}
-          />
-          <polygon fill="#14181f" points={arrowHead} />
+          {/* No sentiment yet: a grey ring, no needle — a needle at 0 would read as "very negative". */}
+          {total > 0 ? (
+            <>
+              <line
+                stroke="#14181f"
+                strokeLinecap="round"
+                strokeWidth={2}
+                x1={CX}
+                x2={headBase.x}
+                y1={CY}
+                y2={headBase.y}
+              />
+              <polygon fill="#14181f" points={arrowHead} />
+            </>
+          ) : null}
 
           <text
-            fill="#14181f"
+            fill={total > 0 ? '#14181f' : '#b0b1b3'}
             fontSize={15}
             fontWeight={500}
             textAnchor="middle"
             x={CX}
             y={CY + 29}
           >
-            {score}
+            {total > 0 ? score : '–'}
           </text>
           <text fill="#929292" fontSize={10} textAnchor="middle" x={startLabel.x} y={labelY}>
             0

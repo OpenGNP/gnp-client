@@ -392,6 +392,63 @@ export function FormDashboardPage({
     ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
     : 0
 
+  // Shown whether or not the feedback has been analysed yet, so the responder count
+  // is always visible. Three equal columns; wraps once one would drop under 14rem.
+  const themesStatCards = themes ? (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
+      <StatCard
+        deltaClassName="text-[#0b842d]"
+        deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
+        icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
+        iconBgClassName="bg-[#edf2fd]"
+        label="Total Responder"
+        value={themes.totalResponders}
+      />
+
+      <div className="flex h-29.5 min-w-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
+        <p className="m-0 text-[12px] font-medium text-[#929292]">Overall Sentiment</p>
+        <div className="flex items-center gap-3">
+          <SentimentGauge
+            negative={themes.sentiment.negative}
+            neutral={themes.sentiment.neutral}
+            outOf={themes.sentiment.outOf}
+            positive={themes.sentiment.positive}
+            score={themes.sentiment.score}
+            width={80}
+          />
+          <div className="flex flex-col gap-2 text-[12px]">
+            <span className="flex items-center gap-2">
+              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
+              <span className="text-[#929292]">
+                Negative: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
+              <span className="text-[#929292]">
+                Neutral: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
+              <span className="text-[#929292]">
+                Positive: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <StatCard
+        deltaClassName="text-[#881921]"
+        icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
+        iconBgClassName="bg-[#ffeaeb]"
+        label="Violation Topics"
+        value={themes.violationTopics.length}
+      />
+    </div>
+  ) : null
+
   const activeDemoCount = Object.values(demoSel).reduce((sum, values) => sum + values.length, 0)
   const demoFilterControl =
     themes && themes.demographicFilters.length > 0 ? (
@@ -513,6 +570,7 @@ export function FormDashboardPage({
                     </div>
                   ) : null}
                   {themes.totalMentions > 0 ? activeFilterBar : null}
+                  {themesStatCards}
                   <EmptyNote>
                     {themes.totalMentions === 0
                       ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
@@ -535,67 +593,7 @@ export function FormDashboardPage({
                     ) : null}
                   </div>
                   {activeFilterBar}
-                  {/* Three equal columns spanning the cards below; wraps once a column
-                      would drop under the sentiment card's 14rem content. */}
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
-                    <StatCard
-                      deltaClassName="text-[#0b842d]"
-                      deltaLabel={
-                        themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined
-                      }
-                      icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
-                      iconBgClassName="bg-[#edf2fd]"
-                      label="Total Responder"
-                      value={themes.totalResponders}
-                    />
-
-                    <div className="flex h-29.5 min-w-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
-                      <p className="m-0 text-[12px] font-medium text-[#929292]">
-                        Overall Sentiment
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <SentimentGauge
-                          negative={themes.sentiment.negative}
-                          neutral={themes.sentiment.neutral}
-                          outOf={themes.sentiment.outOf}
-                          positive={themes.sentiment.positive}
-                          score={themes.sentiment.score}
-                          width={80}
-                        />
-                        <div className="flex flex-col gap-2 text-[12px]">
-                          <span className="flex items-center gap-2">
-                            <span className="size-1.75 shrink-0 rounded-full bg-[rgba(236,102,131,0.8)]" />
-                            <span className="text-[#929292]">
-                              Negative: <span className="text-[#14181f]">{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
-                            </span>
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <span className="size-1.75 shrink-0 rounded-full bg-[rgba(253,210,118,0.8)]" />
-                            <span className="text-[#929292]">
-                              Neutral: <span className="text-[#14181f]">{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
-                            </span>
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <span className="size-1.75 shrink-0 rounded-full bg-[rgba(156,221,153,0.8)]" />
-                            <span className="text-[#929292]">
-                              Positive: <span className="text-[#14181f]">{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <StatCard
-                      deltaClassName="text-[#881921]"
-                      // deltaLabel={
-                      //   themes.violationTopics.length > 0 ? 'needs attention' : undefined
-                      // }
-                      icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
-                      iconBgClassName="bg-[#ffeaeb]"
-                      label="Violation Topics"
-                      value={themes.violationTopics.length}
-                    />
-                  </div>
+                  {themesStatCards}
 
                   {themes.violationTopics.length > 0 ? (
                     <TopicSentimentCard
