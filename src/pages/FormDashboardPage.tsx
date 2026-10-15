@@ -96,6 +96,8 @@ function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
   )
 }
 
+const TOPIC_LIST_ID = 'topic-list'
+
 function StatCard({
   icon,
   iconBgClassName,
@@ -103,6 +105,8 @@ function StatCard({
   value,
   deltaLabel,
   deltaClassName,
+  onClick,
+  actionLabel,
 }: {
   icon: React.ReactNode
   iconBgClassName: string
@@ -111,9 +115,22 @@ function StatCard({
   /** Omit to hide the delta line entirely. */
   deltaLabel?: string
   deltaClassName: string
+  /** Makes the whole card a button (e.g. jump to the list behind the number). */
+  onClick?: () => void
+  /** Accessible name for the button, when `onClick` is set. */
+  actionLabel?: string
 }) {
+  const Root = onClick ? 'button' : 'div'
   return (
-    <div className="flex h-29.5 min-w-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
+    <Root
+      aria-label={onClick && actionLabel ? `${actionLabel} (${value})` : undefined}
+      className={cn(
+        'flex h-29.5 min-w-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25 text-left',
+        onClick && 'cursor-pointer transition-colors hover:border-[#d2d8e5] hover:bg-[#fbfcfe]',
+      )}
+      onClick={onClick}
+      type={onClick ? 'button' : undefined}
+    >
       <div
         className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] ${iconBgClassName}`}
       >
@@ -133,7 +150,7 @@ function StatCard({
           ) : null}
         </div>
       </div>
-    </div>
+    </Root>
   )
 }
 
@@ -387,10 +404,10 @@ export function FormDashboardPage({
         ) ?? null)
       : null
 
-  // Both topic cards share one scale, so a bar means the same count in either.
-  const topicAxisMax = themes
-    ? computeAxisMax([...themes.violationTopics, ...themes.aiDiscoveredTopics])
-    : undefined
+    const topicAxisMax = themes ? computeAxisMax(themes.aiDiscoveredTopics) : undefined
+  const showViolationTopics = () => {
+    document.getElementById(TOPIC_LIST_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const sentimentTotal = themes
     ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
@@ -449,6 +466,9 @@ export function FormDashboardPage({
         iconBgClassName="bg-[#ffeaeb]"
         label="Violation Topics"
         value={themes.violationTopics.length}
+        {...(themes.violationTopics.length > 0
+          ? { onClick: showViolationTopics, actionLabel: 'Show violation topics' }
+          : {})}
       />
     </div>
   ) : null
@@ -599,20 +619,11 @@ export function FormDashboardPage({
                   {activeFilterBar}
                   {themesStatCards}
 
-                  {themes.violationTopics.length > 0 ? (
-                    <TopicSentimentCard
-                      axisMax={topicAxisMax}
-                      onSelectTopic={setSelectedTopicId}
-                      selectedTopicId={selectedTopicId}
-                      title="Violation Topics"
-                      topics={themes.violationTopics}
-                    />
-                  ) : null}
-
                   <TopicSentimentCard
                     axisMax={topicAxisMax}
+                    id={TOPIC_LIST_ID}
                     onSelectTopic={setSelectedTopicId}
-                    pageSize={8}
+                    pageSize={15}
                     selectedTopicId={selectedTopicId}
                     sortable
                     title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
