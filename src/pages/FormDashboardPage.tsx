@@ -122,12 +122,16 @@ function StatCard({
       <div className="flex min-w-0 flex-col gap-2.5">
         <p className="m-0 truncate text-[12px] font-medium text-[#929292]">{label}</p>
         <p className="m-0 text-[20px] font-bold text-[#14181f]">{value}</p>
-        {deltaLabel ? (
-          <div className={`flex items-center gap-0.5 text-[12px] font-medium ${deltaClassName}`}>
-            <ArrowUp size={15} />
-            {deltaLabel}
-          </div>
-        ) : null}
+        {/* Always one line tall, even when empty or wrapping: a second line spills into
+            the card's bottom padding, so the big number never moves (and lines up across cards). */}
+        <div className={`flex h-4 min-w-0 items-start gap-0.5 text-[12px] leading-4 font-medium ${deltaClassName}`}>
+          {deltaLabel ? (
+            <>
+              <ArrowUp className="shrink-0" size={15} />
+              <span>{deltaLabel}</span>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   )
