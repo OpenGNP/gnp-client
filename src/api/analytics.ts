@@ -56,7 +56,7 @@ export type FormThemeAnalytics = {
   demographicFilters: { label: string; options: string[] }[]
   /** 0–5 score (see sentimentScore) plus raw feedback-point counts per sentiment. */
   sentiment: { score: number; outOf: number; negative: number; neutral: number; positive: number }
-  highIntenseTopics: TopicSentiment[]
+  violationTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]
 }
 

@@ -364,7 +364,7 @@ export function FormDashboardPage({
   const hasNames =
     (activeView === 'themes' &&
       !!themes &&
-      [...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].some((topic) =>
+      [...themes.violationTopics, ...themes.aiDiscoveredTopics].some((topic) =>
         topic.feedbackSegment.some((point) => point.respondentName),
       )) ||
     (activeView === 'response' &&
@@ -377,7 +377,7 @@ export function FormDashboardPage({
 
   const selectedTopic =
     activeView === 'themes' && themes
-      ? ([...themes.highIntenseTopics, ...themes.aiDiscoveredTopics].find(
+      ? ([...themes.violationTopics, ...themes.aiDiscoveredTopics].find(
           (topic) => topic.id === selectedTopicId,
         ) ?? null)
       : null
@@ -582,21 +582,21 @@ export function FormDashboardPage({
                     <StatCard
                       deltaClassName="text-[#881921]"
                       // deltaLabel={
-                      //   themes.highIntenseTopics.length > 0 ? 'needs attention' : undefined
+                      //   themes.violationTopics.length > 0 ? 'needs attention' : undefined
                       // }
                       icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
                       iconBgClassName="bg-[#ffeaeb]"
-                      label="High Intense Topic"
-                      value={themes.highIntenseTopics.length}
+                      label="Violation Topics"
+                      value={themes.violationTopics.length}
                     />
                   </div>
 
-                  {themes.highIntenseTopics.length > 0 ? (
+                  {themes.violationTopics.length > 0 ? (
                     <TopicSentimentCard
                       onSelectTopic={setSelectedTopicId}
                       selectedTopicId={selectedTopicId}
-                      title="High Intense Topic"
-                      topics={themes.highIntenseTopics}
+                      title="Violation Topics"
+                      topics={themes.violationTopics}
                     />
                   ) : null}
 

@@ -14,8 +14,8 @@ export type FeedbackDemographic = {
 export type FeedbackPoint = {
   id: string
   sentiment: FeedbackSentiment
-  /** Flagged by the AI pipeline as reporting a legal, ethical or moral breach. */
-  severe?: boolean
+  /** Flagged as a violation by the AI pipeline. */
+  violation?: boolean
   quote: string
   originalFeedback: string
   submittedAt: string
@@ -40,7 +40,7 @@ export type TopicSentiment = {
   neutral: number
   positive: number
   percentOfTotal: number
-  isHighIntensity?: boolean
+  hasViolation?: boolean
   aiSummary: string
   keywords: TopicKeyword[]
   feedbackSegment: FeedbackPoint[]
@@ -94,14 +94,14 @@ export type TrendTopicSeries = {
 }
 
 /** How the topic picker ranks its list + which topics the chart auto-picks. */
-export type TrendRank = 'mentioned' | 'severe'
+export type TrendRank = 'mentioned' | 'violation'
 
 /** One row of the Trend topic picker — every in-window topic, ranked. */
 export type TrendAvailableTopic = {
   id: string
   label: string
   mentions: number
-  severe: number
+  violations: number
 }
 
 export type TopicMovementStatus = 'existing' | 'new' | 'inactive'
@@ -213,7 +213,7 @@ export type FormDashboardAnalytics = {
     neutral: number
     positive: number
   }
-  highIntenseTopics: TopicSentiment[]
+  violationTopics: TopicSentiment[]
   aiDiscoveredTopics: TopicSentiment[]
   demographics: DemographicBreakdown[]
   feedbackResponses: DemographicBreakdown[]

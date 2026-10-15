@@ -73,10 +73,10 @@ function TopicRow({
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span className="min-w-0 truncate text-[14px] text-[#14181f]">{topic.label}</span>
-        {topic.isHighIntensity ? (
+        {topic.hasViolation ? (
           <TriangleAlert
             className="shrink-0 text-[#e0507a]"
-            aria-label="High intensity"
+            aria-label="Contains violations"
             size={16}
           />
         ) : null}

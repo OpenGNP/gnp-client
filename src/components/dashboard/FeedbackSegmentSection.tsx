@@ -58,7 +58,7 @@ function FeedbackPointCard({ point, showName }: { point: FeedbackPoint; showName
           {point.sentiment}
         </span>
 
-        {point.severe ? (
+        {point.violation ? (
           <span
             className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset"
             title="Flagged by AI for review"
@@ -209,7 +209,7 @@ export function FeedbackSegmentSection({
     // reported breach should not be buried by date. Within each group the
     // chosen newest/oldest order still applies.
     return [...filtered].sort((a, b) => {
-      const flagged = Number(Boolean(b.severe)) - Number(Boolean(a.severe))
+      const flagged = Number(Boolean(b.violation)) - Number(Boolean(a.violation))
       if (flagged !== 0) return flagged
       return sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)

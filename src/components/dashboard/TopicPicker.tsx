@@ -8,7 +8,7 @@ import { TOPIC_TREND_COLORS } from './trendColors'
 
 const RANKS: { value: TrendRank; label: string; short: string }[] = [
   { value: 'mentioned', label: 'Most mentioned', short: 'Mentioned' },
-  { value: 'severe', label: 'Most severe', short: 'Severe' },
+  { value: 'violation', label: 'Most violations', short: 'Violations' },
 ]
 
 /** Rows shown before "Show more" kicks in (search bypasses this). */
@@ -188,10 +188,10 @@ export function TopicPicker({
                     <span className="min-w-0 flex-1 truncate text-[12px] text-[#14181f]">
                       {topic.label}
                     </span>
-                    {topic.severe > 0 ? (
+                    {topic.violations > 0 ? (
                       <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-[#c0392b]">
                         <TriangleAlert size={11} />
-                        {topic.severe}
+                        {topic.violations}
                       </span>
                     ) : null}
                     <span className="w-10 shrink-0 text-right text-[11px] text-[#3f4045] tabular-nums">

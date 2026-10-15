@@ -16,8 +16,12 @@ import { PublicFormPage } from '../src/pages/PublicFormPage'
 // Smoke tests for the React Query migration: each page loads through the real
 // query layer against a fake API, renders its data, and fetches each resource once.
 
+// The app's URLs carry a form's urlId; the page resolves it to id 4 via /forms/ref.
+const URL_ID = '6f1c2a4e-8b3d-4c5e-9f7a-1b2c3d4e5f60'
+
 const form = {
   id: 4,
+  urlId: URL_ID,
   adminId: 1,
   folderId: null,
   organizationId: 1,
@@ -42,6 +46,7 @@ const window_ = { from: '2026-09-01T00:00:00Z', to: '2026-10-01T00:00:00Z', rang
 
 const fixtures: Record<string, unknown> = {
   '/forms/4': form,
+  [`/forms/ref/${URL_ID}`]: { id: 4, urlId: URL_ID },
   '/analytics/forms/4/responses': { totalResponses: 0, demographic: [], feedback: [] },
   '/analytics/forms/4/themes': {
     ...window_,
@@ -52,7 +57,7 @@ const fixtures: Record<string, unknown> = {
     responderDeltaLabel: '',
     demographicFilters: [],
     sentiment: { score: 0, outOf: 5, negative: 0, neutral: 0, positive: 0 },
-    highIntenseTopics: [],
+    violationTopics: [],
     aiDiscoveredTopics: [],
   },
   '/analytics/forms/4/trend': {
@@ -137,7 +142,7 @@ const count = (path: string) => requests.filter((request) => request === path).l
 
 describe('pages on React Query', () => {
   it('dashboard loads every source once and shows the themes title', async () => {
-    renderAt('/forms/4/dashboard', '/forms/:projectId/dashboard', <FormDashboardPage />)
+    renderAt(`/forms/${URL_ID}/dashboard`, '/forms/:projectId/dashboard', <FormDashboardPage />)
     expect(await screen.findByText('Canteen themes')).toBeInTheDocument()
     await waitFor(() => expect(count('/analytics/forms/4/trend')).toBe(1))
     expect(count('/forms/4')).toBe(1)
@@ -146,7 +151,7 @@ describe('pages on React Query', () => {
   })
 
   it('edit page seeds the editor from the form query', async () => {
-    renderAt('/forms/4', '/forms/:projectId', <EditFormPage />)
+    renderAt(`/forms/${URL_ID}`, '/forms/:projectId', <EditFormPage />)
     expect(await screen.findByDisplayValue('Canteen survey')).toBeInTheDocument()
     expect(count('/forms/4')).toBe(1)
   })
@@ -200,7 +205,7 @@ describe('pages on React Query', () => {
     }
 
     const user = userEvent.setup()
-    renderAt('/forms/4/dashboard', '/forms/:projectId/dashboard', <FormDashboardPage />)
+    renderAt(`/forms/${URL_ID}/dashboard`, '/forms/:projectId/dashboard', <FormDashboardPage />)
     await user.click(await screen.findByRole('tab', { name: /trend/i }))
     await waitFor(() => expect(count('/analytics/forms/4/trend')).toBeGreaterThan(0))
 
