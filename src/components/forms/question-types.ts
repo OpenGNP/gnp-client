@@ -35,7 +35,7 @@ export function createQuestion(type: QuestionTypeValue, id: string): Question {
       type: 'choice',
       question: '',
       options: [''],
-      allowMultiple: true,
+      allowMultiple: false,
       hasOther: false,
       required: false,
     }
