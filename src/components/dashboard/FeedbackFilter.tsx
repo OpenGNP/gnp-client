@@ -1,4 +1,4 @@
-import { ChevronDown, Filter } from 'lucide-react'
+import { ChevronDown, Filter, TriangleAlert } from 'lucide-react'
 
 import type { FeedbackSentiment } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
@@ -6,6 +6,7 @@ import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { Switch } from '../ui/switch'
 
 const SENTIMENT_OPTIONS: FeedbackSentiment[] = ['negative', 'neutral', 'positive']
 
@@ -67,6 +68,11 @@ export type FeedbackFilterProps = {
   selectedSentiments?: Set<string>
   onToggleSentiment?: (value: string) => void
   onToggleDemo: (label: string, value: string) => void
+  /** Omit to hide the Violation section (e.g. nothing in view is flagged). */
+  violationsOnly?: boolean
+  onToggleViolationsOnly?: () => void
+  /** How many points in view are flagged, shown next to the option. */
+  violationCount?: number
   onClear: () => void
   /** `compact` (default) is the small outline button; `labeled` matches DateRangeFilter. */
   variant?: 'compact' | 'labeled'
@@ -79,6 +85,9 @@ export function FeedbackFilter({
   selectedDemos,
   onToggleSentiment,
   onToggleDemo,
+  violationsOnly,
+  onToggleViolationsOnly,
+  violationCount,
   onClear,
   variant = 'compact',
 }: FeedbackFilterProps) {
@@ -154,6 +163,21 @@ export function FeedbackFilter({
             </button>
           ) : null}
         </div>
+
+        {/* A single on/off, so a plain switch row rather than a one-option section.
+            Not a 4th sentiment: a positive point can be a violation too. */}
+        {violationsOnly !== undefined && onToggleViolationsOnly ? (
+          <label className="flex cursor-pointer items-center justify-between gap-3 border-b border-[#eef0f4] py-2.5 text-[13px] text-[#14181f]">
+            <span className="flex items-center gap-1.5">
+              <TriangleAlert className="shrink-0 text-[#e0507a]" size={14} />
+              Violations only
+              {violationCount !== undefined ? (
+                <span className="text-[#929292]">({violationCount})</span>
+              ) : null}
+            </span>
+            <Switch checked={violationsOnly} onCheckedChange={onToggleViolationsOnly} />
+          </label>
+        ) : null}
 
         {selectedSentiments && onToggleSentiment ? (
           <FilterSection

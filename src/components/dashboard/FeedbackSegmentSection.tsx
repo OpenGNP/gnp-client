@@ -182,7 +182,13 @@ export function FeedbackSegmentSection({
   // Names only when this form recorded any — otherwise every card would just say "Anonymous".
   const showNames = !hideNames && feedbackSegment.some((point) => point.respondentName)
 
+  const [violationsOnlyChoice, setViolationsOnly] = useState(false)
+  const violationCount = feedbackSegment.filter((point) => point.violation).length
+  // Ignored once nothing in view is flagged (the option is hidden then).
+  const violationsOnly = violationsOnlyChoice && violationCount > 0
+
   const activeFilterCount =
+    Number(violationsOnly) +
     selectedSentiments.size +
     Object.values(selectedDemos).reduce((sum, set) => sum + set.size, 0)
 
@@ -195,6 +201,7 @@ export function FeedbackSegmentSection({
   const visiblePoints = useMemo(() => {
     const filtered = feedbackSegment.filter((point) => {
       if (period && point.volumeBucket !== period.index) return false
+      if (violationsOnly && !point.violation) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false
       }
@@ -215,7 +222,7 @@ export function FeedbackSegmentSection({
         ? b.submittedAt.localeCompare(a.submittedAt)
         : a.submittedAt.localeCompare(b.submittedAt)
     })
-  }, [feedbackSegment, period, selectedSentiments, selectedDemos, sortOption])
+  }, [feedbackSegment, period, violationsOnly, selectedSentiments, selectedDemos, sortOption])
 
   return (
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
@@ -269,10 +276,17 @@ export function FeedbackSegmentSection({
             activeFilterCount={activeFilterCount}
             demographicFilters={demographicFilters}
             onClear={() => {
+              setViolationsOnly(false)
               setSelectedSentiments(new Set())
               setSelectedDemos({})
             }}
             onToggleDemo={toggleDemo}
+            // Only offered when this topic has something flagged.
+            onToggleViolationsOnly={
+              violationCount > 0 ? () => setViolationsOnly((value) => !value) : undefined
+            }
+            violationCount={violationCount}
+            violationsOnly={violationCount > 0 ? violationsOnly : undefined}
             onToggleSentiment={(value) => setSelectedSentiments((prev) => toggleInSet(prev, value))}
             selectedDemos={selectedDemos}
             selectedSentiments={selectedSentiments}
