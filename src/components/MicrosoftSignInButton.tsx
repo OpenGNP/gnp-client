@@ -1,6 +1,6 @@
 import { BrowserAuthError, BrowserAuthErrorCodes, InteractionStatus } from '@azure/msal-browser'
 import { useMsal } from '@azure/msal-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -23,26 +23,72 @@ function MicrosoftLogo() {
   )
 }
 
-/** Popup sign-in via MSAL; the resulting ID token is exchanged for an app session. */
+// Silent outcomes: the popup was closed, superseded by a newer click, or left open
+// until MSAL gave up waiting.
+const SILENT_ERRORS: string[] = [
+  BrowserAuthErrorCodes.userCancelled,
+  BrowserAuthErrorCodes.interactionInProgress,
+  BrowserAuthErrorCodes.interactionInProgressCancelled,
+  BrowserAuthErrorCodes.timedOut,
+]
+
+/**
+ * Popup sign-in via MSAL; the resulting ID token is exchanged for an app session.
+ *
+ * MSAL can't tell when the popup is closed or abandoned (it only listens for
+ * /redirect.html's reply, up to 60s). So when focus returns to this window and no
+ * reply has come, the button frees itself; a new click overrides the stale attempt.
+ */
 export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: MicrosoftSignInButtonProps) {
   const { instance, inProgress } = useMsal()
   const { loginWithMicrosoft } = useAuth()
   const [busy, setBusy] = useState(false)
+  const attemptRef = useRef(0)
+  const phaseRef = useRef<'idle' | 'popup' | 'exchanging'>('idle')
+
+  function setBusyState(next: boolean) {
+    setBusy(next)
+    onBusyChange(next)
+  }
+
+  useEffect(() => {
+    if (!busy) return
+    let timer = 0
+    const handleFocus = () => {
+      window.clearTimeout(timer)
+      // A sign-in that just finished gets a moment to report back first.
+      timer = window.setTimeout(() => {
+        if (phaseRef.current !== 'popup') return
+        phaseRef.current = 'idle'
+        setBusy(false)
+        onBusyChange(false)
+      }, 1000)
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      window.clearTimeout(timer)
+    }
+  }, [busy, onBusyChange])
 
   async function handleClick() {
     if (busy) return
+    const attempt = ++attemptRef.current
     onError('')
-    setBusy(true)
-    onBusyChange(true)
+    phaseRef.current = 'popup'
+    setBusyState(true)
     try {
-      const result = await instance.loginPopup(microsoftLoginRequest)
+      const result = await instance.loginPopup({
+        ...microsoftLoginRequest,
+        overrideInteractionInProgress: true,
+      })
+      if (attempt !== attemptRef.current) return
+      phaseRef.current = 'exchanging'
+      setBusyState(true)
       await loginWithMicrosoft(result.idToken, result.accessToken)
     } catch (error) {
-      // Closing the popup / double-clicking isn't an error worth showing.
-      const silent =
-        error instanceof BrowserAuthError &&
-        (error.errorCode === BrowserAuthErrorCodes.userCancelled ||
-          error.errorCode === BrowserAuthErrorCodes.interactionInProgress)
+      if (attempt !== attemptRef.current) return
+      const silent = error instanceof BrowserAuthError && SILENT_ERRORS.includes(error.errorCode)
       if (!silent) {
         onError(
           error instanceof ApiError
@@ -54,8 +100,8 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
               : 'Could not sign in with Microsoft. Please try again.',
         )
       }
-      setBusy(false)
-      onBusyChange(false)
+      phaseRef.current = 'idle'
+      setBusyState(false)
     }
   }
 
