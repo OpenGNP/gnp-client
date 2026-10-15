@@ -200,7 +200,8 @@ export function SaveDraftModal({
           // Right-click inside the list → New folder, in the folder being browsed.
           <ContextMenu>
             <ContextMenuTrigger asChild>{folderList}</ContextMenuTrigger>
-            <ContextMenuContent>
+            {/* Don't hand focus back to the list on close — it would blur (and cancel) the new name field. */}
+            <ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
               <ContextMenuItem onSelect={() => setIsCreatingFolder(true)}>
                 <FolderPlus size={16} />
                 New folder
