@@ -742,6 +742,13 @@ export function FormDashboardPage({
                   No feedback has been analysed for this form yet. The AI pipeline runs once
                   responses start coming in.
                 </EmptyNote>
+              ) : themes.aiDiscoveredTopics.length > 0 ? (
+                // Feedback is in range, but none of it has a topic yet (only uncategorised).
+                <EmptyNote>
+                  Not enough feedback to group into topics yet, so there are no trends to chart.
+                  The AI starts grouping once more responses come in. You can still read this
+                  feedback on the Themes tab.
+                </EmptyNote>
               ) : (
                 <EmptyNote>
                   This form has analysed feedback, but none falls in {trend.rangeLabel}
