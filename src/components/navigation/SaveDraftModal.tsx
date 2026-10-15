@@ -1,9 +1,11 @@
-import { ChevronRight, Folder } from 'lucide-react'
+import { ChevronRight, Folder, FolderPlus } from 'lucide-react'
 import { useState } from 'react'
 
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
+import { useInlineEdit } from '../../hooks/useInlineEdit'
 import { Button } from '../ui/button'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '../ui/context-menu'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
 import { findFolderById } from '../../utils/projectTree'
 
@@ -50,6 +52,29 @@ export type SaveDraftModalProps = {
   moveItemLabel?: 'form' | 'folder'
   /** 'move' mode only: hide this folder from the picker so it can't be moved into itself. */
   excludeFolderId?: string | null
+  /** Enables right-click → "New folder" inside the folder being browsed. */
+  onCreateFolder?: (name: string, parentFolderId: string | null) => void
+}
+
+function NewFolderRow({
+  onCommit,
+  onCancel,
+}: {
+  onCommit: (name: string) => void
+  onCancel: () => void
+}) {
+  const { inputProps } = useInlineEdit({ initialValue: '', onCommit, onCancel })
+  return (
+    <div className="flex h-12 items-center gap-2.5 rounded-[8px] bg-[#f7f8fb] px-3">
+      <Folder className="shrink-0 text-[#5f6368]" size={20} />
+      <input
+        aria-label="Folder name"
+        className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3f4045] outline-0 placeholder:text-[#8a8d97]"
+        placeholder="Folder name"
+        {...inputProps}
+      />
+    </div>
+  )
 }
 
 export function SaveDraftModal({
@@ -60,8 +85,10 @@ export function SaveDraftModal({
   onConfirm,
   moveItemLabel = 'form',
   excludeFolderId,
+  onCreateFolder,
 }: SaveDraftModalProps) {
   const [path, setPath] = useState<BreadcrumbEntry[]>([ROOT_ENTRY])
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
 
   const currentEntry = path[path.length - 1]
   const currentFolder = currentEntry.id ? findFolderById(projects, currentEntry.id) : null
@@ -70,10 +97,12 @@ export function SaveDraftModal({
   ) ?? []
 
   const handleOpenFolder = (folder: ProjectTreeItem) => {
+    setIsCreatingFolder(false)
     setPath((previous) => [...previous, { id: folder.id, label: folder.label }])
   }
 
   const handleBreadcrumbClick = (index: number) => {
+    setIsCreatingFolder(false)
     setPath((previous) => previous.slice(0, index + 1))
   }
 
@@ -81,6 +110,43 @@ export function SaveDraftModal({
     onConfirm(currentEntry.id)
     onOpenChange(false)
   }
+
+  const folderList = (
+    <div className="mt-3 h-70 overflow-y-auto rounded-[8px] border border-[#e8eaf1] p-2">
+      {currentFolders.length > 0 || isCreatingFolder ? (
+        <>
+          {isCreatingFolder && onCreateFolder ? (
+            <NewFolderRow
+              onCancel={() => setIsCreatingFolder(false)}
+              onCommit={(name) => {
+                onCreateFolder(name, currentEntry.id)
+                setIsCreatingFolder(false)
+              }}
+            />
+          ) : null}
+          {currentFolders.map((folder) => (
+            <button
+              className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb]"
+              key={folder.id}
+              onClick={() => handleOpenFolder(folder)}
+              type="button"
+            >
+              <Folder className="shrink-0 text-[#5f6368]" size={20} />
+              <span className="min-w-0 flex-1 truncate">{folder.label}</span>
+              <ChevronRight
+                className="shrink-0 text-[#b0b1b3] opacity-0 transition-opacity group-hover:opacity-100"
+                size={18}
+              />
+            </button>
+          ))}
+        </>
+      ) : (
+        <p className="m-0 flex h-full min-h-16 items-center justify-center px-3 text-center text-[13px] text-[#8b8e98]">
+          {onCreateFolder ? 'No folders here. Right-click to create one.' : 'No folders here'}
+        </p>
+      )}
+    </div>
+  )
 
   const copy =
     mode === 'move'
@@ -93,7 +159,13 @@ export function SaveDraftModal({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#d2d8e5] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
+      <DialogContent
+        className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#d2d8e5] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+        // Escape while naming a new folder cancels the name, not the whole dialog.
+        onEscapeKeyDown={(event) => {
+          if (isCreatingFolder) event.preventDefault()
+        }}
+      >
         <DialogTitle className="m-0 text-[22px] font-normal text-[#3c4043]">
           {copy.title}
         </DialogTitle>
@@ -124,29 +196,20 @@ export function SaveDraftModal({
           ))}
         </div>
 
-        <div className="mt-3 h-70 overflow-y-auto rounded-[8px] border border-[#e8eaf1] p-2">
-          {currentFolders.length > 0 ? (
-            currentFolders.map((folder) => (
-              <button
-                className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb]"
-                key={folder.id}
-                onClick={() => handleOpenFolder(folder)}
-                type="button"
-              >
-                <Folder className="shrink-0 text-[#5f6368]" size={20} />
-                <span className="min-w-0 flex-1 truncate">{folder.label}</span>
-                <ChevronRight
-                  className="shrink-0 text-[#b0b1b3] opacity-0 transition-opacity group-hover:opacity-100"
-                  size={18}
-                />
-              </button>
-            ))
-          ) : (
-            <p className="m-0 flex h-full min-h-16 items-center justify-center px-3 text-center text-[13px] text-[#8b8e98]">
-              No folders here
-            </p>
-          )}
-        </div>
+        {onCreateFolder ? (
+          // Right-click inside the list → New folder, in the folder being browsed.
+          <ContextMenu>
+            <ContextMenuTrigger asChild>{folderList}</ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onSelect={() => setIsCreatingFolder(true)}>
+                <FolderPlus size={16} />
+                New folder
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        ) : (
+          folderList
+        )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <span className="min-w-0 truncate text-[13px] text-[#726f6f]">

@@ -271,7 +271,10 @@ function App() {
     // doesn't fail on the second one.
     const label = uniqueName(projects, desired, { parentFolderId, type: 'folder' })
     try {
-      const created = await createFolder({ folderName: label })
+      const created = await createFolder({
+        folderName: label,
+        parentFolderId: parseFolderId(parentFolderId) ?? null,
+      })
       markWorkspaceStale(queryClient)
       addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
     } catch (error) {
@@ -286,10 +289,8 @@ function App() {
    * omitted to append) places it at a precise position. Forms persist fully: an actual
    * folder change via `updateForm`, then the destination container's whole new order
    * via `reorderForms` (needs the folder change to have landed first, or the exact-set
-   * check on the reorder call would still see the old container). Folders persist only
-   * their order among root-level siblings — dragging one *into* another folder still
-   * doesn't stick (no `parent_folder_id` support), so that case is left as the
-   * client-side-only convenience it always was.
+   * check on the reorder call would still see the old container). Folders work the
+   * same way: `updateFolder({ parentFolderId })`, then their new siblings' order.
    */
   async function handleMoveProject(projectId: string, target: MoveTarget) {
     const item = findProjectById(projects, projectId)
@@ -306,24 +307,34 @@ function App() {
       : nextProjects
 
     if (item.type === 'folder') {
-      if (target.folderId !== null) {
-        return // moved into another folder — not persisted, per the note above
-      }
-
+      const numericFolderId = Number(item.id)
       const folderIds = siblings
         .filter((sibling) => sibling.type === 'folder')
         .map((sibling) => Number(sibling.id))
 
-      if (folderIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+      if (
+        !Number.isInteger(numericFolderId) ||
+        numericFolderId <= 0 ||
+        folderIds.some((id) => !Number.isInteger(id) || id <= 0)
+      ) {
         return
       }
 
+      const parentFolderId = parseFolderId(target.folderId) ?? null
+      // Same idea as forms below: don't undo a parent change that already landed.
+      let parentChangePersisted = previousFolderId === target.folderId
       try {
-        await reorderFolders({ folderIds })
+        if (!parentChangePersisted) {
+          await updateFolder(numericFolderId, { parentFolderId })
+          parentChangePersisted = true
+        }
+        await reorderFolders({ parentFolderId, folderIds })
       } catch (error) {
-        setProjects(snapshot)
+        if (!parentChangePersisted) {
+          setProjects(snapshot)
+        }
         window.alert(
-          error instanceof ApiError ? error.message : 'Could not reorder folders. Please try again.',
+          error instanceof ApiError ? error.message : 'Could not move the folder. Please try again.',
         )
       } finally {
         markWorkspaceStale(queryClient)
@@ -616,6 +627,7 @@ function App() {
         mode={saveDraftMode}
         moveItemLabel={moveItemIsFolder ? 'folder' : 'form'}
         onConfirm={handleConfirmSaveOrMove}
+        onCreateFolder={handleCreateFolder}
         onOpenChange={setIsSaveDraftModalOpen}
         open={isSaveDraftModalOpen}
         projects={projects}

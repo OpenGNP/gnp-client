@@ -17,9 +17,9 @@ type WorkspaceTree = {
 const EMPTY: ProjectTreeItem[] = []
 
 /**
- * Builds the sidebar project tree from the real API: top-level folders (flat — the
- * backend has no folder nesting yet) each holding their forms, then any folder-less
- * forms at the root. The local add/rename/move edits in `useProjectTree` are applied
+ * Builds the sidebar project tree from the real API: folders nested by
+ * `parentFolderId`, each holding their subfolders then their forms, then any
+ * folder-less forms at the root. The local add/rename/move edits in `useProjectTree` are applied
  * optimistically and persisted by App's handlers; those mark these queries stale
  * without refetching (see markWorkspaceStale), so the tree isn't re-seeded under them.
  *
@@ -94,16 +94,24 @@ function buildTree(folders: ApiFolder[], forms: ApiForm[]): ProjectTreeItem[] {
     }
   }
 
-  const folderNodes: ProjectTreeItem[] = sortedFolders.map((folder) => ({
-    id: String(folder.id),
-    label: folder.folderName ?? 'Untitled folder',
-    type: 'folder',
-    // Feeds the Files page's "Date modified" sort. `updatedAt` bumps on rename;
-    // `createdAt` is the fallback for folders never renamed.
-    updatedAt: folder.updatedAt,
-    createdAt: folder.createdAt,
-    children: formsByFolder.get(folder.id) ?? [],
-  }))
+  // A parent that isn't in the list (shouldn't happen) puts the folder at the top level.
+  const folderIds = new Set(sortedFolders.map((folder) => folder.id))
+  const parentOf = (folder: ApiFolder) =>
+    folder.parentFolderId !== null && folderIds.has(folder.parentFolderId) ? folder.parentFolderId : null
 
-  return [...folderNodes, ...(formsByFolder.get(null) ?? [])]
+  const folderNodesIn = (parentId: number | null): ProjectTreeItem[] =>
+    sortedFolders
+      .filter((folder) => parentOf(folder) === parentId)
+      .map((folder) => ({
+        id: String(folder.id),
+        label: folder.folderName ?? 'Untitled folder',
+        type: 'folder',
+        // Feeds the Files page's "Date modified" sort. `updatedAt` bumps on rename;
+        // `createdAt` is the fallback for folders never renamed.
+        updatedAt: folder.updatedAt,
+        createdAt: folder.createdAt,
+        children: [...folderNodesIn(folder.id), ...(formsByFolder.get(folder.id) ?? [])],
+      }))
+
+  return [...folderNodesIn(null), ...(formsByFolder.get(null) ?? [])]
 }

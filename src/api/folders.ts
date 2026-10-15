@@ -4,6 +4,8 @@ import { asUtcIso } from '../lib/apiTimestamp'
 /** Row shape returned by `GET /api/folders` (see gnp-server folderService.listByAdmin). */
 export type ApiFolder = {
   id: number
+  /** null at the top level. */
+  parentFolderId: number | null
   folderName: string | null
   folderDescription: string | null
   sortOrder: number
@@ -15,11 +17,14 @@ export type ApiFolder = {
 export type CreateFolderPayload = {
   folderName: string
   folderDescription?: string
+  parentFolderId?: number | null
 }
 
 export type UpdateFolderPayload = {
   folderName?: string
   folderDescription?: string
+  /** Moves the folder; null = top level. */
+  parentFolderId?: number | null
 }
 
 export async function listFolders(): Promise<ApiFolder[]> {
@@ -44,7 +49,10 @@ export function deleteFolder(id: number): Promise<null> {
   return apiDelete<null>(`/folders/${id}`)
 }
 
-/** folderIds must be the exact set of folders you currently have. */
-export function reorderFolders(payload: { folderIds: number[] }): Promise<null> {
+/** folderIds must be exactly the folders inside `parentFolderId` (null = top level). */
+export function reorderFolders(payload: {
+  parentFolderId: number | null
+  folderIds: number[]
+}): Promise<null> {
   return apiPatch<null>('/folders/reorder', payload)
 }
