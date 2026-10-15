@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
+import { ViolationTooltip } from './ViolationTooltip'
 
 type SortOption = 'newest' | 'oldest'
 
@@ -59,13 +60,12 @@ function FeedbackPointCard({ point, showName }: { point: FeedbackPoint; showName
         </span>
 
         {point.violation ? (
-          <span
-            className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset"
-            title="Flagged by AI for review"
-          >
-            <AlertTriangle size={11} />
-            Violation
-          </span>
+          <ViolationTooltip scope="point">
+            <span className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset">
+              <AlertTriangle size={11} />
+              Violation
+            </span>
+          </ViolationTooltip>
         ) : null}
       </div>
 

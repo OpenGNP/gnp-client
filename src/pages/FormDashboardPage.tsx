@@ -25,6 +25,7 @@ import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
+import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import { Switch } from '../components/ui/switch'
@@ -382,6 +383,11 @@ export function FormDashboardPage({
         ) ?? null)
       : null
 
+  // Both topic cards share one scale, so a bar means the same count in either.
+  const topicAxisMax = themes
+    ? computeAxisMax([...themes.violationTopics, ...themes.aiDiscoveredTopics])
+    : undefined
+
   const sentimentTotal = themes
     ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
     : 0
@@ -593,6 +599,7 @@ export function FormDashboardPage({
 
                   {themes.violationTopics.length > 0 ? (
                     <TopicSentimentCard
+                      axisMax={topicAxisMax}
                       onSelectTopic={setSelectedTopicId}
                       selectedTopicId={selectedTopicId}
                       title="Violation Topics"
@@ -601,6 +608,7 @@ export function FormDashboardPage({
                   ) : null}
 
                   <TopicSentimentCard
+                    axisMax={topicAxisMax}
                     onSelectTopic={setSelectedTopicId}
                     pageSize={8}
                     selectedTopicId={selectedTopicId}

@@ -11,17 +11,8 @@ import {
 } from '../ui/dropdown-menu'
 import { Pagination } from './Pagination'
 import { SentimentBar } from './SentimentBar'
-
-const AXIS_STEP = 10
-const AXIS_MIN = 10
-
-function computeAxisMax(topics: TopicSentiment[]): number {
-  const highestCount = topics.reduce(
-    (max, topic) => Math.max(max, topic.negative + topic.neutral + topic.positive),
-    0,
-  )
-  return Math.max(AXIS_MIN, Math.ceil(highestCount / AXIS_STEP) * AXIS_STEP)
-}
+import { computeAxisMax } from './topicAxis'
+import { ViolationTooltip } from './ViolationTooltip'
 
 type SortOption = 'priority-desc' | 'priority-asc' | 'sentiment-pos-neg' | 'sentiment-neg-pos'
 
@@ -74,11 +65,13 @@ function TopicRow({
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span className="min-w-0 truncate text-[14px] text-[#14181f]">{topic.label}</span>
         {topic.hasViolation ? (
-          <TriangleAlert
-            className="shrink-0 text-[#e0507a]"
-            aria-label="Contains violations"
-            size={16}
-          />
+          <ViolationTooltip scope="topic">
+            <TriangleAlert
+              className="shrink-0 text-[#e0507a]"
+              aria-label="Contains violations"
+              size={16}
+            />
+          </ViolationTooltip>
         ) : null}
       </div>
       <SentimentBar
@@ -118,6 +111,8 @@ export type TopicSentimentCardProps = {
   pageSize?: number
   selectedTopicId?: string | null
   onSelectTopic?: (topicId: string) => void
+  /** Shared scale for cards shown together, so equal bars mean equal counts. Default: this card's own topics. */
+  axisMax?: number
 }
 
 export function TopicSentimentCard({
@@ -127,6 +122,7 @@ export function TopicSentimentCard({
   pageSize,
   selectedTopicId = null,
   onSelectTopic,
+  axisMax: sharedAxisMax,
 }: TopicSentimentCardProps) {
   const [sortOption, setSortOption] = useState<SortOption>('priority-desc')
   const [page, setPage] = useState(1)
@@ -144,7 +140,8 @@ export function TopicSentimentCard({
     ? sortedTopics.slice((page - 1) * pageSize, page * pageSize)
     : sortedTopics
 
-  const axisMax = useMemo(() => computeAxisMax(topics), [topics])
+  const ownAxisMax = useMemo(() => computeAxisMax(topics), [topics])
+  const axisMax = sharedAxisMax ?? ownAxisMax
 
   return (
     <section className="flex w-full flex-col gap-3.25 rounded-[10px] border border-[#e9eaed] bg-white pt-7.25 pb-7.75">

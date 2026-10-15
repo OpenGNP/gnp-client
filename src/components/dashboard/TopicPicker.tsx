@@ -5,6 +5,7 @@ import type { TrendAvailableTopic, TrendRank } from '../../data/dashboardAnalyti
 import { cn } from '../../lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { TOPIC_TREND_COLORS } from './trendColors'
+import { ViolationTooltip } from './ViolationTooltip'
 
 const RANKS: { value: TrendRank; label: string; short: string }[] = [
   { value: 'mentioned', label: 'Most mentioned', short: 'Mentioned' },
@@ -189,10 +190,12 @@ export function TopicPicker({
                       {topic.label}
                     </span>
                     {topic.violations > 0 ? (
-                      <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-[#c0392b]">
-                        <TriangleAlert size={11} />
-                        {topic.violations}
-                      </span>
+                      <ViolationTooltip count={topic.violations} scope="topic">
+                        <span className="flex items-center gap-0.5 text-[11px] font-medium text-[#c0392b]">
+                          <TriangleAlert size={11} />
+                          {topic.violations}
+                        </span>
+                      </ViolationTooltip>
                     ) : null}
                     <span className="w-10 shrink-0 text-right text-[11px] text-[#3f4045] tabular-nums">
                       {topic.mentions}
