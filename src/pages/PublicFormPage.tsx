@@ -1,7 +1,7 @@
 import { Check, Send, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
 import type { ApiFormField } from "../api/forms";
@@ -134,7 +134,9 @@ function Shell({
     <div className="min-h-screen bg-[#f5f9ff]">
       <div className="sticky top-0 z-10 flex justify-center bg-[#f5f9ff] px-3 pt-6 pb-3 sm:px-4 sm:pt-10">
         <div className="w-full max-w-105">
-          <img alt="gnp" className="h-9" src={logoGnp} />
+          <Link aria-label="gnp home" className="inline-block" to="/">
+            <img alt="gnp" className="h-9" src={logoGnp} />
+          </Link>
         </div>
       </div>
       <div className="flex justify-center px-3 pb-6 sm:px-4 sm:pb-10">
@@ -503,13 +505,15 @@ export function PublicFormPage() {
     setSubmitState("submitting");
     try {
       await submitFeedback({ formId: form.id, answers: payload });
+      setSubmitState("idle");
       setSubmitted(true);
     } catch (error) {
       setSubmitState("idle");
+      // status 0 = no reply (offline, timed out): axios's own message isn't for respondents.
       setSubmitError(
-        error instanceof ApiError
+        error instanceof ApiError && error.status > 0
           ? error.message
-          : "Could not submit your response. Please try again.",
+          : "Could not submit your response. Check your connection and try again.",
       );
     }
   };

@@ -12,6 +12,8 @@ export type SubmitFeedbackPayload = {
   answers: FeedbackAnswerPayload[]
 }
 
+const SUBMIT_TIMEOUT_MS = 30_000
+
 /**
  * `POST /api/feedback` — submit a form response. The auth token, if one is stored,
  * is attached automatically (org/specific-access checks, one-response-per-person,
@@ -21,8 +23,11 @@ export type SubmitFeedbackPayload = {
  */
 export function submitFeedback(payload: SubmitFeedbackPayload): Promise<{ id: number }> {
   const deviceId = getRespondentDeviceId()
-  return apiPost<{ id: number }>('/feedback', {
-    ...payload,
-    ...(deviceId ? { deviceId } : {}),
-  })
+  return apiPost<{ id: number }>(
+    '/feedback',
+    { ...payload, ...(deviceId ? { deviceId } : {}) },
+    // Fail instead of leaving "Submitting…" up forever on a dropped connection.
+    { timeout: SUBMIT_TIMEOUT_MS },
+  )
 }
+
