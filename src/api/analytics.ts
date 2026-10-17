@@ -89,6 +89,8 @@ export type FormThemeAnalytics = {
   /** Analysed mentions across ALL time — distinguishes "none yet" from "none in range". */
   totalMentions: number
   totalResponders: number
+  /** Of `totalResponders`, how many the AI pipeline hasn't analysed yet. Absent from older servers. */
+  awaitingAnalysis?: number
   /** Responders in the window's last 7 days (filters applied); `responderDeltaLabel` words it. */
   responderDelta: number
   responderDeltaLabel: string
