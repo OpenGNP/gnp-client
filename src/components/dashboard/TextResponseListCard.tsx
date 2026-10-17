@@ -21,7 +21,7 @@ function ResponseCard({ response, showName }: { response: TextResponse; showName
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            'm-0 text-[14px] leading-5.5 wrap-break-word text-[#3f4045]',
+            'm-0 max-w-[80ch] text-[14px] leading-5.5 wrap-break-word text-[#3f4045]',
             isLong && !isExpanded && 'line-clamp-3',
           )}
         >
