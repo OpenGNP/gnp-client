@@ -25,6 +25,7 @@ import { IndividualResponseList } from '../components/dashboard/IndividualRespon
 import { ResponseDetailPanel } from '../components/dashboard/ResponseDetailPanel'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { responseLabels } from '../components/dashboard/responseLabel'
+import { searchResponses } from '../components/dashboard/responseSearch'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
@@ -200,6 +201,8 @@ export function FormDashboardPage({
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
+  const [responseQuery, setResponseQuery] = useState('')
+  const [topicQuery, setTopicQuery] = useState('')
   const detailPanelLayout = useDetailPanelLayout()
   const now = useNow()
 
@@ -423,15 +426,17 @@ export function FormDashboardPage({
     : null
   const selectedTopic = activeView === 'themes' ? openTopic : null
 
-  const selectedResponseIndex =
-    activeView === 'individual' && individual
-      ? individual.responses.findIndex((response) => response.id === selectedResponseId)
-      : -1
-  const selectedResponse = individual?.responses[selectedResponseIndex] ?? null
+  const selectedResponse =
+    activeView === 'individual'
+      ? (individual?.responses.find((response) => response.id === selectedResponseId) ?? null)
+      : null
   const individualLabels = individual ? responseLabels(individual.responses, hideNames) : new Map<number, string>()
+  // The panel's Previous / Next step through the search results, not every response.
+  const responseResults = individual ? searchResponses(individual.responses, individualLabels, responseQuery) : []
+  const selectedResultIndex = responseResults.findIndex((result) => result.response.id === selectedResponseId)
   const stepResponse = (offset: number) => {
-    const next = individual?.responses[selectedResponseIndex + offset]
-    if (next) setSelectedResponseId(next.id)
+    const next = responseResults[selectedResultIndex + offset]
+    if (next) setSelectedResponseId(next.response.id)
   }
 
     const topicAxisMax = themes ? computeAxisMax(themes.aiDiscoveredTopics) : undefined
@@ -674,8 +679,10 @@ export function FormDashboardPage({
                   <TopicSentimentCard
                     axisMax={topicAxisMax}
                     id={TOPIC_LIST_ID}
+                    onQueryChange={setTopicQuery}
                     onSelectTopic={setSelectedTopicId}
                     pageSize={15}
+                    query={topicQuery}
                     selectedTopicId={selectedTopicId}
                     sortable
                     title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
@@ -739,10 +746,13 @@ export function FormDashboardPage({
                 <EmptyNote>No responses have been submitted yet.</EmptyNote>
               ) : (
                 <IndividualResponseList
-                  data={individual}
                   labels={individualLabels}
+                  onQueryChange={setResponseQuery}
                   onSelect={setSelectedResponseId}
+                  query={responseQuery}
+                  results={responseResults}
                   selectedId={selectedResponse?.id ?? null}
+                  total={individual.responses.length}
                 />
               )
             ) : null}
@@ -851,6 +861,7 @@ export function FormDashboardPage({
         <TopicDetailPanel
           demographicFilters={themes.demographicFilters}
           hidden={activeView !== 'themes'}
+          initialQuery={topicQuery}
           key={openTopic.id}
           mainDemoSelection={demoSel}
           onClose={() => setSelectedTopicId(null)}
@@ -866,14 +877,15 @@ export function FormDashboardPage({
         <ResponseDetailPanel
           fields={individual.fields}
           hideNames={hideNames}
-          index={selectedResponseIndex}
+          index={selectedResultIndex}
           label={individualLabels.get(selectedResponse.id) ?? ''}
           layout={detailPanelLayout}
           onClose={() => setSelectedResponseId(null)}
           onNext={() => stepResponse(1)}
           onPrevious={() => stepResponse(-1)}
+          query={responseQuery}
           response={selectedResponse}
-          total={individual.responses.length}
+          total={responseResults.length}
         />
       ) : null}
     </div>

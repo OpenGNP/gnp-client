@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, TriangleAlert } from 'lucide-react'
+import { ArrowUpDown, ChevronDown, MessageSquareText, Search, TriangleAlert, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { TopicSentiment } from '../../data/dashboardAnalytics'
@@ -9,9 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
+import { Highlight } from './Highlight'
 import { Pagination } from './Pagination'
 import { SentimentBar } from './SentimentBar'
 import { computeAxisMax } from './topicAxis'
+import { searchTopics, type TopicMatch } from './topicSearch'
 import { ViolationTooltip } from './ViolationTooltip'
 
 const UNCATEGORISED_ID = 'uncategorised'
@@ -58,15 +60,20 @@ function TopicRow({
   isSelected,
   onSelect,
   topic,
+  query,
+  match,
 }: {
   axisMax: number
   isSelected: boolean
   onSelect?: (topicId: string) => void
   topic: TopicSentiment
+  query: string
+  /** While searching: the feedback mentioning the query, shown under the name. */
+  match?: TopicMatch
 }) {
   return (
     <button
-      className={`flex h-[45px] w-full cursor-pointer items-center gap-4 border-l-[3px] py-0 pr-7.5 pl-6.75 text-left transition-colors ${
+      className={`flex min-h-13 w-full cursor-pointer items-center gap-4 border-l-[3px] py-2.5 pr-7.5 pl-6.75 text-left transition-colors ${
         isSelected
           ? 'border-[#1e55c5] bg-[#f7f8fb]'
           : topic.hasViolation
@@ -76,16 +83,30 @@ function TopicRow({
       onClick={() => onSelect?.(topic.id)}
       type="button"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="min-w-0 truncate text-[14px] text-[#14181f]">{topic.label}</span>
-        {topic.hasViolation ? (
-          <ViolationTooltip scope="topic">
-            <TriangleAlert
-              className="shrink-0 text-[#e0507a]"
-              aria-label="Contains violations"
-              size={16}
-            />
-          </ViolationTooltip>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 truncate text-[14px] text-[#14181f]">
+            <Highlight query={query} text={topic.label} />
+          </span>
+          {topic.hasViolation ? (
+            <ViolationTooltip scope="topic">
+              <TriangleAlert
+                className="shrink-0 text-[#e0507a]"
+                aria-label="Contains violations"
+                size={16}
+              />
+            </ViolationTooltip>
+          ) : null}
+        </div>
+        {/* Own line under the name, so the name keeps the full width. */}
+        {match?.snippet ? (
+          <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-[#726f6f]">
+            <MessageSquareText className="shrink-0 text-[#1e55c5]" size={13} />
+            <span className="shrink-0 font-semibold text-[#1e55c5]">{match.feedbackCount}</span>
+            <span className="min-w-0 truncate">
+              “<Highlight query={query} text={match.snippet} />”
+            </span>
+          </span>
         ) : null}
       </div>
       <SentimentBar
@@ -128,6 +149,9 @@ export type TopicSentimentCardProps = {
   /** Shared scale for cards shown together, so equal bars mean equal counts. Default: this card's own topics. */
   axisMax?: number
   id?: string
+  /** Given with `onQueryChange`: a search box filtering topics by name, keyword and feedback text. */
+  query?: string
+  onQueryChange?: (query: string) => void
 }
 
 export function TopicSentimentCard({
@@ -139,17 +163,28 @@ export function TopicSentimentCard({
   onSelectTopic,
   axisMax: sharedAxisMax,
   id,
+  query = '',
+  onQueryChange,
 }: TopicSentimentCardProps) {
   const [sortOption, setSortOption] = useState<SortOption>('priority')
   const [page, setPage] = useState(1)
 
+  const matches = useMemo(() => searchTopics(topics, query), [topics, query])
+  // A new search starts from the first page of its results.
+  const [searchedQuery, setSearchedQuery] = useState(query)
+  if (query !== searchedQuery) {
+    setSearchedQuery(query)
+    setPage(1)
+  }
+
   const sortedTopics = useMemo(() => {
+    const found = matches ? topics.filter((topic) => matches.has(topic.id)) : topics
     if (!sortable) {
-      return topics
+      return found
     }
     const compare = SORT_OPTIONS.find((option) => option.value === sortOption)!.compare
-    return [...topics].sort((a, b) => pinRank(a) - pinRank(b) || compare(a, b))
-  }, [topics, sortable, sortOption])
+    return [...found].sort((a, b) => pinRank(a) - pinRank(b) || compare(a, b))
+  }, [topics, matches, sortable, sortOption])
 
   const totalPages = pageSize ? Math.max(1, Math.ceil(sortedTopics.length / pageSize)) : 1
   // Clamped: a refetch can leave fewer pages.
@@ -169,6 +204,36 @@ export function TopicSentimentCard({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-7.5">
         <h3 className="m-0 text-[14px] font-medium text-black">{title}</h3>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          {onQueryChange ? (
+            <div className="flex items-center gap-2">
+              {matches ? (
+                <span aria-live="polite" className="text-[12px] font-medium text-[#726f6f]">
+                  {sortedTopics.length} of {topics.length}
+                </span>
+              ) : null}
+              <div className="flex h-8.75 w-56 items-center gap-2 rounded-[10px] border border-[#e6e7eb] px-2.5 focus-within:border-[#1e55c5]">
+                <Search className="shrink-0 text-[#929292]" size={14} />
+                <input
+                  aria-label="Search topics and feedback"
+                  className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#929292]"
+                  onChange={(event) => onQueryChange(event.target.value)}
+                  placeholder="Search topics or feedback…"
+                  type="text"
+                  value={query}
+                />
+                {query ? (
+                  <button
+                    aria-label="Clear search"
+                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#929292] hover:bg-[#f7f8fb] hover:text-black"
+                    onClick={() => onQueryChange('')}
+                    type="button"
+                  >
+                    <X size={13} />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           {sortable ? (
             <DropdownMenu>
               <div className="flex items-center gap-2.5">
@@ -218,12 +283,19 @@ export function TopicSentimentCard({
         {visibleTopics.map((topic) => (
           <TopicRow
             axisMax={axisMax}
+            match={matches?.get(topic.id)}
             isSelected={selectedTopicId === topic.id}
             key={topic.id}
             onSelect={onSelectTopic}
+            query={query}
             topic={topic}
           />
         ))}
+        {matches && sortedTopics.length === 0 ? (
+          <p className="m-0 px-7.5 py-6 text-center text-[13px] text-[#726f6f]">
+            No topics or feedback match “{query.trim()}”.
+          </p>
+        ) : null}
       </div>
 
       {pageSize && totalPages > 1 ? (
