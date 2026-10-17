@@ -32,6 +32,8 @@ import {
   getSelectedProjectId,
   isNameTaken,
   removeFolderPromotingChildren,
+  getAncestorFolderIds,
+  getFolderPath,
   uniqueName,
 } from './utils/projectTree'
 
@@ -128,6 +130,14 @@ function App() {
     : location.pathname.startsWith('/forms/')
       ? formNodeIdForRef(projects, selectedProjectId)
       : selectedProjectId
+  // Folders above the open form, outermost first — the dashboard's breadcrumb.
+  const ancestorIds = selectedNodeId ? getAncestorFolderIds(projects, selectedNodeId) : []
+  const selectedFolderPath = ancestorIds.length
+    ? getFolderPath(projects, ancestorIds[ancestorIds.length - 1]!).map((folder) => ({
+        id: folder.id,
+        label: folder.label,
+      }))
+    : []
   const activeNav =
     location.pathname === '/' ? 'home' : location.pathname.startsWith('/files') ? 'files' : null
 
@@ -614,6 +624,7 @@ function App() {
             path="/forms/:projectId/dashboard"
             element={
               <FormDashboardPage
+                folderPath={selectedFolderPath}
                 onToggleSidebar={() => setSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}
               />
