@@ -201,15 +201,6 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
   )
 }
 
-function openRangeLabel(form: ApiFormDetail): string {
-  const start = formatDateTime(form.startDate)
-  const end = formatDateTime(form.endDate)
-  if (start && end) return `${start} – ${end}`
-  if (start) return `From ${start}`
-  if (end) return `Until ${end}`
-  return 'Anytime'
-}
-
 export type FormDashboardPageProps = {
   /** Folders containing this form, outermost first (empty: at the root of My Project). */
   folderPath?: { id: string; label: string }[]
