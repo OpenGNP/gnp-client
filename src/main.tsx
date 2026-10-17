@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import { AlertDialogHost } from './components/AlertDialogHost.tsx'
 import { AppGate } from './components/AppGate.tsx'
 import { AuthProvider } from './components/AuthProvider.tsx'
 import { MaybeMsalProvider } from './components/MaybeMsalProvider.tsx'
@@ -43,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
             }
           />
         </Routes>
+        <AlertDialogHost />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

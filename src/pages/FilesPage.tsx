@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 import type { ProjectTreeItem } from '../data/dashboard'
+import { showConfirm } from '../lib/alertDialog'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
@@ -139,10 +140,14 @@ export function FilesPage({
     navigate(file.urlId ? formPath(file.urlId) : `/forms/${encodeURIComponent(file.formId ?? file.id)}`)
   }
 
-  function deleteItem(item: ProjectTreeItem) {
-    if (window.confirm(`Delete "${item.label}"? This can't be undone.`)) {
-      onDeleteItem(item.id)
-    }
+  async function deleteItem(item: ProjectTreeItem) {
+    const confirmed = await showConfirm({
+      title: item.type === 'folder' ? 'Delete folder?' : 'Delete form?',
+      message: `“${item.label}” will be deleted. This can't be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (confirmed) onDeleteItem(item.id)
   }
 
   function endDrag() {
@@ -291,7 +296,7 @@ export function FilesPage({
                           draggingId={draggingId}
                           folder={folder}
                           key={folder.id}
-                          onDelete={() => deleteItem(folder)}
+                          onDelete={() => void deleteItem(folder)}
                           onDragEnd={endDrag}
                           onDragStart={setDraggingId}
                           onItemDrop={(draggedId) => {
@@ -321,7 +326,7 @@ export function FilesPage({
                           <FormCard
                             dragId={file.id}
                             image={placeholderFormImage(Number(file.formId ?? file.id))}
-                            onDelete={() => deleteItem(file)}
+                            onDelete={() => void deleteItem(file)}
                             onDragEnd={endDrag}
                             onDragStart={setDraggingId}
                             onMove={() => onMoveItem(file.id)}

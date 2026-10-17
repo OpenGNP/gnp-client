@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '../lib/utils'
+import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from './messageStyles'
 
 type ErrorCardAction = {
   label: string
@@ -13,15 +14,15 @@ type ErrorCardAction = {
   onClick?: () => void
 }
 
-const ACTION_BASE =
-  'inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[6px] text-[13px] font-semibold no-underline transition-colors'
-const ACTION_STYLES = {
-  primary: 'border-0 bg-[#1e55c5] text-white hover:bg-[#1a49aa]',
-  secondary: 'border border-[#d7dbe6] bg-white text-[#3f4045] hover:bg-[#f7f8fb]',
-} as const
-
-function ActionButton({ action, variant }: { action: ErrorCardAction; variant: keyof typeof ACTION_STYLES }) {
-  const className = cn(ACTION_BASE, ACTION_STYLES[variant])
+function ActionButton({
+  action,
+  variant,
+}: {
+  action: ErrorCardAction
+  variant: 'primary' | 'secondary'
+}) {
+  // Full width and stacked: a whole-page state, not a dialog.
+  const className = cn(MESSAGE_ACTION, 'w-full', MESSAGE_ACTION_STYLES[variant])
   return action.to ? (
     <Link className={className} state={action.state} to={action.to}>
       {action.label}
@@ -57,8 +58,8 @@ export function ErrorCard({
       className="w-full max-w-[360px] rounded-[10px] border border-[#e8eaf1] bg-white p-8 text-center shadow-[0_16px_40px_rgba(15,23,42,0.10)]"
       role="alert"
     >
-      <p className="m-0 mb-1 text-[15px] font-semibold text-[#3f4045]">{title}</p>
-      {description ? <p className="m-0 text-[12px] leading-4 text-[#8b8e98]">{description}</p> : null}
+      <p className={cn(MESSAGE_TITLE, 'mb-1')}>{title}</p>
+      {description ? <p className={MESSAGE_DESCRIPTION}>{description}</p> : null}
       {note ? <p className="m-0 mt-3 text-[12px] leading-4 text-[#726f6f]">{note}</p> : null}
       {primaryAction || secondaryAction ? (
         <div className="mt-5 flex flex-col gap-2">

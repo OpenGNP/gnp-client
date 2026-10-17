@@ -35,6 +35,10 @@ export type FormActionBarProps = {
   /** Reopens a manually-closed form (status → 'active'). Omitted in create mode. */
   onReopenForm?: () => void | Promise<void>
   saveStatus?: SaveStatus
+  /** A save is in flight: Save / Publish / Move are disabled until it answers. */
+  saveLocked?: boolean
+  /** That save is taking unusually long (the buttons are usable again). */
+  saveSlow?: boolean
   formAccessSettings: FormAccessSettings
   onUpdateFormAccessSettings: (partial: Partial<FormAccessSettings>) => void
   /**
@@ -57,7 +61,7 @@ export const FormActionButton = forwardRef<
     <button
       ref={ref}
       className={cn(
-        'inline-flex h-9.5 cursor-pointer items-center justify-center gap-2 rounded-[5px] border-0 px-3.5 text-[16px] font-bold tracking-[0.16px] text-white transition-transform active:translate-y-px max-[560px]:size-9.5 max-[560px]:px-0',
+        'inline-flex h-9.5 cursor-pointer items-center justify-center gap-2 rounded-[5px] border-0 px-3.5 text-[16px] font-bold tracking-[0.16px] text-white transition-transform active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-y-0 max-[560px]:size-9.5 max-[560px]:px-0',
         className,
       )}
       type="button"
@@ -80,6 +84,8 @@ export function FormActionBar({
   onMove,
   onReopenForm,
   saveStatus = 'idle',
+  saveLocked = false,
+  saveSlow = false,
   formAccessSettings,
   onUpdateFormAccessSettings,
   savedAccessSettings,
@@ -109,7 +115,8 @@ export function FormActionBar({
         <ResponseStateChip badge={responseBadge} className="max-[760px]:hidden" iconOnly />
       ) : null}
 
-      {mode === 'edit' && saveStatus !== 'idle' ? (
+      {/* While saving, the Save button itself shows it — this line only speaks up if it's slow. */}
+      {mode === 'edit' && saveStatus !== 'idle' && (saveStatus !== 'saving' || saveSlow) ? (
         <span
           className={cn(
             'inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[0.13px] max-[560px]:hidden',
@@ -124,7 +131,7 @@ export function FormActionBar({
             <CloudCheck size={16} />
           )}
           {saveStatus === 'saving'
-            ? 'Saving…'
+            ? 'Taking longer than usual…'
             : saveStatus === 'error'
               ? 'Save failed'
               : 'Saved'}
@@ -132,7 +139,7 @@ export function FormActionBar({
       ) : null}
 
       <Popover>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild disabled={saveLocked}>
           <FormActionButton
             className={
               isPublished
@@ -176,15 +183,23 @@ export function FormActionBar({
 
       <FormActionButton
         className="bg-[#1e55c5] hover:bg-[#1a49aa]"
-        icon={<Save size={18} strokeWidth={2.4} />}
+        disabled={saveLocked}
+        icon={
+          saveLocked ? (
+            <RefreshCw className="animate-spin" size={18} strokeWidth={2.4} />
+          ) : (
+            <Save size={18} strokeWidth={2.4} />
+          )
+        }
         onClick={onSaveDraft}
       >
-        {mode === 'edit' ? 'Save' : 'Save draft'}
+        {saveLocked ? 'Saving…' : mode === 'edit' ? 'Save' : 'Save draft'}
       </FormActionButton>
 
       {mode === 'edit' ? (
         <FormActionButton
           className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+          disabled={saveLocked}
           icon={<FolderInput size={18} strokeWidth={2.2} />}
           onClick={onMove}
         >

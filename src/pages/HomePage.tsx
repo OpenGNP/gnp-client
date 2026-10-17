@@ -9,6 +9,7 @@ import { PageContainer } from '../components/layout/PageContainer'
 import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
 import { SkeletonRegion } from '../components/ui/skeleton'
 import { ApiError } from '../lib/api'
+import { showAlert, showConfirm } from '../lib/alertDialog'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
@@ -52,9 +53,13 @@ export function HomePage({ onMoveItem }: HomePageProps) {
 
   async function handleDeleteForm(id: number) {
     const target = forms.find((form) => form.id === id)
-    if (!window.confirm(`Delete "${target?.formTitle ?? 'this form'}"? This can't be undone.`)) {
-      return
-    }
+    const confirmed = await showConfirm({
+      title: 'Delete form?',
+      message: `“${target?.formTitle ?? 'This form'}” and all its responses will be deleted. This can't be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (!confirmed) return
 
     const snapshot = updateCachedForms((current) => current.filter((form) => form.id !== id))
     try {
@@ -63,7 +68,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       queryClient.removeQueries({ queryKey: queryKeys.analytics(id) })
     } catch (error) {
       queryClient.setQueryData(queryKeys.forms, snapshot)
-      window.alert(error instanceof ApiError ? error.message : 'Could not delete the form.')
+      void showAlert(error instanceof ApiError ? error.message : 'Could not delete the form.')
     } finally {
       void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
     }
@@ -85,7 +90,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
         (form.formTitle ?? '').trim().toLowerCase() === trimmed.toLowerCase(),
     )
     if (clashesInSameFolder && trimmed.toLowerCase() !== (target?.formTitle ?? '').trim().toLowerCase()) {
-      window.alert(`A form named “${trimmed}” already exists in this location.`)
+      void showAlert(`A form named “${trimmed}” already exists in this location.`, { title: 'Name already taken' })
       return
     }
 
@@ -96,7 +101,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       await updateForm(id, { formTitle: trimmed })
     } catch (error) {
       queryClient.setQueryData(queryKeys.forms, snapshot)
-      window.alert(error instanceof ApiError ? error.message : 'Could not rename the form.')
+      void showAlert(error instanceof ApiError ? error.message : 'Could not rename the form.')
     } finally {
       settleForms(id)
     }

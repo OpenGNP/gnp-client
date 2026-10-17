@@ -18,10 +18,12 @@ import {
   useFormAccessSettings,
   type FormAccessSettings,
 } from '../hooks/useFormAccessSettings'
+import { useIsSlow } from '../hooks/useIsSlow'
 import { useFormEditorModel } from '../hooks/useFormEditorModel'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { FormLoadError } from '../components/FormLoadError'
 import { ApiError } from '../lib/api'
+import { showAlert } from '../lib/alertDialog'
 import {
   accessSettingsFromForm,
   buildFieldPayloads,
@@ -190,7 +192,7 @@ export function EditFormPage({
       }
     } catch (error) {
       setSaveStatus('error')
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
       )
     }
@@ -205,11 +207,17 @@ export function EditFormPage({
       void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
       void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
     } catch (error) {
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not reopen the form. Please try again.',
       )
     }
   }
+
+  // While a save is in flight the editor is read-only, so nothing typed meanwhile is
+  // silently left out of it. Unlocked again if the server is unusually slow, so a stuck
+  // request never traps anyone.
+  const isSlowSave = useIsSlow(saveStatus === 'saving')
+  const isSaveLocked = saveStatus === 'saving' && !isSlowSave
 
   return (
     <div>
@@ -235,6 +243,8 @@ export function EditFormPage({
               onToggleSettings={() => setIsSettingsOpen((open) => !open)}
               onUpdateFormAccessSettings={updateSettings}
               savedAccessSettings={savedSettings}
+              saveLocked={isSaveLocked}
+              saveSlow={isSlowSave}
               saveStatus={saveStatus}
               shareUrl={publicToken ? `${window.location.origin}/f/${publicToken}` : undefined}
             />
@@ -251,10 +261,13 @@ export function EditFormPage({
           </div>
         ) : (
           <div
+            aria-busy={isSaveLocked || undefined}
             className={cn(
-              'mx-auto flex w-full items-start gap-10.25 max-[1200px]:flex-col max-[1200px]:items-center',
+              'mx-auto flex w-full items-start gap-10.25 transition-opacity max-[1200px]:flex-col max-[1200px]:items-center',
               isSettingsOpen ? 'max-w-[1420px]' : 'max-w-[978px]',
+              isSaveLocked && 'opacity-60',
             )}
+            inert={isSaveLocked}
           >
             <CreateFormCard onChange={update} value={model} />
             {isSettingsOpen ? (

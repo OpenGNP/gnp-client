@@ -18,6 +18,7 @@ import { Circle, Type } from "lucide-react";
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
 import { AddQuestionButton } from "./AddQuestionButton";
 import { CoverImageField } from "./CoverImageField";
+import { showAlert } from "../../lib/alertDialog";
 import { createQuestion } from "./question-types";
 import type {
   Question,
@@ -181,11 +182,11 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   // stages it and previews it locally.
   const handleSelectImage = (file: File) => {
     if (!ALLOWED_COVER_IMAGE_TYPES.includes(file.type)) {
-      window.alert("Please choose a PNG, JPEG, WEBP, or GIF image.");
+      void showAlert("Please choose a PNG, JPEG, WEBP, or GIF image.", { title: "Can't use this image" });
       return;
     }
     if (file.size > MAX_COVER_IMAGE_BYTES) {
-      window.alert("Please choose an image under 5MB.");
+      void showAlert("Please choose an image under 5MB.", { title: "Image too large" });
       return;
     }
     revokeIfBlobUrl(coverImageUrl);

@@ -11,6 +11,7 @@ import { SaveDraftModal, type SaveDraftModalMode } from './components/navigation
 import { NARROW_VIEWPORT_QUERY, Sidebar, type MoveTarget } from './components/navigation/Sidebar'
 import { brand, type ProjectTreeItem } from './data/dashboard'
 import { ApiError } from './lib/api'
+import { showAlert } from './lib/alertDialog'
 import { formPath } from './lib/formPath'
 import { useAuth, useHasOrganization } from './lib/auth'
 import { buildCreateFormPayload } from './lib/formMapping'
@@ -185,10 +186,13 @@ function App() {
     return folderId && /^\d+$/.test(folderId) ? Number(folderId) : undefined
   }
 
-  /** Persist the in-progress create-form draft, drop it into the tree, open its editor. */
-  async function persistNewForm(folderId: string | null, status: 'draft' | 'active') {
+  /**
+   * Persist the in-progress create-form draft, drop it into the tree, open its editor.
+   * Resolves false on failure (already reported), so the save dialog stays open to retry.
+   */
+  async function persistNewForm(folderId: string | null, status: 'draft' | 'active'): Promise<boolean> {
     if (savingNewFormRef.current) {
-      return
+      return false
     }
     savingNewFormRef.current = true
     try {
@@ -209,9 +213,9 @@ function App() {
         try {
           await uploadFormCoverImage(created.id, createFormModel.coverImageFile)
         } catch {
-          window.alert(
-            'The form was saved, but the cover image failed to upload. You can try again from the editor.',
-          )
+          void showAlert('The form was saved, but the cover image failed to upload. You can try again from the editor.', {
+            title: 'Cover image not uploaded',
+          })
         }
       }
 
@@ -226,10 +230,12 @@ function App() {
       setCreateFormModel(emptyFormEditorModel)
       setCreateFormAccessSettings(newFormAccessSettings)
       navigate(formPath(created.urlId))
+      return true
     } catch (error) {
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
       )
+      return false
     } finally {
       savingNewFormRef.current = false
     }
@@ -264,7 +270,7 @@ function App() {
       setIsCreateFormSettingsOpen(false)
       navigate(formPath(created.urlId))
     } catch (error) {
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not create the form. Please try again.',
       )
     } finally {
@@ -288,7 +294,7 @@ function App() {
       markWorkspaceStale(queryClient)
       addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
     } catch (error) {
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not create the folder. Please try again.',
       )
     }
@@ -302,14 +308,15 @@ function App() {
    * check on the reorder call would still see the old container). Folders work the
    * same way: `updateFolder({ parentFolderId })`, then their new siblings' order.
    */
-  async function handleMoveProject(projectId: string, target: MoveTarget) {
+  /** Resolves whether the move landed (failures are reported and rolled back). */
+  async function handleMoveProject(projectId: string, target: MoveTarget): Promise<boolean> {
     const item = findProjectById(projects, projectId)
     const previousFolderId = findParentFolderId(projects, projectId)
     const snapshot = projects
 
     const nextProjects = moveProject(projectId, target)
     if (!item || nextProjects === snapshot) {
-      return // nothing found, or the move was rejected (e.g. folder into its own descendant)
+      return false // nothing found, or the move was rejected (e.g. folder into its own descendant)
     }
 
     const siblings = target.folderId
@@ -327,7 +334,7 @@ function App() {
         numericFolderId <= 0 ||
         folderIds.some((id) => !Number.isInteger(id) || id <= 0)
       ) {
-        return
+        return false
       }
 
       const parentFolderId = parseFolderId(target.folderId) ?? null
@@ -343,13 +350,14 @@ function App() {
         if (!parentChangePersisted) {
           setProjects(snapshot)
         }
-        window.alert(
+        void showAlert(
           error instanceof ApiError ? error.message : 'Could not move the folder. Please try again.',
         )
+        return false
       } finally {
         markWorkspaceStale(queryClient)
       }
-      return
+      return true
     }
 
     const numericFormId = Number(item.formId ?? item.id)
@@ -362,7 +370,7 @@ function App() {
       numericFormId <= 0 ||
       formIds.some((id) => !Number.isInteger(id) || id <= 0)
     ) {
-      return
+      return false
     }
 
     const resolvedFolderId = parseFolderId(target.folderId) ?? null
@@ -382,12 +390,14 @@ function App() {
       if (!folderChangePersisted) {
         setProjects(snapshot)
       }
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not move the form. Please try again.',
       )
+      return false
     } finally {
       markWorkspaceStale(queryClient, numericFormId)
     }
+    return true
   }
 
   async function handleRenameProject(id: string, label: string) {
@@ -407,8 +417,9 @@ function App() {
         exceptId: id,
       })
     ) {
-      window.alert(
+      void showAlert(
         `A ${item.type === 'folder' ? 'folder' : 'form'} named “${trimmed}” already exists in this location.`,
+        { title: 'Name already taken' },
       )
       return
     }
@@ -430,7 +441,7 @@ function App() {
       }
     } catch (error) {
       setProjects(snapshot)
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : 'Could not rename this item. Please try again.',
       )
     } finally {
@@ -471,7 +482,7 @@ function App() {
       }
     } catch (error) {
       setProjects(snapshot)
-      window.alert(
+      void showAlert(
         error instanceof ApiError ? error.message : `Could not delete "${item.label}". Please try again.`,
       )
     } finally {
@@ -512,15 +523,13 @@ function App() {
     setIsSaveDraftModalOpen(true)
   }
 
-  function handleConfirmSaveOrMove(folderId: string | null) {
+  // The dialog waits on this: it stays open (spinner, buttons disabled) until the server
+  // answers, and closes only on success.
+  function handleConfirmSaveOrMove(folderId: string | null): Promise<boolean> {
     if (saveDraftMode === 'move') {
-      if (moveTargetId) {
-        void handleMoveProject(moveTargetId, { folderId })
-      }
-      return
+      return moveTargetId ? handleMoveProject(moveTargetId, { folderId }) : Promise.resolve(true)
     }
-
-    void persistNewForm(folderId, saveDraftMode === 'publish' ? 'active' : 'draft')
+    return persistNewForm(folderId, saveDraftMode === 'publish' ? 'active' : 'draft')
   }
 
   // The SaveDraftModal in 'move' mode acts on either a form or a folder — tell it which,

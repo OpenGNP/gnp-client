@@ -1,4 +1,4 @@
-import { ChevronRight, Folder, FolderPlus } from 'lucide-react'
+import { ChevronRight, Folder, FolderPlus, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
 import type { ProjectTreeItem } from '../../data/dashboard'
@@ -20,24 +20,27 @@ export type SaveDraftModalMode = 'save' | 'publish' | 'move'
 
 const modeCopy: Record<
   SaveDraftModalMode,
-  { title: string; description: string; actionLabel: string; destinationLabel: string }
+  { title: string; description: string; actionLabel: string; busyLabel: string; destinationLabel: string }
 > = {
   save: {
     title: 'Save draft',
     description: 'Choose a location for this form. You can move it later.',
     actionLabel: 'Save',
+    busyLabel: 'Saving…',
     destinationLabel: 'Save to',
   },
   publish: {
     title: 'Publish form',
     description: 'Choose a location to publish this form to. You can move it later.',
     actionLabel: 'Publish',
+    busyLabel: 'Publishing…',
     destinationLabel: 'Publish to',
   },
   move: {
     title: 'Move form',
     description: 'Choose a new location for this form.',
     actionLabel: 'Move',
+    busyLabel: 'Moving…',
     destinationLabel: 'Move to',
   },
 }
@@ -47,7 +50,12 @@ export type SaveDraftModalProps = {
   mode: SaveDraftModalMode
   projects: ProjectTreeItem[]
   onOpenChange: (open: boolean) => void
-  onConfirm: (folderId: string | null) => void
+  /**
+   * Given a promise, the dialog stays open — buttons disabled, a spinner on the action —
+   * until it settles, and closes only if it didn't resolve `false` (a failure, already
+   * reported), so the user can retry without picking the folder again.
+   */
+  onConfirm: (folderId: string | null) => void | Promise<boolean>
   /** 'move' mode only: whether the thing being moved is a form or a folder (drives the copy). */
   moveItemLabel?: 'form' | 'folder'
   /** 'move' mode only: hide this folder from the picker so it can't be moved into itself. */
@@ -89,6 +97,7 @@ export function SaveDraftModal({
 }: SaveDraftModalProps) {
   const [path, setPath] = useState<BreadcrumbEntry[]>([ROOT_ENTRY])
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [isBusy, setIsBusy] = useState(false)
 
   const currentEntry = path[path.length - 1]
   const currentFolder = currentEntry.id ? findFolderById(projects, currentEntry.id) : null
@@ -106,13 +115,25 @@ export function SaveDraftModal({
     setPath((previous) => previous.slice(0, index + 1))
   }
 
-  const handleConfirm = () => {
-    onConfirm(currentEntry.id)
-    onOpenChange(false)
+  const handleConfirm = async () => {
+    const result = onConfirm(currentEntry.id)
+    if (!result) {
+      onOpenChange(false)
+      return
+    }
+    setIsBusy(true)
+    try {
+      if (await result) onOpenChange(false)
+    } finally {
+      setIsBusy(false)
+    }
   }
 
   const folderList = (
-    <div className="mt-3 h-70 overflow-y-auto rounded-[8px] border border-[#e8eaf1] p-2">
+    <div
+      className={cn('mt-3 h-70 overflow-y-auto rounded-[8px] border border-[#e8eaf1] p-2', isBusy && 'opacity-60')}
+      inert={isBusy}
+    >
       {currentFolders.length > 0 || isCreatingFolder ? (
         <>
           {isCreatingFolder && onCreateFolder ? (
@@ -158,8 +179,10 @@ export function SaveDraftModal({
       : modeCopy[mode]
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    // Can't be dismissed mid-request: the result has nowhere else to show.
+    <Dialog onOpenChange={(next) => (isBusy ? undefined : onOpenChange(next))} open={open}>
       <DialogContent
+        aria-busy={isBusy || undefined}
         className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#d2d8e5] bg-white p-7 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
         // Escape while naming a new folder cancels the name, not the whole dialog.
         onEscapeKeyDown={(event) => {
@@ -221,6 +244,7 @@ export function SaveDraftModal({
             <DialogClose asChild>
               <Button
                 className="h-9.5 rounded-[5px] px-4 text-[14px] font-semibold tracking-[0.14px] text-[#726f6f]"
+                disabled={isBusy}
                 variant="ghost"
               >
                 Cancel
@@ -228,9 +252,11 @@ export function SaveDraftModal({
             </DialogClose>
             <Button
               className="h-9.5 rounded-[5px] px-5 text-[14px] font-semibold tracking-[0.14px]"
-              onClick={handleConfirm}
+              disabled={isBusy}
+              onClick={() => void handleConfirm()}
             >
-              {copy.actionLabel}
+              {isBusy ? <RefreshCw className="animate-spin" size={16} /> : null}
+              {isBusy ? copy.busyLabel : copy.actionLabel}
             </Button>
           </div>
         </div>
