@@ -1,6 +1,7 @@
 import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query'
 
 import {
+  getFormIndividualResponses,
   getFormResponseAnalytics,
   getFormThemeAnalytics,
   getFormTrendAnalytics,
@@ -18,6 +19,7 @@ export const queryKeys = {
   formRef: (ref: string) => ['form-ref', ref] as const,
   analytics: (id: number) => ['analytics', id] as const,
   responses: (id: number) => ['analytics', id, 'responses'] as const,
+  individual: (id: number) => ['analytics', id, 'individual'] as const,
   themes: (id: number, query: ThemeQuery) => ['analytics', id, 'themes', query] as const,
   trend: (id: number, query: TrendQuery) => ['analytics', id, 'trend', query] as const,
   publicByToken: (token: string) => ['public-form', 'token', token] as const,
@@ -41,6 +43,9 @@ export const formQuery = (id: number) =>
 
 export const responsesQuery = (id: number) =>
   queryOptions({ queryKey: queryKeys.responses(id), queryFn: () => getFormResponseAnalytics(id) })
+
+export const individualQuery = (id: number) =>
+  queryOptions({ queryKey: queryKeys.individual(id), queryFn: () => getFormIndividualResponses(id) })
 
 // Filtered views keep the previous result on screen while a new range / filter
 // loads (`isPlaceholderData` drives the "Updating…" indicator).

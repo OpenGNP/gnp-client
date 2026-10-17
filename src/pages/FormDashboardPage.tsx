@@ -7,6 +7,7 @@ import {
   Tag,
   TrendingUp,
   TriangleAlert,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -14,12 +15,14 @@ import { useState } from 'react'
 
 import type { FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
-import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
+import { formQuery, individualQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { FormLoadError } from '../components/FormLoadError'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { ExportResponsesMenu } from '../components/dashboard/ExportResponsesMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
+import { IndividualResponseList } from '../components/dashboard/IndividualResponseList'
+import { ResponseDetailPanel } from '../components/dashboard/ResponseDetailPanel'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
@@ -201,6 +204,7 @@ export function FormDashboardPage({
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+  const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
   const detailPanelLayout = useDetailPanelLayout()
   const now = useNow()
 
@@ -269,6 +273,11 @@ export function FormDashboardPage({
   // result on screen meanwhile, which `isPlaceholderData` reports as "Updating…".
   const formResult = useQuery({ ...formQuery(formId), enabled: hasValidId })
   const responsesResult = useQuery({ ...responsesQuery(formId), enabled: hasValidId })
+  // Every answer of every response — only fetched once the Individual tab is opened.
+  const individualResult = useQuery({
+    ...individualQuery(formId),
+    enabled: hasValidId && activeView === 'individual',
+  })
   const themesResult = useQuery({
     ...themesQuery(formId, { from: range?.from, to: range?.to, demo: demoSel }),
     enabled: hasValidId,
@@ -287,6 +296,7 @@ export function FormDashboardPage({
 
   const form = formResult.data ?? null
   const responses = responsesResult.data ?? null
+  const individual = individualResult.data ?? null
 
   // A failed filter change shouldn't blank the tab: keep the last successful
   // themes/trend for this form on screen (only a *first* themes failure is fatal).
@@ -383,6 +393,14 @@ export function FormDashboardPage({
     window.scrollTo({ top: 0 })
   }
 
+  // Themes panel → Individual tab with that response open. The topic stays selected,
+  // so going back to Themes reopens it.
+  const openResponse = (submissionId: number) => {
+    setSelectedResponseId(submissionId)
+    setActiveView('individual')
+    window.scrollTo({ top: 0 })
+  }
+
   // "Hide names" only makes sense when this form recorded some, on a tab that shows them.
   const hasNames =
     (activeView === 'themes' &&
@@ -396,14 +414,29 @@ export function FormDashboardPage({
         (breakdown) =>
           breakdown.kind === 'text' &&
           breakdown.responses.some((response) => typeof response !== 'string' && response.respondentName),
-      ))
+      )) ||
+    (activeView === 'individual' &&
+      !!individual &&
+      individual.responses.some((response) => response.respondentName))
 
-  const selectedTopic =
-    activeView === 'themes' && themes
-      ? ([...themes.violationTopics, ...themes.aiDiscoveredTopics].find(
-          (topic) => topic.id === selectedTopicId,
-        ) ?? null)
-      : null
+  // Found on every tab: the panel stays mounted (just hidden) off Themes, so coming
+  // back finds it as it was — expanded feedback, filters, scroll.
+  const openTopic = themes
+    ? ([...themes.violationTopics, ...themes.aiDiscoveredTopics].find(
+        (topic) => topic.id === selectedTopicId,
+      ) ?? null)
+    : null
+  const selectedTopic = activeView === 'themes' ? openTopic : null
+
+  const selectedResponseIndex =
+    activeView === 'individual' && individual
+      ? individual.responses.findIndex((response) => response.id === selectedResponseId)
+      : -1
+  const selectedResponse = individual?.responses[selectedResponseIndex] ?? null
+  const stepResponse = (offset: number) => {
+    const next = individual?.responses[selectedResponseIndex + offset]
+    if (next) setSelectedResponseId(next.id)
+  }
 
     const topicAxisMax = themes ? computeAxisMax(themes.aiDiscoveredTopics) : undefined
   const showViolationTopics = () => {
@@ -526,7 +559,7 @@ export function FormDashboardPage({
         <div
           className="w-full"
           style={
-            selectedTopic && detailPanelLayout.mode === 'docked'
+            (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
               ? { paddingRight: detailPanelLayout.width }
               : undefined
           }
@@ -543,6 +576,8 @@ export function FormDashboardPage({
                 <div className="flex items-center gap-2.5">
                   {activeView === 'themes' ? (
                     <Tag className="shrink-0 text-[#1e55c5]" size={24} />
+                  ) : activeView === 'individual' ? (
+                    <UserRound className="shrink-0 text-[#1e55c5]" size={24} />
                   ) : (
                     <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
                   )}
@@ -554,7 +589,9 @@ export function FormDashboardPage({
                         ? themes?.title
                         : activeView === 'trend'
                           ? 'Trend Overview'
-                          : 'Response Overview'}
+                          : activeView === 'individual'
+                            ? 'Individual Responses'
+                            : 'Response Overview'}
                     </h1>
                   )}
                 </div>
@@ -684,6 +721,27 @@ export function FormDashboardPage({
               )
             ) : null}
 
+            {activeView === 'individual' ? (
+              individualResult.isError ? (
+                <FormLoadError
+                  error={individualResult.error}
+                  fallbackMessage="Could not load the responses."
+                  onRetry={() => void individualResult.refetch()}
+                />
+              ) : !individual ? (
+                <ContentSkeleton label="Loading responses…" />
+              ) : individual.responses.length === 0 ? (
+                <EmptyNote>No responses have been submitted yet.</EmptyNote>
+              ) : (
+                <IndividualResponseList
+                  data={individual}
+                  hideNames={hideNames}
+                  onSelect={setSelectedResponseId}
+                  selectedId={selectedResponse?.id ?? null}
+                />
+              )
+            ) : null}
+
             {activeView === 'trend' && !trendReady ? (
               <ContentSkeleton label="Loading trend…" />
             ) : null}
@@ -784,16 +842,32 @@ export function FormDashboardPage({
         </div>
       </div>
 
-      {selectedTopic && themes ? (
+      {openTopic && themes ? (
         <TopicDetailPanel
           demographicFilters={themes.demographicFilters}
-          key={selectedTopic.id}
+          hidden={activeView !== 'themes'}
+          key={openTopic.id}
           mainDemoSelection={demoSel}
           onClose={() => setSelectedTopicId(null)}
           hideNames={hideNames}
-          onCompareInTrend={() => compareInTrend(selectedTopic.id)}
-          topic={selectedTopic}
+          onCompareInTrend={() => compareInTrend(openTopic.id)}
+          onOpenResponse={openResponse}
+          topic={openTopic}
           layout={detailPanelLayout}
+        />
+      ) : null}
+
+      {selectedResponse && individual ? (
+        <ResponseDetailPanel
+          fields={individual.fields}
+          hideNames={hideNames}
+          index={selectedResponseIndex}
+          layout={detailPanelLayout}
+          onClose={() => setSelectedResponseId(null)}
+          onNext={() => stepResponse(1)}
+          onPrevious={() => stepResponse(-1)}
+          response={selectedResponse}
+          total={individual.responses.length}
         />
       ) : null}
     </div>
