@@ -4,11 +4,22 @@ import type { IndividualField, IndividualResponse } from '../../api/analytics'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
 import { formatDateTime } from '../../lib/responseWindow'
 import { DetailPanel } from './DetailPanel'
+import { Highlight } from './Highlight'
 
 const navButtonClass =
   'inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-[#e8eaf1] bg-white px-2.5 text-[12px] font-semibold text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white'
 
-function FieldAnswer({ field, number, values }: { field: IndividualField; number: number; values: string[] }) {
+function FieldAnswer({
+  field,
+  number,
+  values,
+  query,
+}: {
+  field: IndividualField
+  number: number
+  values: string[]
+  query: string
+}) {
   return (
     <div className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
       <div className="flex items-start gap-2">
@@ -26,13 +37,13 @@ function FieldAnswer({ field, number, values }: { field: IndividualField; number
               className="rounded-full border border-[#d6e0f7] bg-white px-2.5 py-1 text-[13px] text-[#3f4045]"
               key={value}
             >
-              {value}
+              <Highlight query={query} text={value} />
             </span>
           ))}
         </div>
       ) : (
         <p className="m-0 rounded-[8px] bg-[#f7f8fb] px-3 py-2 text-[13px] leading-5.5 wrap-break-word whitespace-pre-wrap text-[#3f4045]">
-          {values.join(', ')}
+          <Highlight query={query} text={values.join(', ')} />
         </p>
       )}
     </div>
@@ -44,9 +55,11 @@ export type ResponseDetailPanelProps = {
   /** From `responseLabels`. */
   label: string
   fields: IndividualField[]
-  /** Position in the list (0-based) and its length, for "3 of 45". */
+  /** Position among the search results (0-based; -1: not among them) and their count, for "3 of 45". */
   index: number
   total: number
+  /** The list's search, highlighted in the answers. */
+  query: string
   onPrevious: () => void
   onNext: () => void
   onClose: () => void
@@ -65,6 +78,7 @@ export function ResponseDetailPanel({
   onClose,
   hideNames,
   layout,
+  query,
 }: ResponseDetailPanelProps) {
   const sections = [
     { title: 'Demographic', fields: fields.filter((field) => field.section === 'demographic') },
@@ -94,14 +108,14 @@ export function ResponseDetailPanel({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <button className={navButtonClass} disabled={index === 0} onClick={onPrevious} type="button">
+        <button className={navButtonClass} disabled={index <= 0} onClick={onPrevious} type="button">
           <ChevronLeft size={14} />
           Previous
         </button>
         <span className="text-[12px] font-medium text-[#726f6f]">
-          {index + 1} of {total}
+          {index >= 0 ? `${index + 1} of ${total}` : 'Not in search results'}
         </span>
-        <button className={navButtonClass} disabled={index === total - 1} onClick={onNext} type="button">
+        <button className={navButtonClass} disabled={index < 0 || index === total - 1} onClick={onNext} type="button">
           Next
           <ChevronRight size={14} />
         </button>
@@ -116,6 +130,7 @@ export function ResponseDetailPanel({
                 field={field}
                 key={field.id}
                 number={displayed.indexOf(field) + 1}
+                query={query}
                 values={response.answers[field.id] ?? []}
               />
             ))}

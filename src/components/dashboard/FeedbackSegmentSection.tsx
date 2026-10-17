@@ -1,7 +1,8 @@
-import { AlertTriangle, ArrowRight, ChevronDown, MessageSquareText, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ChevronDown, MessageSquareText, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
+import { includesNeedle, toNeedle } from '../../lib/textSearch'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
 import {
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
+import { Highlight } from './Highlight'
 import { ViolationTooltip } from './ViolationTooltip'
 
 type SortOption = 'newest' | 'oldest'
@@ -48,12 +50,20 @@ function FeedbackPointCard({
   point,
   showName,
   onOpenResponse,
+  query,
 }: {
   point: FeedbackPoint
   showName: boolean
   onOpenResponse?: (submissionId: number) => void
+  /** The section's search, highlighted. */
+  query: string
 }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  // null = untouched: the original opens by itself when the search only matched there.
+  const [expandedChoice, setIsExpanded] = useState<boolean | null>(null)
+  const needle = toNeedle(query)
+  const matchedOnlyOriginal =
+    needle !== '' && !includesNeedle(point.quote, needle) && includesNeedle(point.originalFeedback, needle)
+  const isExpanded = expandedChoice ?? matchedOnlyOriginal
 
   return (
     <div className="flex flex-col gap-2.5 rounded-[10px] border border-[#e9eaed] p-4">
@@ -77,11 +87,13 @@ function FeedbackPointCard({
         ) : null}
       </div>
 
-      <p className="m-0 text-[13px] leading-[1.6] text-[#14181f]">“{point.quote}”</p>
+      <p className="m-0 text-[13px] leading-[1.6] text-[#14181f]">
+        “<Highlight query={query} text={point.quote} />”
+      </p>
 
       <button
         className="flex w-fit cursor-pointer items-center gap-1 text-[12px] font-medium text-[#1e55c5]"
-        onClick={() => setIsExpanded((value) => !value)}
+        onClick={() => setIsExpanded(!isExpanded)}
         type="button"
       >
         {isExpanded ? 'Hide original Feedback' : 'Show original Feedback'}
@@ -99,7 +111,7 @@ function FeedbackPointCard({
               {showName ? (
                 <>
                   <span className={point.respondentName ? 'font-medium text-[#3f4045]' : undefined}>
-                    {point.respondentName ?? 'Anonymous'}
+                    <Highlight query={query} text={point.respondentName ?? 'Anonymous'} />
                   </span>
                   {' · '}
                 </>
@@ -119,7 +131,9 @@ function FeedbackPointCard({
               ))}
             </div>
           ) : null}
-          <p className="m-0 text-[12px] leading-[1.6] text-[#3f4045]">{point.originalFeedback}</p>
+          <p className="m-0 text-[12px] leading-[1.6] text-[#3f4045]">
+            <Highlight query={query} text={point.originalFeedback} />
+          </p>
           {onOpenResponse && point.submissionId !== undefined ? (
             <button
               className="flex w-fit cursor-pointer items-center gap-1 text-[12px] font-medium text-[#1e55c5] hover:underline"
@@ -152,6 +166,8 @@ export type FeedbackSegmentSectionProps = {
   hideNames?: boolean
   /** Opens a point's whole response in the Individual tab. */
   onOpenResponse?: (submissionId: number) => void
+  /** Pre-fills the search — the Themes Overview search the topic was opened from. */
+  initialQuery?: string
 }
 
 export function FeedbackSegmentSection({
@@ -162,8 +178,10 @@ export function FeedbackSegmentSection({
   onClearPeriod,
   hideNames = false,
   onOpenResponse,
+  initialQuery = '',
 }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
+  const [query, setQuery] = useState(initialQuery)
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
   // Keyed by the form's demographic question label — whatever questions the form has.
   const [selectedDemos, setSelectedDemos] = useState<Record<string, Set<string>>>(() =>
@@ -220,7 +238,17 @@ export function FeedbackSegmentSection({
     }))
 
   const visiblePoints = useMemo(() => {
+    const needle = toNeedle(query)
     const filtered = feedbackSegment.filter((point) => {
+      // Names are searchable only while they're shown.
+      if (
+        needle &&
+        !includesNeedle(point.quote, needle) &&
+        !includesNeedle(point.originalFeedback, needle) &&
+        !(showNames && includesNeedle(point.respondentName, needle))
+      ) {
+        return false
+      }
       if (period && point.volumeBucket !== period.index) return false
       if (violationsOnly && !point.violation) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
@@ -243,7 +271,7 @@ export function FeedbackSegmentSection({
         ? b.submittedAt.localeCompare(a.submittedAt)
         : a.submittedAt.localeCompare(b.submittedAt)
     })
-  }, [feedbackSegment, period, violationsOnly, selectedSentiments, selectedDemos, sortOption])
+  }, [feedbackSegment, period, violationsOnly, selectedSentiments, selectedDemos, sortOption, query, showNames])
 
   return (
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
@@ -315,16 +343,44 @@ export function FeedbackSegmentSection({
         </div>
       </div>
 
+      <div className="flex items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-2.5 py-2 focus-within:border-[#1e55c5]">
+        <Search className="shrink-0 text-[#929292]" size={14} />
+        <input
+          aria-label="Search this topic's feedback"
+          className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#929292]"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search feedback…"
+          type="text"
+          value={query}
+        />
+        {query ? (
+          <button
+            aria-label="Clear search"
+            className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#929292] hover:bg-[#f7f8fb] hover:text-black"
+            onClick={() => setQuery('')}
+            type="button"
+          >
+            <X size={13} />
+          </button>
+        ) : null}
+      </div>
+
       {visiblePoints.length > 0 ? (
         <div className="flex flex-col gap-3">
           {visiblePoints.map((point) => (
-            <FeedbackPointCard key={point.id} onOpenResponse={onOpenResponse} point={point} showName={showNames} />
+            <FeedbackPointCard
+              key={point.id}
+              onOpenResponse={onOpenResponse}
+              point={point}
+              query={query}
+              showName={showNames}
+            />
           ))}
         </div>
       ) : (
         <p className="m-0 flex items-center gap-1.5 text-[12px] text-[#929292]">
           <MessageSquareText size={14} />
-          No feedback matches this filter.
+          {query.trim() ? `No feedback matches “${query.trim()}” with these filters.` : 'No feedback matches this filter.'}
         </p>
       )}
     </div>

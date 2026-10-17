@@ -104,6 +104,8 @@ export type TopicDetailPanelProps = {
   hideNames?: boolean
   /** Opens a feedback point's whole response in the Individual tab. */
   onOpenResponse?: (submissionId: number) => void
+  /** The Themes Overview search, carried into the panel's feedback search. */
+  initialQuery?: string
   /** Kept mounted but out of sight while another dashboard tab is showing. */
   hidden?: boolean
   /** Docked beside the content, or a drawer over it when docking would be too narrow. */
@@ -117,6 +119,7 @@ export function TopicDetailPanel({
   hideNames,
   hidden,
   onOpenResponse,
+  initialQuery,
   layout,
   demographicFilters,
   mainDemoSelection,
@@ -317,6 +320,7 @@ export function TopicDetailPanel({
         key={JSON.stringify(mainDemoSelection ?? {})}
         mainDemoSelection={mainDemoSelection}
         onClearPeriod={() => setPicked(null)}
+        initialQuery={initialQuery}
         onOpenResponse={onOpenResponse}
         period={period}
       />
