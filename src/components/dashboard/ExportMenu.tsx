@@ -10,13 +10,15 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 
-export type ExportOption = {
-  label: string
-  icon: LucideIcon
-  /** File extension, without the dot. */
-  extension: string
-  download: () => Promise<Blob>
-}
+export type ExportOption = { label: string; icon: LucideIcon } & (
+  | {
+      /** File extension, without the dot. */
+      extension: string
+      download: () => Promise<Blob>
+    }
+  /** Not a download, e.g. opening the print dialog for a PDF report. */
+  | { run: () => void }
+)
 
 /** "<form title> - <what>.<ext>", without characters file systems reject. */
 function exportFileName(title: string | null, what: string, extension: string): string {
@@ -45,6 +47,10 @@ export function ExportMenu({
   const [failed, setFailed] = useState(false)
 
   const download = async (option: ExportOption) => {
+    if ('run' in option) {
+      option.run()
+      return
+    }
     setPending(true)
     setFailed(false)
     try {
@@ -75,7 +81,7 @@ export function ExportMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {options.map((option) => (
-            <DropdownMenuItem key={option.extension} onSelect={() => void download(option)}>
+            <DropdownMenuItem key={option.label} onSelect={() => void download(option)}>
               <option.icon size={14} />
               {option.label}
             </DropdownMenuItem>

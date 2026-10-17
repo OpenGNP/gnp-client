@@ -5,6 +5,7 @@ import {
   EyeOff,
   FileSpreadsheet,
   FileText,
+  Printer,
   RefreshCw,
   Tag,
   TrendingUp,
@@ -13,12 +14,14 @@ import {
   Users,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { downloadFormResponses, downloadFormThemes, type FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
 import { formQuery, individualQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { FormLoadError } from '../components/FormLoadError'
+import { PrintPortal } from '../components/report/PrintPortal'
+import { ThemesReport } from '../components/report/ThemesReport'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { ExportMenu } from '../components/dashboard/ExportMenu'
@@ -205,6 +208,9 @@ export function FormDashboardPage({
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
   const [responseQuery, setResponseQuery] = useState('')
   const [topicQuery, setTopicQuery] = useState('')
+  // The Themes PDF report, while its print dialog is open.
+  const [printingReport, setPrintingReport] = useState(false)
+  const finishPrinting = useCallback(() => setPrintingReport(false), [])
   const detailPanelLayout = useDetailPanelLayout()
   const now = useNow()
 
@@ -527,7 +533,17 @@ export function FormDashboardPage({
 
   // The chosen demographic answers as removable chips, on a line under the filter
   // row (the date range shows itself on its own button, with its own ✕).
-  const activeFilterChips: ActiveFilterChip[] = Object.entries(demoSel).flatMap(
+  // The filters the Themes numbers (and their exports) are limited to; empty = all feedback.
+  const themesScope =
+    themes && (range !== null || activeDemoCount > 0)
+      ? [
+          themes.rangeLabel,
+          ...Object.entries(demoSel)
+            .filter(([, values]) => values.length > 0)
+            .map(([label, values]) => `${label} = ${values.join(', ')}`),
+        ]
+      : []
+    const activeFilterChips: ActiveFilterChip[] = Object.entries(demoSel).flatMap(
     ([label, values]) =>
       values.map((value) => ({
         id: `demo:${label}:${value}`,
@@ -663,17 +679,9 @@ export function FormDashboardPage({
                               !hideNames,
                             ),
                         },
+                        { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
                       ]}
-                      scope={
-                        range === null && activeDemoCount === 0
-                          ? undefined
-                          : [
-                              themes.rangeLabel,
-                              ...Object.entries(demoSel)
-                                .filter(([, values]) => values.length > 0)
-                                .map(([label, values]) => `${label} = ${values.join(', ')}`),
-                            ]
-                      }
+                      scope={themesScope}
                       what="AI analysis"
                     />
                   ) : null}
@@ -922,6 +930,12 @@ export function FormDashboardPage({
           topic={openTopic}
           layout={detailPanelLayout}
         />
+      ) : null}
+
+      {printingReport && form && themes ? (
+        <PrintPortal onDone={finishPrinting} title={`${form.formTitle?.trim() || 'Form'} - AI analysis`}>
+          <ThemesReport formTitle={form.formTitle?.trim() || 'Untitled form'} scope={themesScope} themes={themes} />
+        </PrintPortal>
       ) : null}
 
       {selectedResponse && individual ? (
