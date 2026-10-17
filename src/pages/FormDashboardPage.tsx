@@ -41,6 +41,7 @@ import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import { Switch } from '../components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
@@ -110,6 +111,8 @@ function StatCard({
   deltaClassName,
   onClick,
   actionLabel,
+  note,
+  noteTooltip,
 }: {
   icon: React.ReactNode
   iconBgClassName: string
@@ -122,6 +125,10 @@ function StatCard({
   onClick?: () => void
   /** Accessible name for the button, when `onClick` is set. */
   actionLabel?: string
+  /** A grey aside beside the big number. */
+  note?: string
+  /** Explains `note` on hover. */
+  noteTooltip?: string
 }) {
   const Root = onClick ? 'button' : 'div'
   return (
@@ -141,14 +148,30 @@ function StatCard({
       </div>
       <div className="flex min-w-0 flex-col gap-2.5">
         <p className="m-0 truncate text-[12px] font-medium text-[#929292]">{label}</p>
-        <p className="m-0 text-[20px] font-bold text-[#14181f]">{value}</p>
+        <p className="m-0 flex min-w-0 items-baseline gap-2">
+          <span className="text-[20px] font-bold text-[#14181f]">{value}</span>
+          {note ? (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <span className="cursor-help truncate text-[12px] font-medium text-[#929292] underline decoration-dotted underline-offset-2">
+                  {note}
+                </span>
+              </TooltipTrigger>
+              {noteTooltip ? (
+                <TooltipContent className="max-w-64 whitespace-normal leading-4.5" side="top">
+                  {noteTooltip}
+                </TooltipContent>
+              ) : null}
+            </Tooltip>
+          ) : null}
+        </p>
         {/* Always one line tall, even when empty or wrapping: a second line spills into
             the card's bottom padding, so the big number never moves (and lines up across cards). */}
         <div className={`flex h-4 min-w-0 items-start gap-0.5 text-[12px] leading-4 font-medium ${deltaClassName}`}>
           {deltaLabel ? (
             <>
               <ArrowUp className="shrink-0" size={15} />
-              <span>{deltaLabel}</span>
+              <span className="whitespace-nowrap">{deltaLabel}</span>
             </>
           ) : null}
         </div>
@@ -469,6 +492,8 @@ export function FormDashboardPage({
         icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
         iconBgClassName="bg-[#edf2fd]"
         label="Total Responses"
+        note={themes.awaitingAnalysis ? `${themes.awaitingAnalysis} pending analysis` : undefined}
+        noteTooltip="AI analysis runs automatically. These responses are counted here, but their feedback won't appear in topics or sentiment until they're analysed."
         value={themes.totalResponders}
       />
 
