@@ -38,6 +38,7 @@ import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
+import { FolderBreadcrumb } from '../components/navigation/FolderBreadcrumb'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
@@ -181,11 +182,14 @@ function openRangeLabel(form: ApiFormDetail): string {
 }
 
 export type FormDashboardPageProps = {
+  /** Folders containing this form, outermost first (empty: at the root of My Project). */
+  folderPath?: { id: string; label: string }[]
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
 }
 
 export function FormDashboardPage({
+  folderPath = [],
   showSidebarToggle = false,
   onToggleSidebar,
 }: FormDashboardPageProps) {
@@ -548,6 +552,7 @@ export function FormDashboardPage({
 
       <div className="flex flex-col gap-3 px-10 pt-5 pb-16 max-[900px]:px-6 max-[560px]:px-4">
         {/* The form's name heads every tab, so a screenshot or screen-share shows which form it is. */}
+        <FolderBreadcrumb path={folderPath} />
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {form ? (
             <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
