@@ -44,7 +44,6 @@ import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
 import { useDetailPanelLayout } from '../hooks/useDetailPanelLayout'
 import { useNow } from '../hooks/useNow'
-import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
 import { ContentSkeleton } from '../components/skeletons/DashboardSkeleton'
 import { Skeleton } from '../components/ui/skeleton'
@@ -84,7 +83,7 @@ function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
         <RefreshCw className="text-[#3f4045]" size={22} strokeWidth={1.8} />
         <span className="font-medium text-[#929292]">Last update</span>
         {form ? (
-          <span className="font-bold text-[#14181f]">{formatRelativeTime(form.updatedAt)}</span>
+          <span className="font-bold text-[#14181f]">{formatDateTime(form.updatedAt)}</span>
         ) : (
           <Skeleton className="h-3.5 w-16" />
         )}
