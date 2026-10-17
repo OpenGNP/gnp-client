@@ -113,6 +113,25 @@ export type ThemeQuery = {
   demo?: Record<string, string[]>
 }
 
+/** The Themes tab as xlsx (Summary, Topics, Feedback), under the same filters as `query`. */
+export async function downloadFormThemes(
+  formId: number,
+  query: ThemeQuery,
+  includeNames: boolean,
+): Promise<Blob> {
+  const params = new URLSearchParams()
+  if (query.from) params.set('from', query.from)
+  if (query.to) params.set('to', query.to)
+  setDemoParam(params, query.demo)
+  const tz = viewerTimeZone()
+  if (tz) params.set('tz', tz)
+  if (!includeNames) params.set('names', '0')
+  const response = await httpClient.get<Blob>(`/analytics/forms/${formId}/themes/export?${params}`, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
 export function getFormThemeAnalytics(
   formId: number,
   query: ThemeQuery = {},

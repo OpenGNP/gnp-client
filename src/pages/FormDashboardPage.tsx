@@ -3,6 +3,8 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  FileSpreadsheet,
+  FileText,
   RefreshCw,
   Tag,
   TrendingUp,
@@ -13,13 +15,13 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import type { FormThemeAnalytics } from '../api/analytics'
+import { downloadFormResponses, downloadFormThemes, type FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
 import { formQuery, individualQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { FormLoadError } from '../components/FormLoadError'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
-import { ExportResponsesMenu } from '../components/dashboard/ExportResponsesMenu'
+import { ExportMenu } from '../components/dashboard/ExportMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { IndividualResponseList } from '../components/dashboard/IndividualResponseList'
 import { ResponseDetailPanel } from '../components/dashboard/ResponseDetailPanel'
@@ -624,10 +626,55 @@ export function FormDashboardPage({
                     </label>
                   ) : null}
                   {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
-                    <ExportResponsesMenu
-                      formId={formId}
+                    <ExportMenu
                       formTitle={form.formTitle}
                       includeNames={!hasNames || !hideNames}
+                      options={[
+                        {
+                          label: 'Excel (.xlsx)',
+                          icon: FileSpreadsheet,
+                          extension: 'xlsx',
+                          download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
+                        },
+                        {
+                          label: 'CSV (.csv)',
+                          icon: FileText,
+                          extension: 'csv',
+                          download: () => downloadFormResponses(formId, 'csv', !hideNames),
+                        },
+                      ]}
+                      what="responses"
+                    />
+                  ) : null}
+                  {/* Exports what's on screen: the same date range and demographic filter. */}
+                  {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
+                    <ExportMenu
+                      formTitle={form.formTitle}
+                      includeNames={!hasNames || !hideNames}
+                      options={[
+                        {
+                          label: 'Excel (.xlsx)',
+                          icon: FileSpreadsheet,
+                          extension: 'xlsx',
+                          download: () =>
+                            downloadFormThemes(
+                              formId,
+                              { from: range?.from, to: range?.to, demo: demoSel },
+                              !hideNames,
+                            ),
+                        },
+                      ]}
+                      scope={
+                        range === null && activeDemoCount === 0
+                          ? undefined
+                          : [
+                              themes.rangeLabel,
+                              ...Object.entries(demoSel)
+                                .filter(([, values]) => values.length > 0)
+                                .map(([label, values]) => `${label} = ${values.join(', ')}`),
+                            ]
+                      }
+                      what="AI analysis"
                     />
                   ) : null}
                 </div>
