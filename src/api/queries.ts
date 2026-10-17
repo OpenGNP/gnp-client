@@ -10,6 +10,7 @@ import {
 } from './analytics'
 import { listFolders } from './folders'
 import { getForm, getPublicFormByToken, listForms, resolveFormRef } from './forms'
+import { resolveSession } from '../lib/auth'
 
 /** Every query key lives here so invalidation can't drift from the queries themselves. */
 export const queryKeys = {
@@ -23,6 +24,7 @@ export const queryKeys = {
   themes: (id: number, query: ThemeQuery) => ['analytics', id, 'themes', query] as const,
   trend: (id: number, query: TrendQuery) => ['analytics', id, 'trend', query] as const,
   publicByToken: (token: string) => ['public-form', 'token', token] as const,
+  session: ['session'] as const,
 }
 
 export const formsQuery = () => queryOptions({ queryKey: queryKeys.forms, queryFn: () => listForms() })
@@ -72,6 +74,10 @@ export const publicFormByTokenQuery = (token: string) =>
     staleTime: 0,
     gcTime: 0,
   })
+
+/** Who's signed in (null: nobody) — for pages outside AuthProvider, like the public form. */
+export const sessionQuery = () =>
+  queryOptions({ queryKey: queryKeys.session, queryFn: () => resolveSession(false), staleTime: Infinity, retry: false })
 
 /**
  * After the sidebar/Files tree has already applied an edit locally: mark the
