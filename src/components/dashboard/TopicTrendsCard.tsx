@@ -124,6 +124,18 @@ export function TopicTrendsCard({
   // whichever line the pointer passes). Clicking another topic moves the pin.
   const focusTopic = pinnedTopic ?? hoveredTopic
   const togglePin = (id: string) => onPinnedTopicChange(pinnedTopic === id ? null : id)
+  // The pointer is over the lines (not the sentiment strip): only there does a click pin.
+  const [overLines, setOverLines] = useState(false)
+  // What clicking `id` will do — one wording for the chart's lines and the panel's rows.
+  const pinHint = (id: string, label: string) =>
+    pinnedTopic === id
+      ? 'Pinned — click to unpin'
+      : pinnedTopic
+        ? `Click to highlight ${label} instead`
+        : 'Click to keep this topic highlighted'
+  const hoveredLabel = series.find((entry) => entry.id === hoveredTopic)?.label
+  const lineClickNote =
+    overLines && hoveredTopic && hoveredLabel ? pinHint(hoveredTopic, hoveredLabel) : undefined
 
   const colorById = new Map(series.map((entry, index) => [entry.id, colorFor(index)]))
   const summaryById = new Map(summaries.map((summary) => [summary.id, summary]))
@@ -197,10 +209,14 @@ export function TopicTrendsCard({
               <LineChart
                 data={data}
                 margin={CHART_MARGIN}
-                onMouseLeave={() => setHoverIndex(null)}
+                onMouseLeave={() => {
+                  setHoverIndex(null)
+                  setOverLines(false)
+                }}
                 onMouseMove={(state) => {
                   const index = Number(state.activeTooltipIndex)
                   setHoverIndex(Number.isInteger(index) ? index : null)
+                  setOverLines(true)
                 }}
                 syncId={SYNC_ID}
               >
@@ -316,6 +332,7 @@ export function TopicTrendsCard({
                       <PeriodSentimentTooltip
                         counts={stripPoint.counts}
                         label={stripPoint.label}
+                        note={lineClickNote}
                         scope={focusEntry ? focusEntry.label : 'All topics'}
                         shares={stripPoint}
                       />
@@ -441,7 +458,7 @@ export function TopicTrendsCard({
                         counts={sentiment}
                         delta={delta}
                         label={periodLabel}
-                        note={pinned ? 'Pinned — click to unpin' : 'Click to keep this topic highlighted'}
+                        note={pinHint(entry.id, entry.label)}
                         scope={entry.label}
                         shares={sharesOf(sentiment)}
                       />

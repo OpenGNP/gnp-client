@@ -32,8 +32,9 @@ export function ViolationTooltip({
           <TriangleAlert className="mt-0.5 shrink-0 text-[#e0507a]" size={13} />
           {headline(scope, count)}
         </span>
+        {/* Matches gnp-ai's zero-shot labels (pipeline/violation.py ZEROSHOT_LABELS). */}
         <span className="mt-0.5 block pl-5 text-[11px] text-[#726f6f]">
-          Means: offensive, abusive or threatening language.
+          Means: a breach of law, ethics or morals.
         </span>
         {/* Only where someone acts on a single piece of feedback. */}
         {scope === 'point' ? (
