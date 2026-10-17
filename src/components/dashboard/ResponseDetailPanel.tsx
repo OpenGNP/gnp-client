@@ -4,7 +4,6 @@ import type { IndividualField, IndividualResponse } from '../../api/analytics'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
 import { formatDateTime } from '../../lib/responseWindow'
 import { DetailPanel } from './DetailPanel'
-import { responseLabel } from './responseLabel'
 
 const navButtonClass =
   'inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-[#e8eaf1] bg-white px-2.5 text-[12px] font-semibold text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white'
@@ -42,6 +41,8 @@ function FieldAnswer({ field, number, values }: { field: IndividualField; number
 
 export type ResponseDetailPanelProps = {
   response: IndividualResponse
+  /** From `responseLabels`. */
+  label: string
   fields: IndividualField[]
   /** Position in the list (0-based) and its length, for "3 of 45". */
   index: number
@@ -55,6 +56,7 @@ export type ResponseDetailPanelProps = {
 
 export function ResponseDetailPanel({
   response,
+  label,
   fields,
   index,
   total,
@@ -75,7 +77,7 @@ export function ResponseDetailPanel({
     <DetailPanel layout={layout} onClose={onClose}>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="m-0 text-[18px] font-bold text-black">{responseLabel(response, hideNames)}</h2>
+          <h2 className="m-0 text-[18px] font-bold text-black">{label}</h2>
           <button
             aria-label="Close response"
             className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-black transition-colors hover:bg-[#f7f8fb]"

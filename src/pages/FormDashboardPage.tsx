@@ -24,6 +24,7 @@ import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { IndividualResponseList } from '../components/dashboard/IndividualResponseList'
 import { ResponseDetailPanel } from '../components/dashboard/ResponseDetailPanel'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
+import { responseLabels } from '../components/dashboard/responseLabel'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
@@ -433,6 +434,7 @@ export function FormDashboardPage({
       ? individual.responses.findIndex((response) => response.id === selectedResponseId)
       : -1
   const selectedResponse = individual?.responses[selectedResponseIndex] ?? null
+  const individualLabels = individual ? responseLabels(individual.responses, hideNames) : new Map<number, string>()
   const stepResponse = (offset: number) => {
     const next = individual?.responses[selectedResponseIndex + offset]
     if (next) setSelectedResponseId(next.id)
@@ -735,7 +737,7 @@ export function FormDashboardPage({
               ) : (
                 <IndividualResponseList
                   data={individual}
-                  hideNames={hideNames}
+                  labels={individualLabels}
                   onSelect={setSelectedResponseId}
                   selectedId={selectedResponse?.id ?? null}
                 />
@@ -862,6 +864,7 @@ export function FormDashboardPage({
           fields={individual.fields}
           hideNames={hideNames}
           index={selectedResponseIndex}
+          label={individualLabels.get(selectedResponse.id) ?? ''}
           layout={detailPanelLayout}
           onClose={() => setSelectedResponseId(null)}
           onNext={() => stepResponse(1)}
