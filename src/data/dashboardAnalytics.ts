@@ -18,6 +18,8 @@ export type FeedbackPoint = {
   violation?: boolean
   quote: string
   originalFeedback: string
+  /** The response this came from (opens it in the Individual tab). Absent from older servers. */
+  submissionId?: number
   submittedAt: string
   /** Who wrote it, when the form recorded names; null = anonymous. Absent from older servers. */
   respondentName?: string | null

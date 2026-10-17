@@ -1,8 +1,8 @@
-import { BarChart3, Tag, TrendingUp } from 'lucide-react'
+import { BarChart3, Tag, TrendingUp, UserRound } from 'lucide-react'
 
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
 
-export type DashboardView = 'themes' | 'trend' | 'response'
+export type DashboardView = 'themes' | 'trend' | 'response' | 'individual'
 
 export type DashboardViewTabsProps = {
   activeView: DashboardView
@@ -13,6 +13,7 @@ const dashboardViews: { value: DashboardView; label: string; icon: typeof Tag }[
   { value: 'themes', label: 'Themes', icon: Tag },
   { value: 'trend', label: 'Trend', icon: TrendingUp },
   { value: 'response', label: 'Response', icon: BarChart3 },
+  { value: 'individual', label: 'Individual', icon: UserRound },
 ]
 
 export function DashboardViewTabs({ activeView, onSelectView }: DashboardViewTabsProps) {

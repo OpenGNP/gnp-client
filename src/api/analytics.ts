@@ -31,6 +31,32 @@ export type FormResponseAnalytics = {
   feedback: DemographicBreakdown[]
 }
 
+/** A question as the Individual tab lists it; removed ones that still hold answers end in "(removed)". */
+export type IndividualField = {
+  id: number
+  title: string
+  section: 'demographic' | 'feedback'
+  type: string
+}
+
+export type IndividualResponse = {
+  id: number
+  /** 1 = the first response ever submitted. */
+  number: number
+  submittedAt: string | null
+  /** Only when the form recorded names. */
+  respondentName: string | null
+  /** fieldId → answers; several for multi-select, "Other: …" for an Other answer. */
+  answers: Record<string, string[]>
+}
+
+export type FormIndividualResponses = { fields: IndividualField[]; responses: IndividualResponse[] }
+
+/** Each submission's full answers, newest first — the Dashboard's Individual tab. */
+export function getFormIndividualResponses(formId: number): Promise<FormIndividualResponses> {
+  return apiGet<FormIndividualResponses>(`/analytics/forms/${formId}/individual`)
+}
+
 export type ResponseExportFormat = 'xlsx' | 'csv'
 
 /** The form's raw responses as a file — one row per submission, one column per question. */

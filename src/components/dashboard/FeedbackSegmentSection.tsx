@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, MessageSquareText, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ChevronDown, MessageSquareText, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
@@ -44,7 +44,15 @@ function toggleInSet<T>(set: Set<T>, value: T) {
   return next
 }
 
-function FeedbackPointCard({ point, showName }: { point: FeedbackPoint; showName: boolean }) {
+function FeedbackPointCard({
+  point,
+  showName,
+  onOpenResponse,
+}: {
+  point: FeedbackPoint
+  showName: boolean
+  onOpenResponse?: (submissionId: number) => void
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -112,6 +120,16 @@ function FeedbackPointCard({ point, showName }: { point: FeedbackPoint; showName
             </div>
           ) : null}
           <p className="m-0 text-[12px] leading-[1.6] text-[#3f4045]">{point.originalFeedback}</p>
+          {onOpenResponse && point.submissionId !== undefined ? (
+            <button
+              className="flex w-fit cursor-pointer items-center gap-1 text-[12px] font-medium text-[#1e55c5] hover:underline"
+              onClick={() => onOpenResponse(point.submissionId!)}
+              type="button"
+            >
+              View full response
+              <ArrowRight size={14} />
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -132,6 +150,8 @@ export type FeedbackSegmentSectionProps = {
   onClearPeriod?: () => void
   /** The dashboard's "Hide names" toggle. */
   hideNames?: boolean
+  /** Opens a point's whole response in the Individual tab. */
+  onOpenResponse?: (submissionId: number) => void
 }
 
 export function FeedbackSegmentSection({
@@ -141,6 +161,7 @@ export function FeedbackSegmentSection({
   period = null,
   onClearPeriod,
   hideNames = false,
+  onOpenResponse,
 }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
@@ -297,7 +318,7 @@ export function FeedbackSegmentSection({
       {visiblePoints.length > 0 ? (
         <div className="flex flex-col gap-3">
           {visiblePoints.map((point) => (
-            <FeedbackPointCard key={point.id} point={point} showName={showNames} />
+            <FeedbackPointCard key={point.id} onOpenResponse={onOpenResponse} point={point} showName={showNames} />
           ))}
         </div>
       ) : (
