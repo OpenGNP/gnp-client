@@ -36,6 +36,7 @@ import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
+import type { TopicSortOption } from '../components/dashboard/topicSort'
 import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
@@ -208,6 +209,8 @@ export function FormDashboardPage({
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
   const [responseQuery, setResponseQuery] = useState('')
   const [topicQuery, setTopicQuery] = useState('')
+  // Held here, not in the topic card, so the exports list topics in the same order.
+  const [topicSort, setTopicSort] = useState<TopicSortOption>('priority')
   // The Themes PDF report, while its print dialog is open.
   const [printingReport, setPrintingReport] = useState(false)
   const finishPrinting = useCallback(() => setPrintingReport(false), [])
@@ -676,6 +679,7 @@ export function FormDashboardPage({
                             downloadFormThemes(
                               formId,
                               { from: range?.from, to: range?.to, demo: demoSel },
+                              topicSort,
                               !hideNames,
                             ),
                         },
@@ -739,9 +743,11 @@ export function FormDashboardPage({
                     axisMax={topicAxisMax}
                     id={TOPIC_LIST_ID}
                     onQueryChange={setTopicQuery}
+                    onSortChange={setTopicSort}
                     onSelectTopic={setSelectedTopicId}
                     pageSize={15}
                     query={topicQuery}
+                    sort={topicSort}
                     selectedTopicId={selectedTopicId}
                     sortable
                     title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
@@ -934,7 +940,12 @@ export function FormDashboardPage({
 
       {printingReport && form && themes ? (
         <PrintPortal onDone={finishPrinting} title={`${form.formTitle?.trim() || 'Form'} - AI analysis`}>
-          <ThemesReport formTitle={form.formTitle?.trim() || 'Untitled form'} scope={themesScope} themes={themes} />
+          <ThemesReport
+            formTitle={form.formTitle?.trim() || 'Untitled form'}
+            scope={themesScope}
+            sort={topicSort}
+            themes={themes}
+          />
         </PrintPortal>
       ) : null}
 

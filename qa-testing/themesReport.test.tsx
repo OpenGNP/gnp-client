@@ -46,12 +46,26 @@ const themes = {
 
 describe('ThemesReport', () => {
   it('summarises topics, puts flagged quotes first and never prints names', () => {
-    const { container } = render(<ThemesReport formTitle="Canteen survey" scope={['Year = 4']} themes={themes} />)
+    const { container } = render(<ThemesReport formTitle="Canteen survey" scope={['Year = 4']} sort="priority" themes={themes} />)
     expect(screen.getByRole('heading', { level: 1, name: 'Canteen survey' })).toBeInTheDocument()
     expect(screen.getByText('Year = 4')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Top topic' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Top topic by priority' })).toBeInTheDocument()
     const quotes = [...container.querySelectorAll('li')].map((li) => li.textContent)
     expect(quotes[0]).toContain('Lecturer took a bribe')
     expect(container.textContent).not.toContain('Somchai')
+  })
+
+  it('picks the top topics by the chosen order, not violations first', () => {
+    const busy = topic('2', 'Canteen', [
+      point('e', 'Queues are long', 'negative'),
+      point('f', 'Food is cold', 'negative'),
+      point('g', 'Prices went up', 'negative'),
+      point('h', 'Too few seats', 'negative'),
+    ])
+    const many = { ...themes, aiDiscoveredTopics: [facilities, busy] } as FormThemeAnalytics
+    render(<ThemesReport formTitle="Canteen survey" scope={[]} sort="mentions" themes={many} />)
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
+    // The top-topic cards come first, ahead of the violations section's headings.
+    expect(headings.slice(0, 2)).toEqual(['Canteen', 'Facilities'])
   })
 })
