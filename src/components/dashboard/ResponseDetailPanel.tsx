@@ -9,22 +9,30 @@ import { responseLabel } from './responseLabel'
 const navButtonClass =
   'inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-[#e8eaf1] bg-white px-2.5 text-[12px] font-semibold text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white'
 
-function FieldAnswer({ field, values }: { field: IndividualField; values: string[] }) {
+function FieldAnswer({ field, number, values }: { field: IndividualField; number: number; values: string[] }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <p className="m-0 text-[12px] font-medium text-[#929292]">{field.title}</p>
+    <div className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
+      <div className="flex items-start gap-2">
+        <span className="mt-px shrink-0 rounded-[4px] bg-[#edf2fd] px-1.5 py-0.5 text-[11px] font-bold text-[#1e55c5]">
+          Q{number}
+        </span>
+        <h4 className="m-0 text-[14px] leading-5.5 font-semibold text-[#14181f]">{field.title}</h4>
+      </div>
       {values.length === 0 ? (
-        <p className="m-0 text-[14px] text-[#b5b7bd] italic">No answer</p>
+        <p className="m-0 text-[13px] text-[#b5b7bd] italic">No answer</p>
       ) : field.type === 'checkbox' ? (
         <div className="flex flex-wrap gap-1.5">
           {values.map((value) => (
-            <span className="rounded-full bg-[#edf2fd] px-2.5 py-1 text-[13px] font-medium text-[#1e55c5]" key={value}>
+            <span
+              className="rounded-full border border-[#d6e0f7] bg-white px-2.5 py-1 text-[13px] text-[#3f4045]"
+              key={value}
+            >
               {value}
             </span>
           ))}
         </div>
       ) : (
-        <p className="m-0 text-[14px] leading-5.5 wrap-break-word whitespace-pre-wrap text-[#14181f]">
+        <p className="m-0 rounded-[8px] bg-[#f7f8fb] px-3 py-2 text-[13px] leading-5.5 wrap-break-word whitespace-pre-wrap text-[#3f4045]">
           {values.join(', ')}
         </p>
       )}
@@ -60,6 +68,8 @@ export function ResponseDetailPanel({
     { title: 'Demographic', fields: fields.filter((field) => field.section === 'demographic') },
     { title: 'Feedback', fields: fields.filter((field) => field.section === 'feedback') },
   ].filter((section) => section.fields.length > 0)
+  // Numbered in the order shown (demographic first), not form order.
+  const displayed = sections.flatMap((section) => section.fields)
 
   return (
     <DetailPanel layout={layout} onClose={onClose}>
@@ -96,11 +106,18 @@ export function ResponseDetailPanel({
       </div>
 
       {sections.map((section) => (
-        <section className="flex flex-col gap-4 rounded-[10px] border border-[#e9eaed] p-4" key={section.title}>
-          <h3 className="m-0 text-[13px] font-semibold text-black">{section.title}</h3>
-          {section.fields.map((field) => (
-            <FieldAnswer field={field} key={field.id} values={response.answers[field.id] ?? []} />
-          ))}
+        <section className="flex flex-col gap-3" key={section.title}>
+          <h3 className="m-0 text-[11px] font-bold tracking-[0.6px] text-[#929292] uppercase">{section.title}</h3>
+          <div className="flex flex-col divide-y divide-[#eef0f4] rounded-[10px] border border-[#e9eaed] p-4">
+            {section.fields.map((field) => (
+              <FieldAnswer
+                field={field}
+                key={field.id}
+                number={displayed.indexOf(field) + 1}
+                values={response.answers[field.id] ?? []}
+              />
+            ))}
+          </div>
         </section>
       ))}
     </DetailPanel>
