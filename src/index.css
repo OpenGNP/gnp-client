@@ -61,6 +61,36 @@ body,
   min-height: 100%;
 }
 
+/* Printed reports (components/report): only the report prints, never the app. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  body > #root {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  /* Keep the sentiment colours — browsers drop backgrounds when printing by default. */
+  .print-only * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
 /* Reserve the scrollbar's space even on short pages, so switching between a long
    and a short view doesn't shift the layout sideways. */
 html {
