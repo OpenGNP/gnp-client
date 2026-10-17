@@ -22,7 +22,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
   const visiblePages = getVisiblePages(page, totalPages)
 
   return (
-    <nav className="flex items-start gap-1.5" aria-label="Pagination">
+    <nav className="flex w-full flex-wrap items-start justify-center gap-1.5" aria-label="Pagination">
       <button
         className={controlClass}
         aria-label="First page"
