@@ -18,6 +18,7 @@ import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queri
 import { FormLoadError } from '../components/FormLoadError'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
+import { ExportResponsesMenu } from '../components/dashboard/ExportResponsesMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
@@ -557,19 +558,28 @@ export function FormDashboardPage({
                     </h1>
                   )}
                 </div>
-                {/* A switch with a fixed label, so its state reads at a glance:
-                    on = names shown, off = hidden (e.g. while screen-sharing). */}
-                {hasNames ? (
-                  <label className="flex h-8.75 shrink-0 cursor-pointer items-center gap-2 text-[12px] font-medium text-[#3f4045]">
-                    {hideNames ? (
-                      <EyeOff className="text-[#929292]" size={14} />
-                    ) : (
-                      <Eye className="text-[#1e55c5]" size={14} />
-                    )}
-                    Show names
-                    <Switch checked={!hideNames} onCheckedChange={toggleHideNames} />
-                  </label>
-                ) : null}
+                <div className="flex shrink-0 items-center gap-4">
+                  {/* A switch with a fixed label, so its state reads at a glance:
+                      on = names shown, off = hidden (e.g. while screen-sharing). */}
+                  {hasNames ? (
+                    <label className="flex h-8.75 shrink-0 cursor-pointer items-center gap-2 text-[12px] font-medium text-[#3f4045]">
+                      {hideNames ? (
+                        <EyeOff className="text-[#929292]" size={14} />
+                      ) : (
+                        <Eye className="text-[#1e55c5]" size={14} />
+                      )}
+                      Show names
+                      <Switch checked={!hideNames} onCheckedChange={toggleHideNames} />
+                    </label>
+                  ) : null}
+                  {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
+                    <ExportResponsesMenu
+                      formId={formId}
+                      formTitle={form.formTitle}
+                      includeNames={!hasNames || !hideNames}
+                    />
+                  ) : null}
+                </div>
               </div>
             </div>
 

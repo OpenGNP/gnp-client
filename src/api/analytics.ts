@@ -5,7 +5,7 @@ import type {
   TrendBucket,
   TrendRank,
 } from '../data/dashboardAnalytics'
-import { apiGet } from '../lib/api'
+import { apiGet, httpClient } from '../lib/api'
 
 /**
  * The viewer's IANA time zone (e.g. "Asia/Bangkok"). Sent with the themes/trend
@@ -29,6 +29,21 @@ export type FormResponseAnalytics = {
   totalResponses: number
   demographic: DemographicBreakdown[]
   feedback: DemographicBreakdown[]
+}
+
+export type ResponseExportFormat = 'xlsx' | 'csv'
+
+/** The form's raw responses as a file — one row per submission, one column per question. */
+export async function downloadFormResponses(
+  formId: number,
+  format: ResponseExportFormat,
+  includeNames: boolean,
+): Promise<Blob> {
+  const response = await httpClient.get<Blob>(`/forms/${formId}/export`, {
+    params: { format, tz: viewerTimeZone(), names: includeNames ? undefined : 0 },
+    responseType: 'blob',
+  })
+  return response.data
 }
 
 export function getFormResponseAnalytics(formId: number): Promise<FormResponseAnalytics> {
