@@ -2,6 +2,7 @@ import type { FormThemeAnalytics } from '../../api/analytics'
 import type { FeedbackPoint, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SentimentGauge } from '../dashboard/SentimentGauge'
 import { SENTIMENT_COLORS } from '../dashboard/sentimentColors'
+import { pinsViolations, sortTopics, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
 
 const TOP_TOPICS = 5
 const QUOTES_PER_TOPIC = 3
@@ -51,19 +52,24 @@ export function ThemesReport({
   formTitle,
   themes,
   scope,
+  sort,
 }: {
   formTitle: string
   themes: FormThemeAnalytics
   /** The filters the numbers are limited to; empty = all feedback. */
   scope: string[]
+  /** The topic order chosen on screen (Priority puts violations first). */
+  sort: TopicSortOption
 }) {
-  const topics = themes.aiDiscoveredTopics
+  const topics = sortTopics(themes.aiDiscoveredTopics, sort)
   const ranked = topics.filter((topic) => topic.id !== UNCATEGORISED_ID)
   const max = Math.max(1, ...topics.map(total))
   const { negative, neutral, positive } = themes.sentiment
   const analysed = negative + neutral + positive
-  const topCount = Math.min(TOP_TOPICS, ranked.length)
-  const topTitle = topCount === 1 ? 'Top topic' : `Top ${topCount} topics`
+  // By the chosen order alone: violations have their own section, and pinned first they'd
+  // fill the top five whenever a handful of topics have a single flagged mention.
+  const top = sortTopics(ranked, sort, { pinViolations: false }).slice(0, TOP_TOPICS)
+  const topTitle = `${top.length === 1 ? 'Top topic' : `Top ${top.length} topics`} by ${topicSortLabel(sort).toLowerCase()}`
   const violations = topics.reduce((sum, topic) => sum + topic.feedbackSegment.filter((p) => p.violation).length, 0)
 
   return (
@@ -75,7 +81,8 @@ export function ThemesReport({
           {scope.length > 0 ? scope.join(' · ') : `All feedback · ${themes.rangeLabel}`}
         </p>
         <p className="m-0 mt-0.5 text-[11px] text-[#929292]">
-          Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          Topics sorted by {topicSortLabel(sort)}
+          {pinsViolations(sort) ? ' (violations first)' : ''} · Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
       </header>
 
@@ -142,7 +149,7 @@ export function ThemesReport({
       </Section>
 
       <Section title={topTitle}>
-        {ranked.slice(0, TOP_TOPICS).map((topic) => {
+        {top.map((topic) => {
           const quotes = [...topic.feedbackSegment].sort((a, b) => quoteRank(a) - quoteRank(b)).slice(0, QUOTES_PER_TOPIC)
           return (
             <div className="mb-4 break-inside-avoid rounded-lg border border-[#e9eaed] p-3" key={topic.id}>
@@ -165,12 +172,12 @@ export function ThemesReport({
         })}
       </Section>
 
-      {themes.violationTopics.length > 0 ? (
+      {topics.some((topic) => topic.hasViolation) ? (
         <Section title="Flagged as violations">
           <p className="m-0 mb-2 text-[11px] text-[#726f6f]">
             Feedback the AI flagged as reporting a breach of law, ethics or morals. Flagged automatically — the AI can be wrong.
           </p>
-          {themes.violationTopics.map((topic) => (
+          {topics.filter((topic) => topic.hasViolation).map((topic) => (
             <div className="mb-3 break-inside-avoid" key={topic.id}>
               <h3 className="m-0 text-[12px] font-bold">{topic.label}</h3>
               <ul className="m-0 mt-1 list-none p-0">

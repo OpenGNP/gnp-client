@@ -117,6 +117,8 @@ export type ThemeQuery = {
 export async function downloadFormThemes(
   formId: number,
   query: ThemeQuery,
+  /** The topic order chosen on screen (TopicSortOption) — the file lists topics the same way. */
+  sort: 'priority' | 'negative' | 'mentions' | 'positive',
   includeNames: boolean,
 ): Promise<Blob> {
   const params = new URLSearchParams()
@@ -125,6 +127,7 @@ export async function downloadFormThemes(
   setDemoParam(params, query.demo)
   const tz = viewerTimeZone()
   if (tz) params.set('tz', tz)
+  params.set('sort', sort)
   if (!includeNames) params.set('names', '0')
   const response = await httpClient.get<Blob>(`/analytics/forms/${formId}/themes/export?${params}`, {
     responseType: 'blob',

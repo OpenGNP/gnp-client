@@ -14,46 +14,8 @@ import { Pagination } from './Pagination'
 import { SentimentBar } from './SentimentBar'
 import { computeAxisMax } from './topicAxis'
 import { searchTopics, type TopicMatch } from './topicSearch'
+import { sortTopics, TOPIC_SORT_OPTIONS, topicSortLabel, type TopicSortOption } from './topicSort'
 import { ViolationTooltip } from './ViolationTooltip'
-
-const UNCATEGORISED_ID = 'uncategorised'
-
-// Violation topics first, uncategorised last.
-const pinRank = (topic: TopicSentiment) =>
-  topic.id === UNCATEGORISED_ID ? 2 : topic.hasViolation ? 0 : 1
-
-type SortOption = 'priority' | 'mentions' | 'positive'
-
-const total = (topic: TopicSentiment) => topic.negative + topic.neutral + topic.positive
-
-// Most negative feedback first, then most mentioned. Same order as the server.
-const byPriority = (a: TopicSentiment, b: TopicSentiment) =>
-  b.negative - a.negative || total(b) - total(a)
-
-const SORT_OPTIONS: {
-  value: SortOption
-  label: string
-  /** Shown under the label in the menu, when the name alone isn't self-explanatory. */
-  hint?: string
-  compare: (a: TopicSentiment, b: TopicSentiment) => number
-}[] = [
-  {
-    value: 'priority',
-    label: 'Priority',
-    hint: 'Most negative feedback first',
-    compare: byPriority,
-  },
-  {
-    value: 'mentions',
-    label: 'Most mentioned',
-    compare: (a, b) => total(b) - total(a) || b.negative - a.negative,
-  },
-  {
-    value: 'positive',
-    label: 'Most positive',
-    compare: (a, b) => b.positive - a.positive || total(b) - total(a),
-  },
-]
 
 function TopicRow({
   axisMax,
@@ -149,6 +111,9 @@ export type TopicSentimentCardProps = {
   /** Shared scale for cards shown together, so equal bars mean equal counts. Default: this card's own topics. */
   axisMax?: number
   id?: string
+  /** With `sortable`: the chosen order, held by the page so exports can follow it. Uncontrolled when omitted. */
+  sort?: TopicSortOption
+  onSortChange?: (sort: TopicSortOption) => void
   /** Given with `onQueryChange`: a search box filtering topics by name, keyword and feedback text. */
   query?: string
   onQueryChange?: (query: string) => void
@@ -165,8 +130,15 @@ export function TopicSentimentCard({
   id,
   query = '',
   onQueryChange,
+  sort,
+  onSortChange,
 }: TopicSentimentCardProps) {
-  const [sortOption, setSortOption] = useState<SortOption>('priority')
+  const [ownSort, setOwnSort] = useState<TopicSortOption>('priority')
+  const sortOption = sort ?? ownSort
+  const setSortOption = (next: TopicSortOption) => {
+    setOwnSort(next)
+    onSortChange?.(next)
+  }
   const [page, setPage] = useState(1)
 
   const matches = useMemo(() => searchTopics(topics, query), [topics, query])
@@ -182,8 +154,7 @@ export function TopicSentimentCard({
     if (!sortable) {
       return found
     }
-    const compare = SORT_OPTIONS.find((option) => option.value === sortOption)!.compare
-    return [...found].sort((a, b) => pinRank(a) - pinRank(b) || compare(a, b))
+    return sortTopics(found, sortOption)
   }, [topics, matches, sortable, sortOption])
 
   const totalPages = pageSize ? Math.max(1, Math.ceil(sortedTopics.length / pageSize)) : 1
@@ -246,7 +217,7 @@ export function TopicSentimentCard({
                     className="h-8.75 gap-1.75 rounded-[10px] border-[#e6e7eb] px-2.5 text-[12px] text-black"
                     variant="outline"
                   >
-                    {SORT_OPTIONS.find((option) => option.value === sortOption)!.label}
+                    {topicSortLabel(sortOption)}
                     <ChevronDown
                       className="transition-transform group-data-[state=open]/button:rotate-180"
                       size={16}
@@ -255,7 +226,7 @@ export function TopicSentimentCard({
                 </DropdownMenuTrigger>
               </div>
               <DropdownMenuContent className="min-w-45">
-                {SORT_OPTIONS.map((option) => (
+                {TOPIC_SORT_OPTIONS.map((option) => (
                   <DropdownMenuItem
                     className={`border-l-[3px] ${option.value === sortOption ? 'border-[#1e55c5]' : 'border-transparent'}`}
                     key={option.value}
