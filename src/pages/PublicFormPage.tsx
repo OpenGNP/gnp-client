@@ -10,9 +10,10 @@ import logoGnp from "../assets/logo.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { publicFormByTokenQuery } from "../api/queries";
+import { publicFormByTokenQuery, sessionQuery } from "../api/queries";
 import { useNow } from "../hooks/useNow";
 import { ApiError } from "../lib/api";
+import { logout } from "../lib/auth";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
 import { PublicFormSkeleton } from "../components/skeletons/PublicFormSkeleton";
 import { cn } from "../lib/utils";
@@ -89,6 +90,7 @@ function describeLoadError(error: unknown): {
   title: string;
   body: string;
   canSignIn?: boolean;
+  canSwitchAccount?: boolean;
 } {
   const status = error instanceof ApiError ? error.status : 0;
   if (status === 404) {
@@ -107,7 +109,8 @@ function describeLoadError(error: unknown): {
   if (status === 403) {
     return {
       title: "No access",
-      body: "You don't have permission to respond to this form.",
+      body: "You don't have permission to respond to this form. Sign in with an account that has access.",
+      canSwitchAccount: true,
     };
   }
   return {
@@ -170,6 +173,31 @@ function Notice({
       <p className="text-base font-semibold text-foreground">{title}</p>
       <p className="mt-2 text-sm text-muted-foreground">{body}</p>
       {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
+function AccountBar({
+  email,
+  onSwitch,
+  className,
+}: {
+  email: string;
+  onSwitch: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground", className)}>
+      <span>
+        Signed in as <span className="font-semibold text-foreground">{email}</span>
+      </span>
+      <button
+        className="cursor-pointer font-semibold text-primary hover:underline"
+        onClick={onSwitch}
+        type="button"
+      >
+        Switch account
+      </button>
     </div>
   );
 }
@@ -329,6 +357,16 @@ export function PublicFormPage() {
     setSubmitted(form.alreadyResponded);
   }
 
+  // Read here, not through AuthProvider — this page sits outside it (see main.tsx).
+  const viewer = useQuery(sessionQuery()).data ?? null;
+  // Sign out, then sign back in and land on this same form with the other account.
+  async function switchAccount() {
+    await logout();
+    navigate("/login", { state: { from: `/f/${token}`, forUserId: null } });
+  }
+  // Only forms that require sign-in show who's answering.
+  const showAccount = viewer !== null && form !== null && form.accessType !== null && form.accessType !== "public";
+
   const status: "loading" | "error" | "ready" | "submitted" = !hasToken || formResult.isError
     ? "error"
     : !seeded
@@ -336,7 +374,7 @@ export function PublicFormPage() {
       : submitted
         ? "submitted"
         : "ready";
-  const loadError: { title: string; body: string; canSignIn?: boolean } = !hasToken
+  const loadError: ReturnType<typeof describeLoadError> = !hasToken
     ? { title: "This form isn't available", body: "The link looks incomplete." }
     : formResult.isError
       ? describeLoadError(formResult.error)
@@ -363,6 +401,16 @@ export function PublicFormPage() {
               >
                 Sign in
               </Button>
+            ) : loadError.canSwitchAccount ? (
+              <div className="flex flex-col items-center gap-3">
+                {viewer ? (
+                  <p className="text-xs text-muted-foreground">
+                    You're signed in as{" "}
+                    <span className="font-semibold text-foreground">{viewer.email}</span>
+                  </p>
+                ) : null}
+                <Button onClick={() => void switchAccount()}>Switch account</Button>
+              </div>
             ) : undefined
           }
           body={loadError.body}
@@ -389,15 +437,20 @@ export function PublicFormPage() {
               Thank you for sharing your thoughts
             </p>
           </div>
-          {canSubmitAnother ? (
-            <Button
-              className="mt-8 w-full rounded-full"
-              onClick={handleSubmitAnother}
-              size="lg"
-            >
-              Submit another response
+          <div className="mt-8 flex w-full flex-col gap-3">
+            {canSubmitAnother ? (
+              <Button
+                className="w-full rounded-full"
+                onClick={handleSubmitAnother}
+                size="lg"
+              >
+                Submit another response
+              </Button>
+            ) : null}
+            <Button asChild className="w-full rounded-full" size="lg" variant="outline">
+              <Link to="/">Back to Home</Link>
             </Button>
-          ) : null}
+          </div>
         </div>
       </Shell>
     );
@@ -529,6 +582,9 @@ export function PublicFormPage() {
         <h1 className="text-xl font-bold text-foreground">
           {form.formTitle ?? "Untitled form"}
         </h1>
+        {showAccount ? (
+          <AccountBar className="mt-1" email={viewer.email} onSwitch={() => void switchAccount()} />
+        ) : null}
         {form.formDescription ? (
           <p className="mt-1 text-sm text-muted-foreground">
             {form.formDescription}

@@ -81,6 +81,7 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   const { user, token } = await apiPost<LoginResponse>('/auth/login', { email, password })
   setAuthToken(token)
   rememberSignedInUser(user)
+  sessionPromise = Promise.resolve(user)
   return user
 }
 
@@ -92,6 +93,7 @@ export async function loginWithMicrosoft(idToken: string, accessToken?: string):
   })
   setAuthToken(token)
   rememberSignedInUser(user)
+  sessionPromise = Promise.resolve(user)
   return user
 }
 
@@ -104,6 +106,7 @@ export async function logout(): Promise<void> {
     // reachable-but-stale session should never keep the client "logged in".
   } finally {
     setAuthToken(null)
+    sessionPromise = null // the next resolveSession must not hand back the old account
     // Forget the cached Microsoft account locally (without signing it out of
     // Microsoft everywhere), so the next sign-in shows the account picker cleanly.
     await msalInstance?.clearCache().catch(() => undefined)
