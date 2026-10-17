@@ -134,7 +134,7 @@ export function IndividualResponseList({
       )}
 
       {totalPages > 1 ? (
-        <div className="flex justify-end">
+        <div>
           <Pagination onPageChange={setPage} page={currentPage} totalPages={totalPages} />
         </div>
       ) : null}
