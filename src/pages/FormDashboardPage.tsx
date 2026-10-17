@@ -1,6 +1,6 @@
 import {
   ArrowUp,
-  Calendar,
+  BarChart3,
   Eye,
   EyeOff,
   RefreshCw,
@@ -79,15 +79,6 @@ function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
       ) : (
         <Skeleton className="h-6.5 w-24 rounded-full" />
       )}
-      <span className="inline-flex items-center gap-1.5 text-[12px]">
-        <Calendar className="text-[#3f4045]" size={22} strokeWidth={1.8} />
-        <span className="font-medium text-[#929292]">Open</span>
-        {form ? (
-          <span className="font-bold text-[#14181f]">{openRangeLabel(form)}</span>
-        ) : (
-          <Skeleton className="h-3.5 w-28" />
-        )}
-      </span>
       <span className="inline-flex items-center gap-1.5 text-[12px]">
         <RefreshCw className="text-[#3f4045]" size={22} strokeWidth={1.8} />
         <span className="font-medium text-[#929292]">Last update</span>
@@ -555,7 +546,18 @@ export function FormDashboardPage({
         showSidebarToggle={showSidebarToggle}
       />
 
-      <div className="flex flex-col gap-5 px-10 pt-5 pb-16 max-[900px]:px-6 max-[560px]:px-4">
+      <div className="flex flex-col gap-3 px-10 pt-5 pb-16 max-[900px]:px-6 max-[560px]:px-4">
+        {/* The form's name heads every tab, so a screenshot or screen-share shows which form it is. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {form ? (
+            <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
+              {form.formTitle?.trim() || 'Untitled form'}
+            </h1>
+          ) : (
+            <Skeleton className="h-8 w-72" />
+          )}
+          <StatusRow form={form} now={now} />
+        </div>
         <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
 
         <div
@@ -572,30 +574,27 @@ export function FormDashboardPage({
               activeView === 'trend' ? 'max-w-366.5' : 'min-w-150 max-w-182',
             )}
           >
-            <div className="flex flex-col gap-1.25">
-              <StatusRow form={formReady ? form : null} now={now} />
-              <div className="flex items-start justify-between gap-2.5 py-2.5">
+            <div className="-mb-2 flex flex-col gap-1.25">
+              <div className="flex min-h-11.25 items-center justify-between gap-2.5 pt-2.5">
                 <div className="flex items-center gap-2.5">
                   {activeView === 'themes' ? (
                     <Tag className="shrink-0 text-[#1e55c5]" size={24} />
                   ) : activeView === 'individual' ? (
                     <UserRound className="shrink-0 text-[#1e55c5]" size={24} />
-                  ) : (
+                  ) : activeView === 'trend' ? (
                     <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
-                  )}
-                  {activeView === 'themes' && !themes ? (
-                    <Skeleton className="h-6 w-56" />
                   ) : (
-                    <h1 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                      {activeView === 'themes'
-                        ? themes?.title
-                        : activeView === 'trend'
-                          ? 'Trend Overview'
-                          : activeView === 'individual'
-                            ? 'Individual Responses'
-                            : 'Response Overview'}
-                    </h1>
+                    <BarChart3 className="shrink-0 text-[#1e55c5]" size={24} />
                   )}
+                  <h2 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
+                    {activeView === 'themes'
+                      ? 'Themes Overview'
+                      : activeView === 'trend'
+                        ? 'Trend Overview'
+                        : activeView === 'individual'
+                          ? 'Individual Responses'
+                          : 'Response Overview'}
+                  </h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {/* A switch with a fixed label, so its state reads at a glance:
