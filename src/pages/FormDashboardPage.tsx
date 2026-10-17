@@ -457,7 +457,7 @@ export function FormDashboardPage({
         deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
         icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
         iconBgClassName="bg-[#edf2fd]"
-        label="Total Responder"
+        label="Total Responses"
         value={themes.totalResponders}
       />
 
@@ -580,7 +580,11 @@ export function FormDashboardPage({
           <div
             className={cn(
               'mx-auto flex w-full flex-col gap-5',
-              activeView === 'trend' ? 'max-w-366.5' : 'min-w-150 max-w-182',
+              // Every tab is the same width, so switching doesn't shift the page. A docked
+              // detail panel shrinks the content (down to min-w-150, which
+              // useDetailPanelLayout assumes; Trend has no panel).
+              'max-w-366.5',
+              activeView !== 'trend' && 'min-w-150',
             )}
           >
             <div className="-mb-2 flex flex-col gap-1.25">
@@ -702,7 +706,7 @@ export function FormDashboardPage({
                       <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
                     </div>
                     <div className="flex flex-col gap-2.5">
-                      <p className="m-0 text-[12px] font-medium text-[#929292]">Total Response</p>
+                      <p className="m-0 text-[12px] font-medium text-[#929292]">Total Responses</p>
                       <p className="m-0 text-[20px] font-bold text-[#14181f]">
                         {responses.totalResponses}
                       </p>
