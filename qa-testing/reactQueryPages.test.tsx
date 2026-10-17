@@ -50,7 +50,6 @@ const fixtures: Record<string, unknown> = {
   '/analytics/forms/4/responses': { totalResponses: 0, demographic: [], feedback: [] },
   '/analytics/forms/4/themes': {
     ...window_,
-    title: 'Canteen themes',
     totalMentions: 0,
     totalResponders: 0,
     responderDelta: 0,
@@ -141,9 +140,10 @@ function TreeProbe() {
 const count = (path: string) => requests.filter((request) => request === path).length
 
 describe('pages on React Query', () => {
-  it('dashboard loads every source once and shows the themes title', async () => {
+  it('dashboard loads every source once and heads the page with the form name', async () => {
     renderAt(`/forms/${URL_ID}/dashboard`, '/forms/:projectId/dashboard', <FormDashboardPage />)
-    expect(await screen.findByText('Canteen themes')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Canteen survey' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Themes Overview' })).toBeInTheDocument()
     await waitFor(() => expect(count('/analytics/forms/4/trend')).toBe(1))
     expect(count('/forms/4')).toBe(1)
     expect(count('/analytics/forms/4/responses')).toBe(1)

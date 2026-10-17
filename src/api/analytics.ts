@@ -82,7 +82,6 @@ export function getFormResponseAnalytics(formId: number): Promise<FormResponseAn
  * the respondent's demographic answers. Same `TopicSentiment` shape the mock used.
  */
 export type FormThemeAnalytics = {
-  title: string
   /** Resolved analysis window (ISO) — echoes the caller's or the feedback-span default. */
   from: string
   to: string
