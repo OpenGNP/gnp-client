@@ -49,10 +49,16 @@ const compareByName = (a: ProjectTreeItem, b: ProjectTreeItem) =>
   a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' })
 
 // `Date.parse(string)` is deterministic, so this is render-safe. Missing/unparseable → 0.
+// Folders aren't opened themselves: their "Date opened" is the latest of any form inside.
+const openedAt = (item: ProjectTreeItem): number =>
+  item.type === 'folder'
+    ? Math.max(0, ...(item.children ?? []).map(openedAt))
+    : Date.parse(item.lastOpenedAt ?? '') || 0
+
 const timeOf = (item: ProjectTreeItem, key: SortKey) =>
-  Date.parse(
-    (key === 'created' ? item.createdAt : key === 'opened' ? item.lastOpenedAt : item.updatedAt) ?? '',
-  ) || 0
+  key === 'opened'
+    ? openedAt(item)
+    : Date.parse((key === 'created' ? item.createdAt : item.updatedAt) ?? '') || 0
 
 function sortItems(list: ProjectTreeItem[], sortKey: SortKey, sortDir: SortDir): ProjectTreeItem[] {
   const flip = sortDir === 'asc' ? 1 : -1

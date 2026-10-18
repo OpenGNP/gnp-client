@@ -303,7 +303,9 @@ function App() {
     // Shown straight away (dimmed, not clickable) — otherwise it vanishes for the
     // round trip between the name being committed and the server answering.
     const pendingId = `pending-${crypto.randomUUID()}`
-    addFolder({ id: pendingId, label, type: 'folder', pending: true }, parentFolderId)
+    // Dated now, so a date sort places it at once rather than after the next reload.
+    const now = new Date().toISOString()
+    addFolder({ id: pendingId, label, type: 'folder', pending: true, createdAt: now, updatedAt: now }, parentFolderId)
     try {
       const created = await createFolder({
         folderName: label,
@@ -311,7 +313,13 @@ function App() {
       })
       markWorkspaceStale(queryClient)
       setProjects((current) =>
-        replaceProjectById(current, pendingId, { id: String(created.id), label, type: 'folder' }),
+        replaceProjectById(current, pendingId, {
+          id: String(created.id),
+          label,
+          type: 'folder',
+          createdAt: now,
+          updatedAt: now,
+        }),
       )
     } catch (error) {
       removeProject(pendingId)
