@@ -84,6 +84,7 @@ function buildTree(folders: ApiFolder[], forms: ApiForm[]): ProjectTreeItem[] {
       urlId: form.urlId,
       updatedAt: form.updatedAt,
       createdAt: form.createdAt,
+      lastOpenedAt: form.lastOpenedAt,
     }
     const key = form.folderId ?? null
     const bucket = formsByFolder.get(key)

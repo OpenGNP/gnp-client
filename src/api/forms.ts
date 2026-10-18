@@ -34,6 +34,8 @@ export type ApiForm = {
   endDate: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  /** When I last opened it (editor or dashboard); null if never. */
+  lastOpenedAt: string | null;
   submissionCount: number;
 };
 
@@ -73,6 +75,7 @@ export type ApiFormDetail = {
   /** Absent from older servers — treat as "owner". */
   role?: FormRole;
   ownerName?: string | null;
+  ownerEmail?: string | null;
   adminId: number;
   folderId: number | null;
   organizationId: number | null;
@@ -194,6 +197,7 @@ export async function listForms(folderId?: number): Promise<ApiForm[]> {
     ...form,
     createdAt: asUtcIso(form.createdAt),
     updatedAt: asUtcIso(form.updatedAt),
+    lastOpenedAt: asUtcIso(form.lastOpenedAt),
     startDate: asUtcIso(form.startDate),
     endDate: asUtcIso(form.endDate),
   }));
@@ -248,11 +252,24 @@ export type ApiSharedForm = {
   status: string | null;
   updatedAt: string | null;
   ownerName: string | null;
+  ownerEmail: string | null;
+  sharedAt: string | null;
+  lastOpenedAt: string | null;
 };
 
 export async function listSharedForms(): Promise<ApiSharedForm[]> {
   const forms = await apiGet<ApiSharedForm[]>("/forms/shared");
-  return forms.map((form) => ({ ...form, updatedAt: asUtcIso(form.updatedAt) }));
+  return forms.map((form) => ({
+    ...form,
+    updatedAt: asUtcIso(form.updatedAt),
+    sharedAt: asUtcIso(form.sharedAt),
+    lastOpenedAt: asUtcIso(form.lastOpenedAt),
+  }));
+}
+
+/** Notes that I opened the form — drives "Date opened" sorting. Fire and forget. */
+export function recordFormOpen(formId: number): Promise<null> {
+  return apiPost<null>(`/forms/${formId}/open`);
 }
 
 export type ApiCollaborator = { email: string; role: "viewer"; fullName: string | null };

@@ -44,6 +44,7 @@ import { Switch } from '../components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
+import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FolderBreadcrumb } from '../components/navigation/FolderBreadcrumb'
@@ -217,6 +218,7 @@ export function FormDashboardPage({
   const routeForm = useRouteForm()
   const formId = routeForm.formId ?? 0
   const hasValidId = routeForm.formId !== null
+  useRecordFormOpen(routeForm.formId)
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)

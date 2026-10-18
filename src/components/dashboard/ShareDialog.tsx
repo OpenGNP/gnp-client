@@ -11,6 +11,7 @@ import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 /**
  * The form's sharing, top right of its Edit / Dashboard bar: the owner's "Share results"
@@ -26,13 +27,23 @@ export function ShareControl() {
 
   if (!formRef) return null
   if (role === 'viewer') {
-    return (
+    const chip = (
       <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-[#f0f1f4] px-3 text-[12px] font-medium text-[#726f6f]">
         <Eye className="shrink-0" size={14} />
-        <span className="truncate">
-          View only{form?.ownerName ? ` · shared by ${form.ownerName}` : ''}
-        </span>
+        View only
       </span>
+    )
+    // Who shared it is on hover — the chip stays short in the bar.
+    return form?.ownerName ? (
+      <Tooltip delayDuration={200}>
+        <TooltipTrigger asChild>{chip}</TooltipTrigger>
+        <TooltipContent side="bottom">
+          Shared by {form.ownerName}
+          {form.ownerEmail && form.ownerEmail !== form.ownerName ? ` (${form.ownerEmail})` : ''}
+        </TooltipContent>
+      </Tooltip>
+    ) : (
+      chip
     )
   }
   return <ShareButton formId={formId} />

@@ -20,6 +20,7 @@ export type ProjectTreeItem = {
   // show the same "Last update" as HomePage's, instead of mock data.
   updatedAt?: string | null
   createdAt?: string | null
+  lastOpenedAt?: string | null
 }
 
 export type RecentForm = {
