@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
 
 import {
   removeFormCoverImage,
@@ -220,6 +221,12 @@ export function EditFormPage({
   // request never traps anyone.
   const isSlowSave = useIsSlow(saveStatus === 'saving')
   const isSaveLocked = saveStatus === 'saving' && !isSlowSave
+
+  // Shared with them to view only: there's nothing to edit — send them to the dashboard.
+  const { projectId = '' } = useParams()
+  if (routeForm.role === 'viewer') {
+    return <Navigate replace to={`/forms/${encodeURIComponent(projectId)}/dashboard`} />
+  }
 
   return (
     <div>

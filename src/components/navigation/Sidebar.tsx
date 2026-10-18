@@ -16,6 +16,7 @@ import {
   Search,
   Smile,
   X,
+  Users,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
@@ -70,10 +71,11 @@ export type SidebarProps = {
   /** Tree-node id of the current route's item (`form-<id>` for forms, the folder id for folders). */
   selectedNodeId: string
   /** Which top nav entry the current route belongs to. */
-  activeNav?: 'home' | 'files' | null
+  activeNav?: 'home' | 'files' | 'shared' | null
   onCreateFolder: (name: string) => void
   onCreateForm: () => void
   onGoFiles: () => void
+  onGoShared: () => void
   onGoHome: () => void
   onLogout: () => void
   onMoveProject: (projectId: string, target: MoveTarget) => void
@@ -229,14 +231,16 @@ function SidebarRail({
   onCreateForm,
   onExpand,
   onGoFiles,
+  onGoShared,
   onGoHome,
   onLogout,
 }: {
-  activeNav: 'home' | 'files' | null
+  activeNav: 'home' | 'files' | 'shared' | null
   user: SidebarUser
   onCreateForm: () => void
   onExpand: (action: ExpandAction) => void
   onGoFiles: () => void
+  onGoShared: () => void
   onGoHome: () => void
   onLogout: () => void
 }) {
@@ -265,6 +269,7 @@ function SidebarRail({
           [
             { key: 'home', label: 'Home', icon: Home, onClick: onGoHome },
             { key: 'files', label: 'Files', icon: HardDrive, onClick: onGoFiles },
+            { key: 'shared', label: 'Shared', icon: Users, onClick: onGoShared },
           ] as const
         ).map(({ key, label, icon: Icon, onClick }) => {
           const isActive = activeNav === key
@@ -364,11 +369,13 @@ function HomeNav({
   activeNav,
   isCollapsed,
   onGoFiles,
+  onGoShared,
   onGoHome,
 }: {
-  activeNav: 'home' | 'files' | null
+  activeNav: 'home' | 'files' | 'shared' | null
   isCollapsed: boolean
   onGoFiles: () => void
+  onGoShared: () => void
   onGoHome: () => void
 }) {
   const itemClass = (isActive: boolean) =>
@@ -401,6 +408,15 @@ function HomeNav({
       >
         <HardDrive size={26} strokeWidth={2.1} />
         {!isCollapsed ? <span>Files</span> : null}
+      </button>
+      <button
+        aria-current={activeNav === 'shared' ? 'page' : undefined}
+        className={itemClass(activeNav === 'shared')}
+        onClick={onGoShared}
+        type="button"
+      >
+        <Users size={26} strokeWidth={2.1} />
+        {!isCollapsed ? <span>Shared with me</span> : null}
       </button>
     </nav>
   )
@@ -736,6 +752,7 @@ function ProjectNavigation({
   | 'isCollapsed'
   | 'activeNav'
   | 'onGoFiles'
+  | 'onGoShared'
   | 'onGoHome'
   | 'onLogout'
   | 'onToggleCollapse'
@@ -1011,6 +1028,7 @@ export function Sidebar({
   onCreateFolder,
   onCreateForm,
   onGoFiles,
+  onGoShared,
   onGoHome,
   onLogout,
   onMoveProject,
@@ -1046,6 +1064,7 @@ export function Sidebar({
           onToggleCollapse()
         }}
         onGoFiles={onGoFiles}
+        onGoShared={onGoShared}
         onGoHome={onGoHome}
         onLogout={onLogout}
       />
@@ -1085,6 +1104,7 @@ export function Sidebar({
         activeNav={activeNav}
         isCollapsed={isCollapsed}
         onGoFiles={onGoFiles}
+        onGoShared={onGoShared}
         onGoHome={onGoHome}
       />
       {!isCollapsed ? (

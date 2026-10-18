@@ -23,6 +23,7 @@ import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
+import { SharedPage } from './pages/SharedPage'
 import { HomePage } from './pages/HomePage'
 import {
   findFolderById,
@@ -140,7 +141,13 @@ function App() {
       }))
     : []
   const activeNav =
-    location.pathname === '/' ? 'home' : location.pathname.startsWith('/files') ? 'files' : null
+    location.pathname === '/'
+      ? 'home'
+      : location.pathname.startsWith('/files')
+        ? 'files'
+        : location.pathname === '/shared'
+          ? 'shared'
+          : null
 
   // Expand the folders above the current item whenever the route points somewhere
   // new (Home card, deep link, …) — once per item, so the user can still collapse
@@ -158,6 +165,12 @@ function App() {
     setIsCreateFormSettingsOpen(false)
     closeSidebarOnNarrowViewport()
     navigate('/')
+  }
+
+  function handleGoShared() {
+    setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
+    navigate('/shared')
   }
 
   function handleGoFiles() {
@@ -571,6 +584,7 @@ function App() {
           onCreateFolder={handleCreateFolder}
           onCreateForm={handleCreateForm}
           onGoFiles={handleGoFiles}
+          onGoShared={handleGoShared}
           onGoHome={handleGoHome}
           onLogout={handleLogout}
           onMoveProject={handleMoveProject}
@@ -605,6 +619,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage onMoveItem={handleOpenMove} />} />
           <Route path="/files" element={filesPageElement} />
+          <Route path="/shared" element={<SharedPage />} />
           <Route path="/files/:folderId" element={filesPageElement} />
           <Route
             path="/create-form"

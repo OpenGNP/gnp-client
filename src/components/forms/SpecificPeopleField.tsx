@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { useState } from 'react'
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { parseEmails } from '../../lib/emailList'
 
 export type SpecificPeopleFieldProps = {
   emails: string[]
@@ -12,22 +12,32 @@ export function SpecificPeopleField({ emails, onChange }: SpecificPeopleFieldPro
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState('')
 
-  const addEmail = () => {
-    const trimmed = inputValue.trim()
-    if (!trimmed) {
-      return
-    }
-    if (!EMAIL_PATTERN.test(trimmed)) {
+  /** Adds every email in `text` (one, or a pasted list); reports what it couldn't. */
+  const addFrom = (text: string) => {
+    const { valid, invalid } = parseEmails(text)
+    const known = new Set(emails.map((email) => email.toLowerCase()))
+    const added = valid.filter((email) => {
+      const key = email.toLowerCase()
+      if (known.has(key)) return false
+      known.add(key)
+      return true
+    })
+    if (added.length > 0) onChange([...emails, ...added])
+
+    if (invalid.length > 0) {
+      setInputValue(invalid.join(', '))
+      setError(
+        invalid.length === 1 ? `“${invalid[0]}” isn't a valid email` : `${invalid.length} entries aren't valid emails`,
+      )
+    } else if (valid.length > 0 && added.length === 0) {
+      setInputValue('')
+      setError(valid.length === 1 ? 'This person has already been added' : 'These people have already been added')
+    } else if (valid.length === 0 && text.trim()) {
       setError('Enter a valid email address')
-      return
+    } else {
+      setInputValue('')
+      setError('')
     }
-    if (emails.includes(trimmed)) {
-      setError('This person has already been added')
-      return
-    }
-    onChange([...emails, trimmed])
-    setInputValue('')
-    setError('')
   }
 
   const removeEmail = (email: string) => {
@@ -46,19 +56,26 @@ export function SpecificPeopleField({ emails, onChange }: SpecificPeopleFieldPro
             }
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ',') {
+            if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
               event.preventDefault()
-              addEmail()
+              addFrom(inputValue)
             }
           }}
-          placeholder="Enter email"
-          type="email"
+          // A pasted list (Excel column, "a@x.com, b@y.com", Outlook names) is split and added at once.
+          onPaste={(event) => {
+            const text = event.clipboardData.getData('text')
+            if (!/[\s,;]/.test(text.trim())) return
+            event.preventDefault()
+            addFrom(`${inputValue} ${text}`)
+          }}
+          placeholder="Enter or paste emails"
+          type="text"
           value={inputValue}
         />
         <button
           className="inline-flex h-9.5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border border-[#1e55c5] px-3.5 text-[14px] font-medium text-[#1e55c5] transition-colors hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!inputValue.trim()}
-          onClick={addEmail}
+          onClick={() => addFrom(inputValue)}
           type="button"
         >
           Add
@@ -88,7 +105,7 @@ export function SpecificPeopleField({ emails, onChange }: SpecificPeopleFieldPro
         </ul>
       ) : (
         <span className="text-[12px] text-[#8b8e98]">
-          No one added yet. Enter an email and select Add.
+          No one added yet. Enter an email, or paste a list (one per line or comma-separated).
         </span>
       )}
     </div>
