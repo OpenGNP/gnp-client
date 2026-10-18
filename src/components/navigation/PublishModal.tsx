@@ -6,6 +6,7 @@ import {
   PencilLine,
   TriangleAlert,
   Unlock,
+  RefreshCw,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
@@ -104,8 +105,11 @@ export type PublishModalProps = {
    * create mode, where there's no saved form yet to have a status.
    */
   status?: string | null
-  /** Reopens a manually-closed form (status → 'active'); shown only when `status === 'closed'`. */
-  onReopenForm?: () => void
+  /**
+   * Reopens a manually-closed form (status → 'active'); shown only when `status === 'closed'`.
+   * Waits for the server: the button spins until it resolves whether it worked.
+   */
+  onReopenForm?: () => Promise<boolean>
 }
 
 export function PublishModal({
@@ -120,6 +124,19 @@ export function PublishModal({
   onReopenForm,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
+  const [isReopening, setIsReopening] = useState(false)
+
+  // The popover stays open: on success `status` turns 'active', so the chip above
+  // changes and this button goes away — the confirmation is right where they clicked.
+  const reopen = async () => {
+    if (!onReopenForm) return
+    setIsReopening(true)
+    try {
+      await onReopenForm()
+    } finally {
+      setIsReopening(false)
+    }
+  }
   const now = useNow()
   // Still shown if a loaded form already uses it, so the radio group isn't left blank.
   const showOrganizationOption = useHasOrganization() || settings.whoCanFill === 'organization'
@@ -364,16 +381,15 @@ export function PublishModal({
       <div className="flex items-center justify-between gap-2">
         <div>
           {status === 'closed' && onReopenForm ? (
-            <PopoverClose asChild>
-              <Button
-                className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
-                onClick={onReopenForm}
-                variant="ghost"
-              >
-                <Unlock size={14} />
-                Reopen form
-              </Button>
-            </PopoverClose>
+            <Button
+              className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
+              disabled={isReopening}
+              onClick={() => void reopen()}
+              variant="ghost"
+            >
+              {isReopening ? <RefreshCw className="animate-spin" size={14} /> : <Unlock size={14} />}
+              {isReopening ? 'Reopening…' : 'Reopen form'}
+            </Button>
           ) : null}
         </div>
         <div className="flex items-center gap-2">

@@ -198,18 +198,20 @@ export function EditFormPage({
     }
   }
 
-  async function handleReopenForm() {
-    if (!hasValidId) return
+  async function handleReopenForm(): Promise<boolean> {
+    if (!hasValidId) return false
     try {
       await updateForm(formId, { status: 'active' })
       setFormStatus('active')
       setIsPublished(true)
       void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
       void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
+      return true
     } catch (error) {
       void showAlert(
         error instanceof ApiError ? error.message : 'Could not reopen the form. Please try again.',
       )
+      return false
     }
   }
 

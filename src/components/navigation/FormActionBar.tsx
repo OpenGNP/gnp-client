@@ -32,8 +32,8 @@ export type FormActionBarProps = {
   onSaveDraft?: () => void
   onPublish?: () => void | Promise<void>
   onMove?: () => void
-  /** Reopens a manually-closed form (status → 'active'). Omitted in create mode. */
-  onReopenForm?: () => void | Promise<void>
+  /** Reopens a manually-closed form (status → 'active'); resolves whether it worked. Omitted in create mode. */
+  onReopenForm?: () => Promise<boolean>
   saveStatus?: SaveStatus
   /** A save is in flight: Save / Publish / Move are disabled until it answers. */
   saveLocked?: boolean
@@ -104,9 +104,14 @@ export function FormActionBar({
   }
   const responseBadge = formStatusBadge(status, responseWindow, now)
 
+  // Only once the server confirms — the chip never claims "accepting" for a form still closed.
   const handleReopenForm = async () => {
-    setStatus('active')
-    await onReopenForm?.()
+    const reopened = (await onReopenForm?.()) ?? false
+    if (reopened) {
+      setStatus('active')
+      setIsPublished(true)
+    }
+    return reopened
   }
 
   return (
