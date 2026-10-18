@@ -17,6 +17,7 @@ import {
   uniqueName,
   getAncestorFolderIds,
   folderContents,
+  replaceProjectById,
 } from '../src/utils/projectTree'
 
 function tree(): ProjectTreeItem[] {
@@ -154,6 +155,18 @@ describe('folderContents', () => {
 
   it('is empty for an empty folder', () => {
     expect(folderContents({ id: 'f', label: 'F', type: 'folder', children: [] })).toEqual({ forms: [], folders: 0 })
+  })
+})
+
+describe('replaceProjectById', () => {
+  it('swaps a pending folder for the saved one in place, keeping its children', () => {
+    const projects = [
+      { id: 'pending-1', label: 'New', type: 'folder' as const, pending: true, children: [] },
+      ...tree(),
+    ]
+    const result = replaceProjectById(projects, 'pending-1', { id: '42', label: 'New', type: 'folder' })
+    expect(result[0]).toEqual({ id: '42', label: 'New', type: 'folder', children: [] })
+    expect(result.slice(1)).toEqual(tree())
   })
 })
 

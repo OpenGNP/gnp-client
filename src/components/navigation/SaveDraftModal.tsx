@@ -147,7 +147,9 @@ export function SaveDraftModal({
           ) : null}
           {currentFolders.map((folder) => (
             <button
-              className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb]"
+              className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
+              // Still being created: it has no real id to save into yet.
+              disabled={folder.pending}
               key={folder.id}
               onClick={() => handleOpenFolder(folder)}
               type="button"

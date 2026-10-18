@@ -324,3 +324,18 @@ export function folderContents(item: ProjectTreeItem): { forms: ProjectTreeItem[
   walk(item.children)
   return { forms, folders }
 }
+
+/** Swaps the node `id` for `next`, in place — e.g. a pending folder for the one the server created. */
+export function replaceProjectById(
+  projects: ProjectTreeItem[],
+  id: string,
+  next: ProjectTreeItem,
+): ProjectTreeItem[] {
+  return projects.map((project) =>
+    project.id === id
+      ? { ...next, children: next.children ?? project.children }
+      : project.children
+        ? { ...project, children: replaceProjectById(project.children, id, next) }
+        : project,
+  )
+}

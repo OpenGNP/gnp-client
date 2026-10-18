@@ -1,4 +1,4 @@
-import { Folder, FolderInput, FolderOpen, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Folder, FolderInput, FolderOpen, MoreVertical, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { type DragEvent, useState } from 'react'
 
 import { useInlineEdit } from '../../hooks/useInlineEdit'
@@ -119,6 +119,15 @@ export function FolderCard({
         },
       }
     : {}
+
+  if (folder.pending) {
+    return (
+      <div aria-busy="true" className={cn(cardBaseClass, 'opacity-70')} onContextMenu={stopContextMenu}>
+        <RefreshCw className="shrink-0 animate-spin text-[#5f6368]" size={20} />
+        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#3c4043]">{folder.label}</span>
+      </div>
+    )
+  }
 
   if (isRenaming && onRename) {
     return (

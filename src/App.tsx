@@ -34,6 +34,7 @@ import {
   getSelectedProjectId,
   isNameTaken,
   folderContents,
+  replaceProjectById,
   getAncestorFolderIds,
   getFolderPath,
   uniqueName,
@@ -299,14 +300,21 @@ function App() {
     // Silently uniquify on create (Finder-style) so the default "New folder" name
     // doesn't fail on the second one.
     const label = uniqueName(projects, desired, { parentFolderId, type: 'folder' })
+    // Shown straight away (dimmed, not clickable) — otherwise it vanishes for the
+    // round trip between the name being committed and the server answering.
+    const pendingId = `pending-${crypto.randomUUID()}`
+    addFolder({ id: pendingId, label, type: 'folder', pending: true }, parentFolderId)
     try {
       const created = await createFolder({
         folderName: label,
         parentFolderId: parseFolderId(parentFolderId) ?? null,
       })
       markWorkspaceStale(queryClient)
-      addFolder({ id: String(created.id), label, type: 'folder' }, parentFolderId)
+      setProjects((current) =>
+        replaceProjectById(current, pendingId, { id: String(created.id), label, type: 'folder' }),
+      )
     } catch (error) {
+      removeProject(pendingId)
       void showAlert(
         error instanceof ApiError ? error.message : 'Could not create the folder. Please try again.',
       )
