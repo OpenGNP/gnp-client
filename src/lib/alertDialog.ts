@@ -4,16 +4,20 @@
  * `if (await showConfirm(...))` — so call sites read like before.
  */
 export type AlertRequest = {
+  id: number
   kind: 'alert' | 'confirm'
   title: string
   message?: string
   confirmLabel: string
   /** Confirm only: red confirm button, for deleting and the like. */
   destructive: boolean
+  /** Confirm only: must be typed exactly before the confirm button enables. */
+  typeToConfirm?: string
   resolve: (confirmed: boolean) => void
 }
 
 let queue: AlertRequest[] = []
+let nextId = 1
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((listener) => listener())
 
@@ -35,9 +39,9 @@ export function settleAlert(confirmed: boolean) {
   current.resolve(confirmed)
 }
 
-function enqueue(request: Omit<AlertRequest, 'resolve'>): Promise<boolean> {
+function enqueue(request: Omit<AlertRequest, 'id' | 'resolve'>): Promise<boolean> {
   return new Promise((resolve) => {
-    queue = [...queue, { ...request, resolve }]
+    queue = [...queue, { ...request, id: nextId++, resolve }]
     emit()
   })
 }
@@ -53,11 +57,14 @@ export function showConfirm({
   message,
   confirmLabel = 'Confirm',
   destructive = false,
+  typeToConfirm,
 }: {
   title: string
   message?: string
   confirmLabel?: string
   destructive?: boolean
+  /** For what can't be undone and costs a lot (e.g. collected responses). */
+  typeToConfirm?: string
 }): Promise<boolean> {
-  return enqueue({ kind: 'confirm', title, message, confirmLabel, destructive })
+  return enqueue({ kind: 'confirm', title, message, confirmLabel, destructive, typeToConfirm })
 }

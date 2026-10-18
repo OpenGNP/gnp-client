@@ -11,7 +11,7 @@ const SORT_LABELS: Record<SortKey, string> = {
   created: 'Date created',
 }
 
-/** The Files-style "Sort: … ▾" menu and its direction toggle, right-aligned above a grid. */
+/** The Files-style "Sort: … ▾" menu and its direction toggle — sits at the end of a page's title row. */
 export function SortControls({
   keys,
   sortKey,
@@ -27,7 +27,7 @@ export function SortControls({
   onSortDirChange: (dir: SortDir) => void
 }) {
   return (
-    <div className="mt-4 flex justify-end gap-2">
+    <div className="flex shrink-0 gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

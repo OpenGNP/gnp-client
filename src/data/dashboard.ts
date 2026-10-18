@@ -21,6 +21,8 @@ export type ProjectTreeItem = {
   updatedAt?: string | null
   createdAt?: string | null
   lastOpenedAt?: string | null
+  /** Documents only: responses collected so far. */
+  submissionCount?: number
 }
 
 export type RecentForm = {

@@ -63,11 +63,17 @@ export function HomePage({ onMoveItem }: HomePageProps) {
 
   async function handleDeleteForm(id: number) {
     const target = forms.find((form) => form.id === id)
+    const title = target?.formTitle?.trim() || 'Untitled form'
+    const responses = target?.submissionCount ?? 0
+    // Collected responses can't be got back — losing them takes typing the form's name.
     const confirmed = await showConfirm({
       title: 'Delete form?',
-      message: `“${target?.formTitle ?? 'This form'}” and all its responses will be deleted. This can't be undone.`,
+      message: responses
+        ? `“${title}” and its ${responses} response${responses === 1 ? '' : 's'} will be deleted. This can't be undone.`
+        : `“${title}” will be deleted. This can't be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
+      typeToConfirm: responses > 0 ? title : undefined,
     })
     if (!confirmed) return
 

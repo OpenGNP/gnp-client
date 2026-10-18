@@ -12,11 +12,11 @@ import {
   getSelectedProjectId,
   isIdWithinItem,
   isNameTaken,
-  removeFolderPromotingChildren,
   removeProjectById,
   renameProjectById,
   uniqueName,
   getAncestorFolderIds,
+  folderContents,
 } from '../src/utils/projectTree'
 
 function tree(): ProjectTreeItem[] {
@@ -92,15 +92,6 @@ describe('removeProjectById', () => {
   })
 })
 
-describe('removeFolderPromotingChildren', () => {
-  it('keeps children, promoted to where the folder lived', () => {
-    const result = removeFolderPromotingChildren(tree(), 'folder-1')
-    expect(findFolderById(result, 'folder-1')).toBeNull()
-    expect(result.some((item) => item.id === 'form-1')).toBe(true)
-    expect(result.some((item) => item.id === 'form-2')).toBe(true)
-  })
-})
-
 describe('isNameTaken / uniqueName', () => {
   it('is case-insensitive within the same scope', () => {
     const taken = isNameTaken(tree(), 'standalone', {
@@ -154,12 +145,23 @@ describe('isNameTaken / uniqueName', () => {
   })
 })
 
+describe('folderContents', () => {
+  it('counts every form and subfolder inside, at any depth', () => {
+    const contents = folderContents(deepTree()[0]!)
+    expect(contents.folders).toBe(1)
+    expect(contents.forms.map((item) => item.id)).toEqual(['form-x'])
+  })
+
+  it('is empty for an empty folder', () => {
+    expect(folderContents({ id: 'f', label: 'F', type: 'folder', children: [] })).toEqual({ forms: [], folders: 0 })
+  })
+})
+
 describe('empty tree', () => {
   it('every lookup/mutation handles [] without throwing', () => {
     expect(findProjectById([], 'x')).toBeNull()
     expect(findFolderById([], 'x')).toBeNull()
     expect(removeProjectById([], 'x')).toEqual({ projects: [], removedProject: null })
-    expect(removeFolderPromotingChildren([], 'x')).toEqual([])
     expect(getFolderPath([], 'x')).toEqual([])
     expect(findParentFolderId([], 'x')).toBeNull()
     expect(getDefaultOpenFolderIds([])).toEqual(new Set())

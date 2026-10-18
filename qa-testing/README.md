@@ -33,12 +33,6 @@ bun run test:watch  # re-run on file change
 - Returns `removedProject: null` when the id isn't found, instead of
   silently mutating nothing and giving no signal.
 
-**`removeFolderPromotingChildren`**
-- When a folder is deleted, its children move up to where the folder used
-  to be, rather than being deleted with it — this mirrors the server, which
-  sets a form's `folder_id` to null on folder delete instead of deleting the
-  form.
-
 **`isNameTaken` / `uniqueName`**
 - Name collisions are checked case-insensitively ("standalone" collides
   with "Standalone").
