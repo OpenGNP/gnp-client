@@ -89,36 +89,6 @@ export function removeProjectById(
   return { projects: nextProjects, removedProject }
 }
 
-/**
- * Removes a folder but keeps its children in the tree, promoted to wherever the
- * folder itself lived (root, or its own parent folder). Mirrors the backend: deleting
- * a folder doesn't delete the forms inside it, it just sets their `folder_id` to null
- * (`fk_form_folder` is `ON DELETE SET NULL`) — dropping the whole subtree client-side
- * would make those forms vanish from view until the next full reload.
- */
-export function removeFolderPromotingChildren(
-  projects: ProjectTreeItem[],
-  folderId: string,
-): ProjectTreeItem[] {
-  const result: ProjectTreeItem[] = []
-
-  for (const project of projects) {
-    if (project.id === folderId) {
-      result.push(...(project.children ?? []))
-      continue
-    }
-
-    if (project.children) {
-      result.push({ ...project, children: removeFolderPromotingChildren(project.children, folderId) })
-      continue
-    }
-
-    result.push(project)
-  }
-
-  return result
-}
-
 export function findProjectById(
   projects: ProjectTreeItem[],
   id: string,
@@ -335,4 +305,22 @@ export function getAncestorFolderIds(projects: ProjectTreeItem[], nodeId: string
     }
   }
   return []
+}
+
+/** Everything inside a folder, at any depth — what deleting it takes with it. */
+export function folderContents(item: ProjectTreeItem): { forms: ProjectTreeItem[]; folders: number } {
+  const forms: ProjectTreeItem[] = []
+  let folders = 0
+  const walk = (children: ProjectTreeItem[] = []) => {
+    for (const child of children) {
+      if (child.type === 'folder') {
+        folders += 1
+        walk(child.children)
+      } else {
+        forms.push(child)
+      }
+    }
+  }
+  walk(item.children)
+  return { forms, folders }
 }

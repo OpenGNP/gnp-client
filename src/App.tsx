@@ -33,7 +33,7 @@ import {
   formNodeIdForRef,
   getSelectedProjectId,
   isNameTaken,
-  removeFolderPromotingChildren,
+  folderContents,
   getAncestorFolderIds,
   getFolderPath,
   uniqueName,
@@ -473,12 +473,9 @@ function App() {
 
     const snapshot = projects
     const isFolder = item.type === 'folder'
-
-    if (isFolder) {
-      setProjects((current) => removeFolderPromotingChildren(current, id))
-    } else {
-      removeProject(id)
-    }
+    // A folder goes with everything in it (the server deletes the whole subtree too).
+    const deletedForms = isFolder ? folderContents(item).forms : [item]
+    removeProject(id)
 
     const numericId = Number(isFolder ? item.id : (item.formId ?? item.id))
     if (!Number.isInteger(numericId) || numericId <= 0) {
@@ -490,8 +487,11 @@ function App() {
         await deleteFolder(numericId)
       } else {
         await deleteForm(numericId)
-        queryClient.removeQueries({ queryKey: queryKeys.form(numericId) })
-        queryClient.removeQueries({ queryKey: queryKeys.analytics(numericId) })
+      }
+      for (const form of deletedForms) {
+        const formId = Number(form.formId ?? form.id)
+        queryClient.removeQueries({ queryKey: queryKeys.form(formId) })
+        queryClient.removeQueries({ queryKey: queryKeys.analytics(formId) })
       }
     } catch (error) {
       setProjects(snapshot)

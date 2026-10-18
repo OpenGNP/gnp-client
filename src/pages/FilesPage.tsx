@@ -1,4 +1,4 @@
-import { ChevronRight, FilePlus, FolderPlus } from 'lucide-react'
+import { ChevronRight, FilePlus, Folder, FolderPlus } from 'lucide-react'
 import { type DragEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -9,6 +9,12 @@ import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
 import { FolderCardGridSkeleton } from '../components/skeletons/FolderCardSkeleton'
 import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu'
 import { SkeletonRegion } from '../components/ui/skeleton'
 import {
   ContextMenu,
@@ -22,7 +28,7 @@ import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
 import { cn } from '../lib/utils'
-import { getFolderPath } from '../utils/projectTree'
+import { folderContents, getFolderPath } from '../utils/projectTree'
 
 export type FilesPageProps = {
   projects: ProjectTreeItem[]
@@ -116,11 +122,28 @@ export function FilesPage({
   }
 
   async function deleteItem(item: ProjectTreeItem) {
+    const contents = item.type === 'folder' ? folderContents(item) : null
+    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+    const inside = contents
+      ? [
+          contents.forms.length ? plural(contents.forms.length, 'form') : '',
+          contents.folders ? plural(contents.folders, 'folder') : '',
+        ].filter(Boolean)
+      : []
+    // Collected responses can't be got back — losing them takes typing the item's name.
+    const responses = contents
+      ? contents.forms.reduce((sum, form) => sum + (form.submissionCount ?? 0), 0)
+      : (item.submissionCount ?? 0)
     const confirmed = await showConfirm({
       title: item.type === 'folder' ? 'Delete folder?' : 'Delete form?',
-      message: `“${item.label}” will be deleted. This can't be undone.`,
+      message: inside.length
+        ? `“${item.label}” and everything in it (${inside.join(' and ')}${responses ? `, with ${plural(responses, 'response')}` : ''}) will be deleted. This can't be undone.`
+        : responses
+          ? `“${item.label}” and its ${plural(responses, 'response')} will be deleted. This can't be undone.`
+          : `“${item.label}” will be deleted. This can't be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
+      typeToConfirm: responses > 0 ? item.label : undefined,
     })
     if (confirmed) onDeleteItem(item.id)
   }
@@ -131,6 +154,11 @@ export function FilesPage({
   }
 
   // Drop handlers for a breadcrumb crumb (an ancestor folder, or `null` for root).
+  // Deeper than this, the folders between root and the last two fold into "…".
+  const MAX_CRUMBS = 3
+  const hiddenCrumbs = path.length > MAX_CRUMBS ? path.slice(0, path.length - (MAX_CRUMBS - 1)) : []
+  const visibleCrumbs = path.slice(hiddenCrumbs.length)
+
   // `key` is what `dragOverCrumb` stores, so a crumb only lights up while hovered.
   function crumbDropProps(targetFolderId: string | null) {
     if (draggingId === null) return {}
@@ -161,49 +189,78 @@ export function FilesPage({
       <ContextMenuTrigger asChild>
         <div className="min-h-[calc(100vh-50px)]">
           <PageContainer>
-            <nav
-              aria-label="Breadcrumb"
-              className="flex flex-wrap items-center gap-0.5 pt-8 pb-1 text-[22px] text-[#3c4043]"
-            >
-              <button
-                className="cursor-pointer rounded px-1.5 py-1 font-medium hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
-                disabled={path.length === 0}
-                onClick={() => navigate('/files')}
-                type="button"
-                {...crumbDropProps(null)}
+            {/* Title row: the breadcrumb shrinks (long names truncate, deep paths fold into
+                "…") so Sort keeps its place at the end; on phones Sort wraps below. */}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-8 pb-1">
+              <nav
+                aria-label="Breadcrumb"
+                className="flex min-w-0 flex-1 items-center gap-0.5 text-[22px] text-[#3c4043]"
               >
-                My Project
-              </button>
-              {path.map((folder, index) => {
-                const isLast = index === path.length - 1
-
-                return (
-                  <span className="flex items-center gap-0.5" key={folder.id}>
+                <button
+                  className="shrink-0 cursor-pointer rounded px-1.5 py-1 font-medium whitespace-nowrap hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
+                  disabled={path.length === 0}
+                  onClick={() => navigate('/files')}
+                  type="button"
+                  {...crumbDropProps(null)}
+                >
+                  My Project
+                </button>
+                {hiddenCrumbs.length > 0 ? (
+                  <span className="flex shrink-0 items-center gap-0.5">
                     <ChevronRight className="shrink-0 text-[#b0b1b3]" size={18} />
-                    <button
-                      className={cn(
-                        'cursor-pointer rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]',
-                        isLast ? 'font-semibold' : 'text-[#1e55c5]',
-                      )}
-                      disabled={isLast}
-                      onClick={() => openFolder(folder.id)}
-                      type="button"
-                      {...(isLast ? {} : crumbDropProps(folder.id))}
-                    >
-                      {folder.label}
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          aria-label="Show folders in between"
+                          className="cursor-pointer rounded px-1.5 py-1 text-[#1e55c5] hover:bg-[#f7f8fb]"
+                          type="button"
+                        >
+                          …
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {hiddenCrumbs.map((folder) => (
+                          <DropdownMenuItem key={folder.id} onSelect={() => openFolder(folder.id)}>
+                            <Folder size={14} />
+                            {folder.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </span>
-                )
-              })}
-            </nav>
+                ) : null}
+                {visibleCrumbs.map((folder) => {
+                  const isLast = folder.id === path[path.length - 1]?.id
 
-            <SortControls
-              keys={['name', 'opened', 'modified', 'created']}
-              onSortDirChange={setSortDir}
-              onSortKeyChange={chooseSort}
-              sortDir={sortDir}
-              sortKey={sortKey}
-            />
+                  return (
+                    <span className="flex min-w-0 items-center gap-0.5" key={folder.id}>
+                      <ChevronRight className="shrink-0 text-[#b0b1b3]" size={18} />
+                      <button
+                        className={cn(
+                          'min-w-0 cursor-pointer truncate rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]',
+                          isLast ? 'font-semibold' : 'max-w-60 text-[#1e55c5]',
+                        )}
+                        disabled={isLast}
+                        onClick={() => openFolder(folder.id)}
+                        title={folder.label}
+                        type="button"
+                        {...(isLast ? {} : crumbDropProps(folder.id))}
+                      >
+                        {folder.label}
+                      </button>
+                    </span>
+                  )
+                })}
+              </nav>
+
+              <SortControls
+                keys={['name', 'opened', 'modified', 'created']}
+                onSortDirChange={setSortDir}
+                onSortKeyChange={chooseSort}
+                sortDir={sortDir}
+                sortKey={sortKey}
+              />
+            </div>
 
             {isLoading ? (
               <SkeletonRegion className="mt-4 flex flex-col gap-8" label="Loading files…">

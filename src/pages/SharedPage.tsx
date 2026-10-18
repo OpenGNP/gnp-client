@@ -37,18 +37,23 @@ export function SharedPage() {
   return (
     <div className="min-h-[calc(100vh-50px)]">
       <PageContainer>
-        <h1 className="m-0 px-1.5 pt-9 pb-2 text-[22px] font-semibold text-[#3c4043]">Shared with me</h1>
-
-        <SortControls
-          keys={['name', 'opened', 'modified']}
-          onSortDirChange={setSortDir}
-          onSortKeyChange={(key) => {
-            setSortKey(key)
-            setSortDir(DEFAULT_SORT_DIR[key])
-          }}
-          sortDir={sortDir}
-          sortKey={sortKey}
-        />
+        {/* Same title row as the Files page: title left, Sort at the end. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-8 pb-1">
+          <h1 className="m-0 px-1.5 py-1 text-[22px] font-semibold text-[#3c4043]">Shared with me</h1>
+          <SortControls
+            keys={['name', 'opened', 'modified']}
+            onSortDirChange={setSortDir}
+            onSortKeyChange={(key) => {
+              setSortKey(key)
+              setSortDir(DEFAULT_SORT_DIR[key])
+            }}
+            sortDir={sortDir}
+            sortKey={sortKey}
+          />
+        </div>
+        <p className="m-0 px-1.5 text-[13px] text-[#8b8e98]">
+          Dashboards others have shared with you. You can view and export them, but not edit.
+        </p>
 
         <section aria-labelledby="shared-files-heading" className="mt-4">
           <h2 className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]" id="shared-files-heading">

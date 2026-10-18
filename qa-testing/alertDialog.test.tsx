@@ -32,4 +32,21 @@ describe('AlertDialogHost', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(answers).toEqual([true, false])
   })
+
+  it('keeps confirm disabled until the exact name is typed', async () => {
+    render(<AlertDialogHost />)
+    let answer: boolean | undefined
+    act(() => {
+      void showConfirm({ title: 'Delete folder?', confirmLabel: 'Delete', typeToConfirm: '2569' }).then((a) => (answer = a))
+    })
+    const input = await screen.findByRole('textbox')
+    const confirm = screen.getByRole('button', { name: 'Delete' })
+    expect(confirm).toBeDisabled()
+    await userEvent.type(input, '256')
+    expect(confirm).toBeDisabled()
+    await userEvent.type(input, '9')
+    expect(confirm).toBeEnabled()
+    await userEvent.click(confirm)
+    expect(answer).toBe(true)
+  })
 })
