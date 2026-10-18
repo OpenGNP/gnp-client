@@ -45,7 +45,7 @@ export function createQuestion(type: QuestionTypeValue, id: string): Question {
     id,
     type: 'text',
     question: '',
-    answerLength: 'long',
+    answerLength: 'short',
     required: false,
   }
 }
