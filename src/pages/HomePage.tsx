@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
 import { deleteForm, updateForm, type ApiForm } from '../api/forms'
-import { formsQuery, queryKeys } from '../api/queries'
+import { formsQuery, queryKeys, sharedFormsQuery } from '../api/queries'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -33,7 +33,17 @@ export function HomePage({ onMoveItem }: HomePageProps) {
   // The same `['forms']` query the sidebar tree uses — one request feeds both, and
   // the optimistic edits below (written to that cache) show in the sidebar too.
   const formsResult = useQuery(formsQuery())
-  const forms = formsResult.data ?? []
+  // "Recent": whichever is later — when I last opened it, or when it last changed.
+  const recency = (form: { lastOpenedAt: string | null; updatedAt: string | null; createdAt: string | null }) =>
+    Math.max(Date.parse(form.lastOpenedAt ?? '') || 0, Date.parse(form.updatedAt ?? form.createdAt ?? '') || 0)
+  // Forms shared with me join in once I've opened them — just being shared isn't "recent".
+  const sharedResult = useQuery(sharedFormsQuery())
+  const recentShared = (sharedResult.data ?? []).filter((form) => form.lastOpenedAt)
+  const forms = [...(formsResult.data ?? [])].sort((a, b) => recency(b) - recency(a))
+  const recent = [
+    ...forms.map((form) => ({ kind: 'own' as const, form, at: recency(form) })),
+    ...recentShared.map((form) => ({ kind: 'shared' as const, form, at: Date.parse(form.lastOpenedAt ?? '') || 0 })),
+  ].sort((a, b) => b.at - a.at)
   const errorMessage =
     formsResult.error instanceof ApiError
       ? formsResult.error.message
@@ -144,24 +154,36 @@ export function HomePage({ onMoveItem }: HomePageProps) {
               Try again
             </button>
           </div>
-        ) : forms.length === 0 ? (
+        ) : recent.length === 0 ? (
           <p className="mt-6.5 text-[14px] text-[#8b8e98]">
             No forms yet. Create your first form to get started.
           </p>
         ) : (
           <div className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
-            {forms.map((form) => (
-              <FormCard
-                key={form.id}
-                image={placeholderFormImage(form.id)}
-                title={form.formTitle ?? 'Untitled form'}
-                updatedAt={formatRelativeTime(form.updatedAt ?? form.createdAt)}
-                onDelete={() => handleDeleteForm(form.id)}
-                onMove={() => onMoveItem(formNodeId(form.id))}
-                onOpen={() => navigate(formPath(form.urlId))}
-                onRename={(name) => handleRenameForm(form.id, name)}
-              />
-            ))}
+            {recent.map((item) =>
+              item.kind === 'own' ? (
+                <FormCard
+                  key={`own-${item.form.id}`}
+                  image={placeholderFormImage(item.form.id)}
+                  title={item.form.formTitle ?? 'Untitled form'}
+                  updatedAt={formatRelativeTime(item.form.updatedAt ?? item.form.createdAt)}
+                  onDelete={() => handleDeleteForm(item.form.id)}
+                  onMove={() => onMoveItem(formNodeId(item.form.id))}
+                  onOpen={() => navigate(formPath(item.form.urlId))}
+                  onRename={(name) => handleRenameForm(item.form.id, name)}
+                />
+              ) : (
+                // Someone else's: view only, so it opens the dashboard and offers nothing else.
+                <FormCard
+                  badge="Shared"
+                  key={`shared-${item.form.id}`}
+                  image={placeholderFormImage(item.form.id)}
+                  title={item.form.formTitle ?? 'Untitled form'}
+                  updatedAt={item.form.updatedAt ? formatRelativeTime(item.form.updatedAt) : '—'}
+                  onOpen={() => navigate(formPath(item.form.urlId, 'dashboard'))}
+                />
+              ),
+            )}
           </div>
         )}
       </section>

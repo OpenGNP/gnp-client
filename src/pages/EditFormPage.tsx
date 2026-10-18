@@ -21,6 +21,7 @@ import {
 } from '../hooks/useFormAccessSettings'
 import { useIsSlow } from '../hooks/useIsSlow'
 import { useFormEditorModel } from '../hooks/useFormEditorModel'
+import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { FormLoadError } from '../components/FormLoadError'
 import { ApiError } from '../lib/api'
@@ -49,6 +50,7 @@ export function EditFormPage({
   const routeForm = useRouteForm()
   const formId = routeForm.formId ?? 0
   const hasValidId = routeForm.formId !== null
+  useRecordFormOpen(routeForm.role === 'owner' ? routeForm.formId : null)
 
   const queryClient = useQueryClient()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)

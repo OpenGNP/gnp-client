@@ -17,6 +17,8 @@ export type FormCardProps = {
   image: string
   updatedAt: string
   imageAlt?: string
+  /** A small label over the image, e.g. "Shared" for someone else's form. */
+  badge?: string
   onOpen?: () => void
   onDelete?: () => void
   onRename?: (name: string) => void
@@ -30,21 +32,30 @@ export type FormCardProps = {
 function CardBody({
   image,
   imageAlt,
+  badge,
   titleSlot,
   updatedAt,
 }: {
   image: string
   imageAlt: string
+  badge?: string
   titleSlot: ReactNode
   updatedAt: string
 }) {
   return (
     <>
-      <img
-        src={image}
-        alt={imageAlt}
-        className="block h-[167px] w-full object-cover"
-      />
+      <div className="relative">
+        <img
+          src={image}
+          alt={imageAlt}
+          className="block h-[167px] w-full object-cover"
+        />
+        {badge ? (
+          <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#3f4045] shadow-sm">
+            {badge}
+          </span>
+        ) : null}
+      </div>
       <div className="px-[11px] pt-[15px] pb-2.5">
         {titleSlot}
         <div className="flex items-center gap-[7px] pr-6 text-[9px] leading-3 font-normal tracking-[0.09px] text-[#969696] [&_svg]:shrink-0">
@@ -80,6 +91,7 @@ function TitleRenameField({
 export function FormCard({
   image,
   imageAlt = '',
+  badge,
   title,
   updatedAt,
   onOpen,
@@ -127,6 +139,7 @@ export function FormCard({
     >
       {isRenaming && onRename ? (
         <CardBody
+          badge={badge}
           image={image}
           imageAlt={imageAlt}
           titleSlot={
@@ -149,6 +162,7 @@ export function FormCard({
             type="button"
           >
             <CardBody
+              badge={badge}
               image={image}
               imageAlt={imageAlt}
               titleSlot={
