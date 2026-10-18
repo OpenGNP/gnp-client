@@ -1,4 +1,4 @@
-import { API_URL, apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { API_URL, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../lib/api";
 import { asUtcIso } from "../lib/apiTimestamp";
 import { getRespondentDeviceId } from "../lib/respondentDevice";
 
@@ -65,8 +65,14 @@ export type ApiFormAllowedUser = {
 };
 
 /** Shape returned by `GET /api/forms/:id` (see gnp-server formService.getForEdit). */
+/** How the signed-in user relates to a form: its owner, or someone it was shared with to view. */
+export type FormRole = "owner" | "viewer";
+
 export type ApiFormDetail = {
   id: number;
+  /** Absent from older servers — treat as "owner". */
+  role?: FormRole;
+  ownerName?: string | null;
   adminId: number;
   folderId: number | null;
   organizationId: number | null;
@@ -228,10 +234,36 @@ export function createForm(
 }
 
 /** A form reference from an app URL (urlId, or a legacy numeric id) → its ids. */
-export type FormRef = { id: number; urlId: string };
+export type FormRef = { id: number; urlId: string; role?: FormRole };
 
 export function resolveFormRef(ref: string): Promise<FormRef> {
   return apiGet<FormRef>(`/forms/ref/${encodeURIComponent(ref)}`);
+}
+
+/** A form someone shared with me to view — the "Shared with me" page. */
+export type ApiSharedForm = {
+  id: number;
+  urlId: string;
+  formTitle: string | null;
+  status: string | null;
+  updatedAt: string | null;
+  ownerName: string | null;
+};
+
+export async function listSharedForms(): Promise<ApiSharedForm[]> {
+  const forms = await apiGet<ApiSharedForm[]>("/forms/shared");
+  return forms.map((form) => ({ ...form, updatedAt: asUtcIso(form.updatedAt) }));
+}
+
+export type ApiCollaborator = { email: string; role: "viewer"; fullName: string | null };
+
+export function getCollaborators(formId: number): Promise<ApiCollaborator[]> {
+  return apiGet<ApiCollaborator[]>(`/forms/${formId}/collaborators`);
+}
+
+/** Replaces who the form is shared with (view-only); returns the saved list. */
+export function replaceCollaborators(formId: number, emails: string[]): Promise<ApiCollaborator[]> {
+  return apiPut<ApiCollaborator[]>(`/forms/${formId}/collaborators`, { emails });
 }
 
 export function updateForm(

@@ -1,0 +1,132 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Eye, RefreshCw, Users } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+
+import { replaceCollaborators } from '../../api/forms'
+import { collaboratorsQuery, formQuery, formRefQuery, queryKeys } from '../../api/queries'
+import { ApiError } from '../../lib/api'
+import { cn } from '../../lib/utils'
+import { SpecificPeopleField } from '../forms/SpecificPeopleField'
+import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
+import { Button } from '../ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
+
+/**
+ * The form's sharing, top right of its Edit / Dashboard bar: the owner's "Share results"
+ * button (with how many can see them), or a viewer's "View only · shared by …".
+ * Reads the route's form from the cache both pages already fill.
+ */
+export function ShareControl() {
+  const { projectId: ref = '' } = useParams()
+  const formRef = useQuery({ ...formRefQuery(ref), enabled: ref !== '' }).data
+  const formId = formRef?.id ?? 0
+  const form = useQuery({ ...formQuery(formId), enabled: formId > 0 }).data
+  const role = form?.role ?? formRef?.role ?? 'owner'
+
+  if (!formRef) return null
+  if (role === 'viewer') {
+    return (
+      <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-[#f0f1f4] px-3 text-[12px] font-medium text-[#726f6f]">
+        <Eye className="shrink-0" size={14} />
+        <span className="truncate">
+          View only{form?.ownerName ? ` · shared by ${form.ownerName}` : ''}
+        </span>
+      </span>
+    )
+  }
+  return <ShareButton formId={formId} />
+}
+
+function ShareButton({ formId }: { formId: number }) {
+  const [open, setOpen] = useState(false)
+  const viewers = useQuery(collaboratorsQuery(formId)).data?.length ?? 0
+  return (
+    <>
+      <Button
+        aria-label={viewers > 0 ? `Share results (shared with ${viewers})` : 'Share results'}
+        onClick={() => setOpen(true)}
+        size="sm"
+        variant="outline"
+      >
+        <Users />
+        <span className="max-[560px]:sr-only">Share results</span>
+        {viewers > 0 ? (
+          <span className="rounded-full bg-[#edf2fd] px-1.5 text-[11px] font-semibold text-[#1e55c5]">{viewers}</span>
+        ) : null}
+      </Button>
+      {open ? <ShareDialog formId={formId} onClose={() => setOpen(false)} /> : null}
+    </>
+  )
+}
+
+function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const saved = useQuery(collaboratorsQuery(formId))
+  // null until edited: the list shows what's saved until the owner changes it.
+  const [draft, setDraft] = useState<string[] | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const emails = draft ?? saved.data?.map((viewer) => viewer.email) ?? []
+
+  const save = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      const next = await replaceCollaborators(formId, emails)
+      queryClient.setQueryData(queryKeys.collaborators(formId), next)
+      onClose()
+    } catch (failure) {
+      setError(failure instanceof ApiError ? failure.message : 'Could not update sharing. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog onOpenChange={(next) => (!next && !saving ? onClose() : undefined)} open>
+      <DialogContent className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#e8eaf1] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
+        <DialogTitle className={MESSAGE_TITLE}>Share results</DialogTitle>
+        <DialogDescription className={cn(MESSAGE_DESCRIPTION, 'mt-1')}>
+          People you add can view this form’s dashboard and export its results. They can’t edit, share or delete
+          it. To let people answer the form, use Publish instead.
+        </DialogDescription>
+
+        {saved.isPending ? (
+          <p className="m-0 mt-4 flex items-center gap-2 text-[13px] text-[#726f6f]">
+            <RefreshCw className="animate-spin" size={14} />
+            Loading…
+          </p>
+        ) : saved.isError ? (
+          <p className="m-0 mt-4 text-[13px] text-destructive">Could not load who this form is shared with.</p>
+        ) : (
+          <div className={cn(saving && 'opacity-60')} inert={saving}>
+            <SpecificPeopleField emails={emails} onChange={setDraft} />
+          </div>
+        )}
+
+        {error ? <p className="m-0 mt-3 text-[12px] text-destructive">{error}</p> : null}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            className={cn(MESSAGE_ACTION, MESSAGE_ACTION_STYLES.secondary)}
+            disabled={saving}
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className={cn(MESSAGE_ACTION, MESSAGE_ACTION_STYLES.primary, 'gap-1.5 disabled:opacity-60')}
+            disabled={saving || !saved.isSuccess || draft === null}
+            onClick={() => void save()}
+            type="button"
+          >
+            {saving ? <RefreshCw className="animate-spin" size={14} /> : null}
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

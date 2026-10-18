@@ -382,6 +382,7 @@ export function FormDashboardPage({
     return (
       <div>
         <FormDetailTabs
+          canEdit={routeForm.role === 'owner'}
           hasDashboardData={hasValidId}
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
@@ -586,6 +587,7 @@ export function FormDashboardPage({
   return (
     <div>
       <FormDetailTabs
+        canEdit={routeForm.role === 'owner'}
         hasDashboardData
         onToggleSidebar={onToggleSidebar}
         showSidebarToggle={showSidebarToggle}

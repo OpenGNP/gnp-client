@@ -1,6 +1,7 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { cn } from '../../lib/utils'
+import { ShareControl } from '../dashboard/ShareDialog'
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
 import { SidebarToggleButton } from './SidebarToggleButton'
 
@@ -8,12 +9,15 @@ export type FormDetailTabsProps = {
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
   hasDashboardData?: boolean
+  /** False for someone the form was only shared with to view: no editor. */
+  canEdit?: boolean
 }
 
 export function FormDetailTabs({
   showSidebarToggle = false,
   onToggleSidebar,
   hasDashboardData = false,
+  canEdit = true,
 }: FormDetailTabsProps) {
   const { projectId } = useParams()
   const location = useLocation()
@@ -27,7 +31,7 @@ export function FormDetailTabs({
       }
       return
     }
-    navigate(`/forms/${encodeURIComponent(projectId ?? '')}`)
+    if (canEdit) navigate(`/forms/${encodeURIComponent(projectId ?? '')}`)
   }
 
   return (
@@ -49,7 +53,10 @@ export function FormDetailTabs({
               isDashboardActive
                 ? 'border-transparent text-[#726f6f] hover:text-black'
                 : 'border-[#4c71f7] text-black',
+              !canEdit && 'cursor-not-allowed text-[#b0b1b3] hover:text-[#b0b1b3]',
             )}
+            disabled={!canEdit}
+            title={canEdit ? undefined : 'Shared with you to view only'}
             value="edit"
           >
             Edit form
@@ -70,6 +77,9 @@ export function FormDetailTabs({
           </TabsTrigger>
         </TabsList>
       </Tabs>
+      <div className="ml-auto flex min-w-0 items-center">
+        <ShareControl />
+      </div>
     </div>
   )
 }

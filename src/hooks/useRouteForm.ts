@@ -27,6 +27,8 @@ export function useRouteForm() {
 
   return {
     formId: resolved?.id ?? null,
+    // The sidebar seeds its own forms without a role — those are always the owner's.
+    role: resolved?.role ?? ('owner' as const),
     status: ref === '' || result.isError ? ('error' as const) : resolved ? ('ready' as const) : ('loading' as const),
     error: result.error,
     retry: () => void result.refetch(),
