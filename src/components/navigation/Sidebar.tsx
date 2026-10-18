@@ -555,8 +555,11 @@ function ProjectItem({
             isSelected && selectedRowClass,
             isDragging && 'opacity-40',
             dropZoneClass,
+            // Not saved yet (see App's handleCreateFolder): visible, but nothing to do with it.
+            item.pending && 'pointer-events-none opacity-60',
           )}
-          draggable
+          draggable={!item.pending}
+          inert={item.pending}
           ref={rowRef}
           title={isCollapsed ? item.label : undefined}
           onDragEnd={onDragEnd}

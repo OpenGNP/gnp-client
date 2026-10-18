@@ -23,6 +23,8 @@ export type ProjectTreeItem = {
   lastOpenedAt?: string | null
   /** Documents only: responses collected so far. */
   submissionCount?: number
+  /** Shown before the server has confirmed it (a temporary id) — not interactive yet. */
+  pending?: boolean
 }
 
 export type RecentForm = {
