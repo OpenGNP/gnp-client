@@ -9,7 +9,6 @@ import { ApiError } from '../../lib/api'
 import { cn } from '../../lib/utils'
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
-import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
@@ -108,15 +107,16 @@ function ShareButton({ formId }: { formId: number }) {
     <>
       <div className="flex items-center gap-2.5">
         {viewers.length > 0 ? <ViewerAvatars onOpen={() => setOpen(true)} viewers={viewers} /> : null}
-        <Button
+        {/* Its own compact button: the top bar is navigation, so it stays lighter than the page actions. */}
+        <button
           aria-label={viewers.length > 0 ? `Share results (shared with ${viewers.length})` : 'Share results'}
+          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:px-0"
           onClick={() => setOpen(true)}
-          size="sm"
-          variant="outline"
+          type="button"
         >
-          <Share2 />
+          <Share2 className="shrink-0" size={15} strokeWidth={2.2} />
           <span className="max-[560px]:sr-only">Share results</span>
-        </Button>
+        </button>
       </div>
       {open ? <ShareDialog formId={formId} onClose={() => setOpen(false)} /> : null}
     </>
