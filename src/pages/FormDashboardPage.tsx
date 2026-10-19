@@ -93,7 +93,7 @@ function StatusRow({ form, now, freshness }: { form: ApiFormDetail | null; now: 
       ) : (
         <Skeleton className="h-6.5 w-24 rounded-full" />
       )}
-      <span className="inline-flex items-center gap-1.5 text-[12px]">
+      <span className="inline-flex items-center gap-1.5 text-[12px] whitespace-nowrap">
         {freshness?.kind === 'ai' ? (
           <Sparkles className="text-[#3f4045]" size={20} strokeWidth={1.8} />
         ) : (
@@ -613,6 +613,11 @@ export function FormDashboardPage({
         showSidebarToggle={showSidebarToggle}
       />
       <FolderBreadcrumbBar
+        reserveRight={
+          (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
+            ? detailPanelLayout.width
+            : undefined
+        }
         actions={
           <>
             {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}

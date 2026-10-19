@@ -151,8 +151,7 @@ function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void 
       <DialogContent className="w-120 max-w-[calc(100vw-32px)] rounded-[10px] border border-[#e8eaf1] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
         <DialogTitle className={MESSAGE_TITLE}>Share results</DialogTitle>
         <DialogDescription className={cn(MESSAGE_DESCRIPTION, 'mt-1')}>
-          People you add can view this form’s dashboard and export its results. They can’t edit, share or delete
-          it. To let people answer the form, use Publish instead.
+          People you add can view and export the results, but can’t edit, share or delete the form.
         </DialogDescription>
 
         {saved.isPending ? (
