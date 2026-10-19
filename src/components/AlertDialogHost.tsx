@@ -37,38 +37,38 @@ function AlertBody({ request }: { request: AlertRequest }) {
 
   return (
     <>
-      <div className="flex items-start gap-3">
+      {/* Icon inline with the title, everything else full width — no left gutter under the
+          icon, so the text, input and buttons line up with the dialog's padding. */}
+      <div className="flex items-center gap-2">
         {request.kind === 'alert' || request.destructive ? (
           <CircleAlert
-            className={cn('mt-0.5 shrink-0', request.destructive ? 'text-destructive' : 'text-[#1e55c5]')}
-            size={20}
+            className={cn('shrink-0', request.destructive ? 'text-destructive' : 'text-[#1e55c5]')}
+            size={18}
           />
         ) : null}
-        <div className="min-w-0 flex-1">
-          <DialogTitle className={MESSAGE_TITLE}>{request.title}</DialogTitle>
-          {request.message ? (
-            <DialogDescription className={cn(MESSAGE_DESCRIPTION, 'mt-1')}>{request.message}</DialogDescription>
-          ) : (
-            <DialogDescription className="sr-only">{request.title}</DialogDescription>
-          )}
-          {needsText ? (
-            <label className="mt-4 block text-[13px] text-[#3f4045]">
-              Type <strong className="font-semibold break-all">{request.typeToConfirm}</strong> to confirm
-              <input
-                autoComplete="off"
-                autoFocus
-                className="mt-1.5 h-9 w-full rounded-[6px] border border-[#d7dbe6] px-3 text-[13px] text-[#14181f] outline-none focus:border-destructive"
-                onChange={(event) => setTyped(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && canConfirm) settleAlert(true)
-                }}
-                spellCheck={false}
-                value={typed}
-              />
-            </label>
-          ) : null}
-        </div>
+        <DialogTitle className={MESSAGE_TITLE}>{request.title}</DialogTitle>
       </div>
+      {request.message ? (
+        <DialogDescription className={cn(MESSAGE_DESCRIPTION, 'mt-2')}>{request.message}</DialogDescription>
+      ) : (
+        <DialogDescription className="sr-only">{request.title}</DialogDescription>
+      )}
+      {needsText ? (
+        <label className="mt-4 block text-[13px] text-[#3f4045]">
+          Type <strong className="font-semibold break-all">{request.typeToConfirm}</strong> to confirm
+          <input
+            autoComplete="off"
+            autoFocus
+            className="mt-1.5 h-9 w-full rounded-[10px] border border-[#d7dbe6] px-3 text-[13px] text-[#14181f] outline-none focus:border-destructive"
+            onChange={(event) => setTyped(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && canConfirm) settleAlert(true)
+            }}
+            spellCheck={false}
+            value={typed}
+          />
+        </label>
+      ) : null}
 
       <div className="mt-5 flex justify-end gap-2">
         {request.kind === 'confirm' ? (
