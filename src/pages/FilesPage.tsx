@@ -70,6 +70,13 @@ function sortItems(list: ProjectTreeItem[], sortKey: SortKey, sortDir: SortDir):
   return [...list].sort(compare)
 }
 
+/** The time a card shows — the one the list is sorted by, so the order explains itself. */
+function cardTime(item: ProjectTreeItem, sortKey: SortKey): { label: string; at: string | null | undefined } {
+  if (sortKey === 'opened' && item.lastOpenedAt) return { label: 'Opened', at: item.lastOpenedAt }
+  if (sortKey === 'created') return { label: 'Created', at: item.createdAt }
+  return { label: 'Modified', at: item.updatedAt ?? item.createdAt }
+}
+
 // A right-click on a card should fall through to the browser, not open the page's
 // "new file / new folder" menu — that belongs to genuine white space only.
 function stopContextMenu(event: { stopPropagation: () => void }) {
@@ -336,7 +343,8 @@ export function FilesPage({
                             onOpen={() => openForm(file)}
                             onRename={(name) => onRenameItem(file.id, name)}
                             title={file.label}
-                            updatedAt={formatRelativeTime(file.updatedAt ?? file.createdAt)}
+                            timeLabel={cardTime(file, sortKey).label}
+                            updatedAt={formatRelativeTime(cardTime(file, sortKey).at ?? null)}
                           />
                         </div>
                       ))}

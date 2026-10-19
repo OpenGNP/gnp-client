@@ -5,8 +5,10 @@ import {
   EyeOff,
   FileSpreadsheet,
   FileText,
+  MessageSquareText,
   Printer,
   RefreshCw,
+  Sparkles,
   Tag,
   TrendingUp,
   TriangleAlert,
@@ -70,7 +72,10 @@ const BUCKETS: { value: BucketChoice; label: string }[] = [
 ]
 
 /** `form === null` while it loads: the labels render, the values are placeholders. */
-function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
+/** How fresh the tab's data is: the newest response, or the last AI run. null while loading. */
+type Freshness = { kind: 'response' | 'ai'; at: string | null | undefined; pending?: number } | null
+
+function StatusRow({ form, now, freshness }: { form: ApiFormDetail | null; now: number; freshness: Freshness }) {
   return (
     <div className="flex items-center gap-5">
       {form ? (
@@ -89,10 +94,23 @@ function StatusRow({ form, now }: { form: ApiFormDetail | null; now: number }) {
         <Skeleton className="h-6.5 w-24 rounded-full" />
       )}
       <span className="inline-flex items-center gap-1.5 text-[12px]">
-        <RefreshCw className="text-[#3f4045]" size={22} strokeWidth={1.8} />
-        <span className="font-medium text-[#929292]">Last update</span>
-        {form ? (
-          <span className="font-bold text-[#14181f]">{formatDateTime(form.updatedAt)}</span>
+        {freshness?.kind === 'ai' ? (
+          <Sparkles className="text-[#3f4045]" size={20} strokeWidth={1.8} />
+        ) : (
+          <MessageSquareText className="text-[#3f4045]" size={20} strokeWidth={1.8} />
+        )}
+        <span className="font-medium text-[#929292]">
+          {freshness?.kind === 'ai' ? 'AI analysed' : 'Last response'}
+        </span>
+        {freshness ? (
+          <span className="font-bold text-[#14181f]">
+            {freshness.at
+              ? formatDateTime(freshness.at)
+              : '—'}
+            {freshness.pending ? (
+              <span className="font-medium text-[#929292]"> · {freshness.pending} pending</span>
+            ) : null}
+          </span>
         ) : (
           <Skeleton className="h-3.5 w-16" />
         )}
@@ -669,7 +687,20 @@ export function FormDashboardPage({
             ) : (
               <Skeleton className="h-8 w-72" />
             )}
-            <StatusRow form={form} now={now} />
+            <StatusRow
+              form={form}
+              // Response / Individual show raw responses; Themes / Trend wait on the AI.
+              freshness={
+                activeView === 'themes' || activeView === 'trend'
+                  ? themes
+                    ? { kind: 'ai', at: themes.lastAnalysedAt, pending: themes.awaitingAnalysis }
+                    : null
+                  : responses
+                    ? { kind: 'response', at: responses.lastResponseAt }
+                    : null
+              }
+              now={now}
+            />
           </div>
         }
         path={folderPath}

@@ -27,6 +27,8 @@ function viewerTimeZone(): string | undefined {
  */
 export type FormResponseAnalytics = {
   totalResponses: number
+  /** When the newest response came in; null with none yet. Absent from older servers. */
+  lastResponseAt?: string | null
   demographic: DemographicBreakdown[]
   feedback: DemographicBreakdown[]
 }
@@ -86,6 +88,8 @@ export type FormThemeAnalytics = {
   from: string
   to: string
   rangeLabel: string
+  /** When gnp-ai last finished analysing this form; null if never. Absent from older servers. */
+  lastAnalysedAt?: string | null
   /** Analysed mentions across ALL time — distinguishes "none yet" from "none in range". */
   totalMentions: number
   totalResponders: number

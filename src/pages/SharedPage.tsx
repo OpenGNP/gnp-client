@@ -27,6 +27,14 @@ function sortShared(forms: ApiSharedForm[], sortKey: SortKey, sortDir: SortDir) 
   )
 }
 
+/** The time a card shows — the one the list is sorted by. Never opened → when it was shared. */
+function cardTime(form: ApiSharedForm, sortKey: SortKey): { label: string; at: string | null } {
+  if (sortKey === 'opened') {
+    return form.lastOpenedAt ? { label: 'Opened', at: form.lastOpenedAt } : { label: 'Shared', at: form.sharedAt }
+  }
+  return { label: 'Modified', at: form.updatedAt }
+}
+
 /** Forms other people shared with me to view — laid out like the Files page; each opens its dashboard. */
 export function SharedPage() {
   const navigate = useNavigate()
@@ -84,7 +92,8 @@ export function SharedPage() {
                     image={placeholderFormImage(form.id)}
                     onOpen={() => navigate(formPath(form.urlId, 'dashboard'))}
                     title={form.formTitle ?? 'Untitled form'}
-                    updatedAt={form.updatedAt ? formatRelativeTime(form.updatedAt) : '—'}
+                    timeLabel={cardTime(form, sortKey).label}
+                    updatedAt={cardTime(form, sortKey).at ? formatRelativeTime(cardTime(form, sortKey).at) : null}
                   />
                   {form.ownerName ? (
                     <Tooltip delayDuration={200}>
