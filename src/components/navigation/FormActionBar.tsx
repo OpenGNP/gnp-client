@@ -61,7 +61,7 @@ export const FormActionButton = forwardRef<
     <button
       ref={ref}
       className={cn(
-        'inline-flex h-9.5 cursor-pointer items-center justify-center gap-2 rounded-[5px] border-0 px-3.5 text-[16px] font-bold tracking-[0.16px] text-white transition-transform active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-y-0 max-[560px]:size-9.5 max-[560px]:px-0',
+        'inline-flex h-9.5 cursor-pointer items-center justify-center gap-2 rounded-[10px] border-0 px-3.5 text-[16px] font-bold tracking-[0.16px] text-white transition-transform active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-y-0 max-[560px]:size-9.5 max-[560px]:px-0',
         className,
       )}
       type="button"
@@ -214,7 +214,7 @@ export function FormActionBar({
 
       <Button
         className={cn(
-          'size-9.5 rounded-[5px] text-[#3f4045]',
+          'size-9.5 rounded-[10px] text-[#3f4045]',
           isSettingsOpen && 'bg-[#f0f4ff] text-[#1e55c5]',
         )}
         aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
