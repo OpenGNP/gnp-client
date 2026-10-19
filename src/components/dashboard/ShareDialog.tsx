@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye, RefreshCw, Users } from 'lucide-react'
+import { Eye, RefreshCw, Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { replaceCollaborators } from '../../api/forms'
+import { replaceCollaborators, type ApiCollaborator } from '../../api/forms'
 import { collaboratorsQuery, formQuery, formRefQuery, queryKeys } from '../../api/queries'
 import { ApiError } from '../../lib/api'
 import { cn } from '../../lib/utils'
@@ -49,23 +49,75 @@ export function ShareControl() {
   return <ShareButton formId={formId} />
 }
 
+const MAX_AVATARS = 3
+const AVATAR_COLORS = ['#1e55c5', '#0b842d', '#b7791f', '#c1121f', '#6b46c1', '#0e7490']
+
+/** "Somchai Jaidee" → "SJ"; no name → the email's first letter. */
+function initialsOf(viewer: ApiCollaborator) {
+  const words = (viewer.fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  if (words.length > 0) return words.slice(0, 2).map((word) => [...word][0]).join('').toUpperCase()
+  return ([...viewer.email][0] ?? '?').toUpperCase()
+}
+
+// The same person keeps the same colour everywhere.
+function colorOf(email: string) {
+  let hash = 0
+  for (const char of email.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+/** Who can see the results, as overlapping initials — the first few, then "+N". */
+function ViewerAvatars({ viewers, onOpen }: { viewers: ApiCollaborator[]; onOpen: () => void }) {
+  const shown = viewers.slice(0, MAX_AVATARS)
+  const rest = viewers.length - shown.length
+  return (
+    <button
+      aria-label={`Shared with ${viewers.length} ${viewers.length === 1 ? 'person' : 'people'}`}
+      className="flex cursor-pointer items-center rounded-full border-0 bg-transparent p-0 max-[560px]:hidden"
+      onClick={onOpen}
+      type="button"
+    >
+      {shown.map((viewer) => (
+        <Tooltip delayDuration={200} key={viewer.email}>
+          <TooltipTrigger asChild>
+            <span
+              className="-ml-1.5 flex size-7 items-center justify-center rounded-full text-[11px] font-semibold text-white ring-2 ring-white first:ml-0"
+              style={{ backgroundColor: colorOf(viewer.email) }}
+            >
+              {initialsOf(viewer)}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {viewer.fullName ? `${viewer.fullName} (${viewer.email})` : viewer.email}
+          </TooltipContent>
+        </Tooltip>
+      ))}
+      {rest > 0 ? (
+        <span className="-ml-1.5 flex size-7 items-center justify-center rounded-full bg-[#eef0f4] text-[11px] font-semibold text-[#3f4045] ring-2 ring-white">
+          +{rest}
+        </span>
+      ) : null}
+    </button>
+  )
+}
+
 function ShareButton({ formId }: { formId: number }) {
   const [open, setOpen] = useState(false)
-  const viewers = useQuery(collaboratorsQuery(formId)).data?.length ?? 0
+  const viewers = useQuery(collaboratorsQuery(formId)).data ?? []
   return (
     <>
-      <Button
-        aria-label={viewers > 0 ? `Share results (shared with ${viewers})` : 'Share results'}
-        onClick={() => setOpen(true)}
-        size="sm"
-        variant="outline"
-      >
-        <Users />
-        <span className="max-[560px]:sr-only">Share results</span>
-        {viewers > 0 ? (
-          <span className="rounded-full bg-[#edf2fd] px-1.5 text-[11px] font-semibold text-[#1e55c5]">{viewers}</span>
-        ) : null}
-      </Button>
+      <div className="flex items-center gap-2.5">
+        {viewers.length > 0 ? <ViewerAvatars onOpen={() => setOpen(true)} viewers={viewers} /> : null}
+        <Button
+          aria-label={viewers.length > 0 ? `Share results (shared with ${viewers.length})` : 'Share results'}
+          onClick={() => setOpen(true)}
+          size="sm"
+          variant="outline"
+        >
+          <Share2 />
+          <span className="max-[560px]:sr-only">Share results</span>
+        </Button>
+      </div>
       {open ? <ShareDialog formId={formId} onClose={() => setOpen(false)} /> : null}
     </>
   )
