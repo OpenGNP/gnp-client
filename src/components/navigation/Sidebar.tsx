@@ -600,7 +600,7 @@ function ProjectItem({
         {childCount === 0 ? (
           <CollapsibleContent className="ml-8 w-[calc(100%-32px)]">
             <p className="m-0 py-2 pl-2.5 text-[13px] font-medium text-[#8a8d97]">
-              Empty folder — drag forms here
+              Empty folder
             </p>
           </CollapsibleContent>
         ) : (

@@ -633,7 +633,17 @@ function App() {
           />
         )}
         <Routes>
-          <Route path="/" element={<HomePage onMoveItem={handleOpenMove} />} />
+          <Route
+            path="/"
+            element={
+              <HomePage
+                onDeleteItem={handleDeleteProject}
+                onMoveItem={handleOpenMove}
+                onRenameItem={handleRenameProject}
+                projects={projects}
+              />
+            }
+          />
           <Route path="/files" element={filesPageElement} />
           <Route path="/shared" element={<SharedPage />} />
           <Route path="/files/:folderId" element={filesPageElement} />
