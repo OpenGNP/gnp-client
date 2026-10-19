@@ -58,10 +58,22 @@ export function useFormEvents(formId: number | null) {
       source?.addEventListener(kind, () => queue(kind))
     }
 
-    const poll = setInterval(() => {
-      if (source?.readyState === EventSource.OPEN) return
+    const refetchAll = () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.analytics(formId) })
       void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
+    }
+
+    // Back after a drop: events sent meanwhile are gone (SSE here doesn't replay), so
+    // catch up once now rather than waiting for the next poll. Not on the first open the page has only just loaded its data.
+    let hasOpened = false
+    source?.addEventListener('open', () => {
+      if (hasOpened) refetchAll()
+      hasOpened = true
+    })
+
+    const poll = setInterval(() => {
+      if (source?.readyState === EventSource.OPEN) return
+      refetchAll()
     }, FALLBACK_POLL_MS)
 
     return () => {

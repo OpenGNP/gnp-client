@@ -54,4 +54,22 @@ describe('useFormEvents', () => {
       JSON.stringify(['analytics', 4, 'themes']),
     ])
   })
+
+  it('catches up once after reconnecting, not on the first open', () => {
+    vi.stubGlobal('EventSource', FakeEventSource)
+    const client = new QueryClient()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+    renderHook(() => useFormEvents(4), { wrapper })
+
+    FakeEventSource.last!.emit('open')
+    expect(invalidate).not.toHaveBeenCalled()
+    FakeEventSource.last!.emit('open') // reconnected
+    expect(invalidate.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey))).toEqual([
+      JSON.stringify(['analytics', 4]),
+      JSON.stringify(['form', 4]),
+    ])
+  })
 })
