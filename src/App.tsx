@@ -654,6 +654,7 @@ function App() {
             path="/forms/:projectId"
             element={
               <EditFormPage
+                folderPath={selectedFolderPath}
                 onMove={() => handleOpenMove(selectedNodeId)}
                 onToggleSidebar={() => setSidebarCollapsed(false)}
                 showSidebarToggle={isSidebarCollapsed}

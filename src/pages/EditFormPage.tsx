@@ -12,6 +12,7 @@ import { formQuery, queryKeys } from '../api/queries'
 import { CreateFormCard } from '../components/forms/CreateFormCard'
 import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
+import { FolderBreadcrumbBar } from '../components/navigation/FolderBreadcrumb'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import {
   defaultFormAccessSettings,
@@ -39,12 +40,15 @@ export type EditFormPageProps = {
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
   onMove?: () => void
+  /** Folders containing this form, outermost first (empty: at the root of My Project). */
+  folderPath?: { id: string; label: string }[]
 }
 
 export function EditFormPage({
   showSidebarToggle = false,
   onToggleSidebar,
   onMove,
+  folderPath = [],
 }: EditFormPageProps) {
   // The URL carries the form's urlId; the API calls use its numeric id.
   const routeForm = useRouteForm()
@@ -238,29 +242,33 @@ export function EditFormPage({
           onToggleSidebar={onToggleSidebar}
           showSidebarToggle={showSidebarToggle}
         />
-        {loadStatus === 'ready' ? (
-          <div className="flex justify-end bg-[#f5f9ff] px-14 py-4 max-[900px]:px-6 max-[560px]:px-4">
-            <FormActionBar
-              defaultPublished={isPublished}
-              defaultStatus={formStatus}
-              formAccessSettings={settings}
-              isSettingsOpen={isSettingsOpen}
-              mode="edit"
-              onEditSchedule={() => setIsSettingsOpen(true)}
-              onMove={onMove}
-              onPublish={() => handleSave(true)}
-              onReopenForm={handleReopenForm}
-              onSaveDraft={() => handleSave(false)}
-              onToggleSettings={() => setIsSettingsOpen((open) => !open)}
-              onUpdateFormAccessSettings={updateSettings}
-              savedAccessSettings={savedSettings}
-              saveLocked={isSaveLocked}
-              saveSlow={isSlowSave}
-              saveStatus={saveStatus}
-              shareUrl={publicToken ? `${window.location.origin}/f/${publicToken}` : undefined}
-            />
-          </div>
-        ) : null}
+        {/* Where the form lives — its name is edited in the card below, so not repeated here. */}
+        <FolderBreadcrumbBar
+          actions={
+            loadStatus === 'ready' ? (
+              <FormActionBar
+                defaultPublished={isPublished}
+                defaultStatus={formStatus}
+                formAccessSettings={settings}
+                isSettingsOpen={isSettingsOpen}
+                mode="edit"
+                onEditSchedule={() => setIsSettingsOpen(true)}
+                onMove={onMove}
+                onPublish={() => handleSave(true)}
+                onReopenForm={handleReopenForm}
+                onSaveDraft={() => handleSave(false)}
+                onToggleSettings={() => setIsSettingsOpen((open) => !open)}
+                onUpdateFormAccessSettings={updateSettings}
+                savedAccessSettings={savedSettings}
+                saveLocked={isSaveLocked}
+                saveSlow={isSlowSave}
+                saveStatus={saveStatus}
+                shareUrl={publicToken ? `${window.location.origin}/f/${publicToken}` : undefined}
+              />
+            ) : null
+          }
+          path={folderPath}
+        />
       </div>
 
       <div className="bg-[#f5f9ff] px-14 pb-16 max-[900px]:px-6 max-[560px]:px-4">

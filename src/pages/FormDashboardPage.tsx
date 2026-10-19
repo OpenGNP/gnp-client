@@ -40,14 +40,14 @@ import type { TopicSortOption } from '../components/dashboard/topicSort'
 import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
-import { Switch } from '../components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
-import { FolderBreadcrumb } from '../components/navigation/FolderBreadcrumb'
+import { FolderBreadcrumbBar } from '../components/navigation/FolderBreadcrumb'
+import { FormActionButton } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
@@ -594,20 +594,88 @@ export function FormDashboardPage({
         onToggleSidebar={onToggleSidebar}
         showSidebarToggle={showSidebarToggle}
       />
+      <FolderBreadcrumbBar
+        actions={
+          <>
+            {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}
+            {hasNames ? (
+              <FormActionButton
+                aria-pressed={!hideNames}
+                className={
+                  hideNames
+                    ? 'border border-[#d2d8e5] bg-white text-[#726f6f] hover:bg-[#f7f8fb]'
+                    : 'border border-[#1e55c5] bg-[#eef3ff] text-[#1e55c5] hover:bg-[#e3ebfd]'
+                }
+                icon={hideNames ? <EyeOff size={18} strokeWidth={2.2} /> : <Eye size={18} strokeWidth={2.2} />}
+                onClick={toggleHideNames}
+              >
+                Show names
+              </FormActionButton>
+            ) : null}
+            {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
+              <ExportMenu
+                formTitle={form.formTitle}
+                includeNames={!hasNames || !hideNames}
+                options={[
+                  {
+                    label: 'Excel (.xlsx)',
+                    icon: FileSpreadsheet,
+                    extension: 'xlsx',
+                    download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
+                  },
+                  {
+                    label: 'CSV (.csv)',
+                    icon: FileText,
+                    extension: 'csv',
+                    download: () => downloadFormResponses(formId, 'csv', !hideNames),
+                  },
+                ]}
+                what="responses"
+              />
+            ) : null}
+            {/* Exports what's on screen: the same date range and demographic filter. */}
+            {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
+              <ExportMenu
+                formTitle={form.formTitle}
+                includeNames={!hasNames || !hideNames}
+                options={[
+                  {
+                    label: 'Excel (.xlsx)',
+                    icon: FileSpreadsheet,
+                    extension: 'xlsx',
+                    download: () =>
+                      downloadFormThemes(
+                        formId,
+                        { from: range?.from, to: range?.to, demo: demoSel },
+                        topicSort,
+                        !hideNames,
+                      ),
+                  },
+                  { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
+                ]}
+                scope={themesScope}
+                what="AI analysis"
+              />
+            ) : null}
+          </>
+        }
+        // The form's name heads every tab, so a screenshot or screen-share shows which form it is.
+        heading={
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {form ? (
+              <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
+                {form.formTitle?.trim() || 'Untitled form'}
+              </h1>
+            ) : (
+              <Skeleton className="h-8 w-72" />
+            )}
+            <StatusRow form={form} now={now} />
+          </div>
+        }
+        path={folderPath}
+      />
 
-      <div className="flex flex-col gap-3 px-10 pt-5 pb-16 max-[900px]:px-6 max-[560px]:px-4">
-        {/* The form's name heads every tab, so a screenshot or screen-share shows which form it is. */}
-        <FolderBreadcrumb path={folderPath} />
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {form ? (
-            <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
-              {form.formTitle?.trim() || 'Untitled form'}
-            </h1>
-          ) : (
-            <Skeleton className="h-8 w-72" />
-          )}
-          <StatusRow form={form} now={now} />
-        </div>
+      <div className="flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
         <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
 
         <div
@@ -649,66 +717,6 @@ export function FormDashboardPage({
                           ? 'Individual Responses'
                           : 'Response Overview'}
                   </h2>
-                </div>
-                <div className="flex shrink-0 items-center gap-4">
-                  {/* A switch with a fixed label, so its state reads at a glance:
-                      on = names shown, off = hidden (e.g. while screen-sharing). */}
-                  {hasNames ? (
-                    <label className="flex h-8.75 shrink-0 cursor-pointer items-center gap-2 text-[12px] font-medium text-[#3f4045]">
-                      {hideNames ? (
-                        <EyeOff className="text-[#929292]" size={14} />
-                      ) : (
-                        <Eye className="text-[#1e55c5]" size={14} />
-                      )}
-                      Show names
-                      <Switch checked={!hideNames} onCheckedChange={toggleHideNames} />
-                    </label>
-                  ) : null}
-                  {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
-                    <ExportMenu
-                      formTitle={form.formTitle}
-                      includeNames={!hasNames || !hideNames}
-                      options={[
-                        {
-                          label: 'Excel (.xlsx)',
-                          icon: FileSpreadsheet,
-                          extension: 'xlsx',
-                          download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
-                        },
-                        {
-                          label: 'CSV (.csv)',
-                          icon: FileText,
-                          extension: 'csv',
-                          download: () => downloadFormResponses(formId, 'csv', !hideNames),
-                        },
-                      ]}
-                      what="responses"
-                    />
-                  ) : null}
-                  {/* Exports what's on screen: the same date range and demographic filter. */}
-                  {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
-                    <ExportMenu
-                      formTitle={form.formTitle}
-                      includeNames={!hasNames || !hideNames}
-                      options={[
-                        {
-                          label: 'Excel (.xlsx)',
-                          icon: FileSpreadsheet,
-                          extension: 'xlsx',
-                          download: () =>
-                            downloadFormThemes(
-                              formId,
-                              { from: range?.from, to: range?.to, demo: demoSel },
-                              topicSort,
-                              !hideNames,
-                            ),
-                        },
-                        { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
-                      ]}
-                      scope={themesScope}
-                      what="AI analysis"
-                    />
-                  ) : null}
                 </div>
               </div>
             </div>
