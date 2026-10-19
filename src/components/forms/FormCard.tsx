@@ -16,6 +16,8 @@ export type FormCardProps = {
   title: string
   image: string
   updatedAt: string
+  /** What `updatedAt` is, e.g. "Opened" when the list is sorted by Date opened. */
+  timeLabel?: string
   imageAlt?: string
   /** A small label over the image, e.g. "Shared" for someone else's form. */
   badge?: string
@@ -35,12 +37,14 @@ function CardBody({
   badge,
   titleSlot,
   updatedAt,
+  timeLabel,
 }: {
   image: string
   imageAlt: string
   badge?: string
   titleSlot: ReactNode
   updatedAt: string
+  timeLabel: string
 }) {
   return (
     <>
@@ -60,7 +64,7 @@ function CardBody({
         {titleSlot}
         <div className="flex items-center gap-[7px] pr-6 text-[9px] leading-3 font-normal tracking-[0.09px] text-[#969696] [&_svg]:shrink-0">
           <Clock3 className="shrink-0" size={18} />
-          <span>Last update</span>
+          <span>{timeLabel}</span>
           <strong className="font-bold text-[#828282]">{updatedAt}</strong>
         </div>
       </div>
@@ -92,6 +96,7 @@ export function FormCard({
   image,
   imageAlt = '',
   badge,
+  timeLabel = 'Last update',
   title,
   updatedAt,
   onOpen,
@@ -152,6 +157,7 @@ export function FormCard({
               }}
             />
           }
+          timeLabel={timeLabel}
           updatedAt={updatedAt}
         />
       ) : (
@@ -170,7 +176,8 @@ export function FormCard({
                   {title}
                 </h3>
               }
-              updatedAt={updatedAt}
+              timeLabel={timeLabel}
+          updatedAt={updatedAt}
             />
           </button>
 
