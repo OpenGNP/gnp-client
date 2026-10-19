@@ -53,7 +53,7 @@ export function useFormEvents(formId: number | null) {
     const source =
       typeof EventSource === 'undefined'
         ? null
-        : new EventSource(`${API_URL}/forms/${formId}/events`, { withCredentials: true })
+        : new EventSource(`${API_URL}/events?formId=${formId}`, { withCredentials: true })
     for (const kind of ['response', 'analysis', 'form'] as const) {
       source?.addEventListener(kind, () => queue(kind))
     }

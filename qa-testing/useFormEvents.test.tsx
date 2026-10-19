@@ -41,7 +41,7 @@ describe('useFormEvents', () => {
     )
     renderHook(() => useFormEvents(4), { wrapper })
 
-    expect(FakeEventSource.last?.url).toMatch(/\/forms\/4\/events$/)
+    expect(FakeEventSource.last?.url).toMatch(/\/events\?formId=4$/)
     FakeEventSource.last!.emit('response')
     FakeEventSource.last!.emit('response')
     expect(invalidate).not.toHaveBeenCalled()
