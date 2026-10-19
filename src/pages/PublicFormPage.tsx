@@ -440,14 +440,14 @@ export function PublicFormPage() {
           <div className="mt-8 flex w-full flex-col gap-3">
             {canSubmitAnother ? (
               <Button
-                className="w-full rounded-full"
+                className="w-full"
                 onClick={handleSubmitAnother}
                 size="lg"
               >
                 Submit another response
               </Button>
             ) : null}
-            <Button asChild className="w-full rounded-full" size="lg" variant="outline">
+            <Button asChild className="w-full" size="lg" variant="outline">
               <Link to="/">Back to Home</Link>
             </Button>
           </div>

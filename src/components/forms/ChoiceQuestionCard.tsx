@@ -107,7 +107,7 @@ export function ChoiceQuestionCard({
 
       <div className="flex w-full flex-wrap items-center gap-4">
         <button
-          className="inline-flex cursor-pointer items-center gap-2.5 rounded-[11px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+          className="inline-flex cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
           onClick={addOption}
           type="button"
         >
@@ -116,7 +116,7 @@ export function ChoiceQuestionCard({
         </button>
         <span className="h-7 w-px bg-[#e8eaf1]" aria-hidden="true" />
         <button
-          className="inline-flex cursor-pointer items-center rounded-[11px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+          className="inline-flex cursor-pointer items-center rounded-[10px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
           onClick={() => onChange({ ...question, hasOther: !question.hasOther })}
           type="button"
         >

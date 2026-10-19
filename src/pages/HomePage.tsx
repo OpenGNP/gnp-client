@@ -110,7 +110,7 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem }: H
           <div className="mt-6.5 flex flex-wrap items-center gap-3 text-[14px] text-[#e0507a]">
             <span>{errorMessage}</span>
             <button
-              className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
+              className="cursor-pointer rounded-[10px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
               onClick={() => void formsResult.refetch()}
               type="button"
             >

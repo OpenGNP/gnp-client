@@ -18,7 +18,7 @@ export function AddQuestionButton({
   return (
     <div className="flex w-full flex-col items-start gap-5">
       <button
-        className="inline-flex cursor-pointer items-center gap-2.5 rounded-[11px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+        className="inline-flex cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-2.5 py-2.5 text-[16px] tracking-[0.16px] text-[#1e55c5] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
         aria-expanded={isMenuOpen}
         onClick={() => setIsMenuOpen((open) => !open)}
         type="button"

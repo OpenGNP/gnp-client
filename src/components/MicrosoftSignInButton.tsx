@@ -107,7 +107,7 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
 
   return (
     <button
-      className="flex h-10.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[8px] border border-[#d7dbe6] bg-white text-[14px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f5f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-10.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-[#d7dbe6] bg-white text-[14px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f5f7fb] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={disabled || busy || inProgress === InteractionStatus.Startup}
       onClick={handleClick}
       type="button"

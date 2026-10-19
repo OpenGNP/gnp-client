@@ -356,7 +356,7 @@ export function PublishModal({
                 {shareUrl}
               </a>
               <Button
-                className="h-7 shrink-0 rounded-[8px] border-primary px-3 text-[12px] font-medium text-primary hover:bg-[#eef3ff]"
+                className="h-7 shrink-0 rounded-[10px] border-primary px-3 text-[12px] font-medium text-primary hover:bg-[#eef3ff]"
                 onClick={handleCopyLink}
                 variant="outline"
               >
@@ -386,7 +386,7 @@ export function PublishModal({
         <div>
           {status === 'closed' && onReopenForm ? (
             <Button
-              className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
+              className="rounded-[10px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
               disabled={isReopening}
               onClick={() => void reopen()}
               variant="ghost"
@@ -399,7 +399,7 @@ export function PublishModal({
         <div className="flex items-center gap-2">
           <PopoverClose asChild>
             <Button
-              className="rounded-[5px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#726f6f]"
+              className="rounded-[10px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#726f6f]"
               variant="ghost"
             >
               {isPublished ? 'Done' : 'Cancel'}
@@ -408,7 +408,7 @@ export function PublishModal({
           {isPublished ? (
             <PopoverClose asChild>
               <Button
-                className="rounded-[5px] px-4 text-[13px] font-semibold tracking-[0.13px]"
+                className="rounded-[10px] px-4 text-[13px] font-semibold tracking-[0.13px]"
                 onClick={onPublish}
               >
                 Save
@@ -416,7 +416,7 @@ export function PublishModal({
             </PopoverClose>
           ) : (
             <Button
-              className="rounded-[5px] px-4 text-[13px] font-semibold tracking-[0.13px]"
+              className="rounded-[10px] px-4 text-[13px] font-semibold tracking-[0.13px]"
               onClick={onPublish}
             >
               Publish

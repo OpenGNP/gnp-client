@@ -75,7 +75,7 @@ export function SharedPage() {
             <div className="flex flex-wrap items-center gap-3 text-[14px] text-[#e0507a]">
               <span>Could not load shared forms.</span>
               <button
-                className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
+                className="cursor-pointer rounded-[10px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
                 onClick={() => void shared.refetch()}
                 type="button"
               >

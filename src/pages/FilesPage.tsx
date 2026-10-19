@@ -210,7 +210,7 @@ export function FilesPage({
                 className="flex min-w-0 flex-1 items-center gap-0.5 text-[22px] text-[#3c4043]"
               >
                 <button
-                  className="shrink-0 cursor-pointer rounded px-1.5 py-1 font-medium whitespace-nowrap hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
+                  className="shrink-0 cursor-pointer rounded-[10px] px-1.5 py-1 font-medium whitespace-nowrap hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
                   disabled={path.length === 0}
                   onClick={() => navigate('/files')}
                   type="button"
@@ -225,7 +225,7 @@ export function FilesPage({
                       <DropdownMenuTrigger asChild>
                         <button
                           aria-label="Show folders in between"
-                          className="cursor-pointer rounded px-1.5 py-1 text-[#1e55c5] hover:bg-[#f7f8fb]"
+                          className="cursor-pointer rounded-[10px] px-1.5 py-1 text-[#1e55c5] hover:bg-[#f7f8fb]"
                           type="button"
                         >
                           …
@@ -250,7 +250,7 @@ export function FilesPage({
                       <ChevronRight className="shrink-0 text-[#b0b1b3]" size={18} />
                       <button
                         className={cn(
-                          'min-w-0 cursor-pointer truncate rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]',
+                          'min-w-0 cursor-pointer truncate rounded-[10px] px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]',
                           isLast ? 'font-semibold' : 'max-w-60 text-[#1e55c5]',
                         )}
                         disabled={isLast}

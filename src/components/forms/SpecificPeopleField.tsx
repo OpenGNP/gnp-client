@@ -73,7 +73,7 @@ export function SpecificPeopleField({ emails, onChange }: SpecificPeopleFieldPro
           value={inputValue}
         />
         <button
-          className="inline-flex h-9.5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border border-[#1e55c5] px-3.5 text-[14px] font-medium text-[#1e55c5] transition-colors hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9.5 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border border-[#1e55c5] px-3.5 text-[14px] font-medium text-[#1e55c5] transition-colors hover:bg-[#eef3ff] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!inputValue.trim()}
           onClick={() => addFrom(inputValue)}
           type="button"

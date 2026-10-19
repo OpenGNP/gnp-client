@@ -29,7 +29,7 @@ export function CoverImageField({
           />
           <div className="absolute top-6 right-6 flex items-center gap-2.5">
             <button
-              className="inline-flex h-9.75 cursor-pointer items-center gap-2.5 rounded-[5px] bg-white px-4 text-[14px] tracking-[0.14px] text-[#616161] shadow-[0_2px_8px_rgba(15,23,42,0.18)] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+              className="inline-flex h-9.75 cursor-pointer items-center gap-2.5 rounded-[10px] bg-white px-4 text-[14px] tracking-[0.14px] text-[#616161] shadow-[0_2px_8px_rgba(15,23,42,0.18)] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
               onClick={openPicker}
               type="button"
             >
@@ -37,7 +37,7 @@ export function CoverImageField({
               <span>Upload new cover</span>
             </button>
             <button
-              className="inline-flex h-9.75 cursor-pointer items-center gap-2.5 rounded-[5px] bg-white px-4 text-[14px] tracking-[0.14px] text-[#616161] shadow-[0_2px_8px_rgba(15,23,42,0.18)] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+              className="inline-flex h-9.75 cursor-pointer items-center gap-2.5 rounded-[10px] bg-white px-4 text-[14px] tracking-[0.14px] text-[#616161] shadow-[0_2px_8px_rgba(15,23,42,0.18)] transition-colors hover:bg-[#f7f8fb] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
               onClick={onRemoveImage}
               type="button"
             >
@@ -48,7 +48,7 @@ export function CoverImageField({
         </div>
       ) : (
         <button
-          className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-0 text-[14px] font-normal tracking-[0.14px] text-[#b0b1b3] transition-colors hover:text-[#7b7d86] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30 focus-visible:outline-none"
+          className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-[10px] border-0 bg-transparent px-0 text-[14px] font-normal tracking-[0.14px] text-[#b0b1b3] transition-colors hover:text-[#7b7d86] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/30 focus-visible:outline-none"
           onClick={openPicker}
           type="button"
         >

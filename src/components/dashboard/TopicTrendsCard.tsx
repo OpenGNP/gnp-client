@@ -421,7 +421,7 @@ export function TopicTrendsCard({
                         aria-pressed={pinned}
                         className={cn(
                           ROW_GRID,
-                          'w-full cursor-pointer rounded-[8px] border-0 bg-transparent px-2 py-1.5 text-left transition-colors hover:bg-[#f7f8fb]',
+                          'w-full cursor-pointer rounded-[10px] border-0 bg-transparent px-2 py-1.5 text-left transition-colors hover:bg-[#f7f8fb]',
                           focused && 'bg-[#f3f7ff] hover:bg-[#f3f7ff]',
                           focusTopic !== null && !focused && 'opacity-55',
                         )}

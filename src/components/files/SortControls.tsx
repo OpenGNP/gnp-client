@@ -31,7 +31,7 @@ export function SortControls({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#e0e2e7] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#e0e2e7] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
             type="button"
           >
             <ArrowUpDown className="text-[#5f6368]" size={14} />
@@ -51,7 +51,7 @@ export function SortControls({
       </DropdownMenu>
 
       <button
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#e0e2e7] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#e0e2e7] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[#3c4043] hover:bg-[#f7f8fb]"
         onClick={() => onSortDirChange(sortDir === 'asc' ? 'desc' : 'asc')}
         title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
         type="button"

@@ -101,7 +101,7 @@ export function IndividualResponseList({
                 <button
                   aria-current={isSelected ? 'true' : undefined}
                   className={cn(
-                    'flex w-full cursor-pointer items-center gap-3 rounded-[8px] border px-4 py-3 text-left transition-colors',
+                    'flex w-full cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors',
                     isSelected
                       ? 'border-[#1e55c5] bg-[#f5f7fd]'
                       : 'border-[#e8eaf1] bg-white hover:bg-[#f7f8fb]',

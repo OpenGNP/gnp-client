@@ -147,7 +147,7 @@ export function SaveDraftModal({
           ) : null}
           {currentFolders.map((folder) => (
             <button
-              className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
+              className="group flex h-12 w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-left text-[14px] font-medium text-[#3f4045] hover:bg-[#f7f8fb] disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
               // Still being created: it has no real id to save into yet.
               disabled={folder.pending}
               key={folder.id}
@@ -206,7 +206,7 @@ export function SaveDraftModal({
               ) : null}
               <button
                 className={cn(
-                  'cursor-pointer rounded px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent',
+                  'cursor-pointer rounded-[10px] px-1.5 py-1 hover:bg-[#f7f8fb] disabled:cursor-default disabled:hover:bg-transparent',
                   index === path.length - 1
                     ? 'font-semibold text-[#3c4043]'
                     : 'text-[#1e55c5]',
@@ -245,7 +245,7 @@ export function SaveDraftModal({
           <div className="flex shrink-0 items-center gap-2">
             <DialogClose asChild>
               <Button
-                className="h-9.5 rounded-[5px] px-4 text-[14px] font-semibold tracking-[0.14px] text-[#726f6f]"
+                className="h-9.5 rounded-[10px] px-4 text-[14px] font-semibold tracking-[0.14px] text-[#726f6f]"
                 disabled={isBusy}
                 variant="ghost"
               >
@@ -253,7 +253,7 @@ export function SaveDraftModal({
               </Button>
             </DialogClose>
             <Button
-              className="h-9.5 rounded-[5px] px-5 text-[14px] font-semibold tracking-[0.14px]"
+              className="h-9.5 rounded-[10px] px-5 text-[14px] font-semibold tracking-[0.14px]"
               disabled={isBusy}
               onClick={() => void handleConfirm()}
             >

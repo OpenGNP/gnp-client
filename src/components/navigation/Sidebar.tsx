@@ -107,10 +107,10 @@ type ProjectItemProps = {
 }
 
 const navButtonClass =
-  'flex h-[46px] w-full cursor-pointer items-center gap-2.5 rounded-[5px] border-0 bg-transparent text-left text-[16px] font-bold tracking-[0.16px] text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
+  'flex h-[46px] w-full cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent text-left text-[16px] font-bold tracking-[0.16px] text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
 
 const treeButtonClass =
-  'flex h-[46px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-[5px] border-0 bg-transparent p-2.5 text-left text-[#3f4045]'
+  'flex h-[46px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent p-2.5 text-left text-[#3f4045]'
 
 // Distinct from the hover tint (#f7f8fb) so "where am I" never looks like "under the mouse".
 const selectedRowClass = 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]'
@@ -215,7 +215,7 @@ type ExpandAction = 'search' | 'create-folder' | null
 
 // Full-size icons (same as the expanded sidebar) with a small label underneath.
 const railRowClass =
-  'flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border-0 bg-transparent py-2 text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
+  'flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-0 bg-transparent py-2 text-[#3f4045] transition-colors hover:bg-[#f7f8fb]'
 const railLabelClass = 'text-[11px] leading-3.5 font-semibold tracking-[0.11px]'
 
 /**
@@ -300,7 +300,7 @@ function SidebarRail({
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Create"
-              className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border-0 bg-[#1e55c5] py-2 text-white transition-colors hover:bg-[#1a49aa]"
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-0 bg-[#1e55c5] py-2 text-white transition-colors hover:bg-[#1a49aa]"
               title="Create"
               type="button"
             >
@@ -325,7 +325,7 @@ function SidebarRail({
         </DropdownMenu>
         <button
           aria-label="Search"
-          className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
+          className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
           onClick={() => onExpand('search')}
           title="Search forms"
           type="button"
@@ -840,7 +840,7 @@ function ProjectNavigation({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="group/create flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[5px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white transition-colors hover:bg-[#1a49aa]"
+            className="group/create flex h-11.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border-0 bg-[#1e55c5] text-[16px] font-bold tracking-[0.16px] text-white transition-colors hover:bg-[#1a49aa]"
             type="button"
           >
             <PlusCircle size={21} />
@@ -928,7 +928,7 @@ function ProjectNavigation({
             <p className="m-0 text-[14px] font-medium text-[#e0507a]">Couldn't load your forms.</p>
             {onRetryLoad ? (
               <button
-                className="cursor-pointer rounded-[5px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
+                className="cursor-pointer rounded-[10px] border border-[#e0507a] px-3 py-1 text-[13px] font-medium text-[#e0507a] transition-colors hover:bg-[#fcf3f6]"
                 onClick={onRetryLoad}
                 type="button"
               >

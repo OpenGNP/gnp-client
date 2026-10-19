@@ -241,7 +241,7 @@ export function TopicDetailPanel({
           <p className="m-0 text-[12px] font-medium text-[#929292]">Mentions over time</p>
           {onCompareInTrend ? (
             <button
-              className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border-0 bg-transparent px-1 text-[12px] font-medium text-[#1e55c5] transition-colors hover:text-[#163f94] hover:underline"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-[12px] font-medium text-[#1e55c5] transition-colors hover:text-[#163f94] hover:underline"
               onClick={onCompareInTrend}
               type="button"
             >

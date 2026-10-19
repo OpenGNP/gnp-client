@@ -122,7 +122,7 @@ export function LoginPage() {
           ) : null}
 
           <Button
-            className="h-10.5 w-full justify-center rounded-[8px] text-[14px] font-semibold"
+            className="h-10.5 w-full justify-center rounded-[10px] text-[14px] font-semibold"
             disabled={submitting || microsoftBusy}
             type="submit"
           >
