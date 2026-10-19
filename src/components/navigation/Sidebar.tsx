@@ -15,12 +15,12 @@ import {
   PlusCircle,
   Search,
   Smile,
-  X,
   Users,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
 import { SidebarTreeSkeleton } from '../skeletons/SidebarTreeSkeleton'
+import { SearchDialog, type SearchResult } from './SearchDialog'
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
 import { findProjectById, isIdWithinItem } from '../../utils/projectTree'
@@ -67,7 +67,6 @@ export type SidebarProps = {
   onRetryLoad?: () => void
   isCollapsed: boolean
   openFolderIds: Set<string>
-  searchTerm: string
   /** Tree-node id of the current route's item (`form-<id>` for forms, the folder id for folders). */
   selectedNodeId: string
   /** Which top nav entry the current route belongs to. */
@@ -79,7 +78,8 @@ export type SidebarProps = {
   onGoHome: () => void
   onLogout: () => void
   onMoveProject: (projectId: string, target: MoveTarget) => void
-  onSearchChange: (value: string) => void
+  /** A form shared with me, picked in search: opens its dashboard. */
+  onOpenSharedForm: (urlId: string) => void
   onSelectProject: (item: ProjectTreeItem) => void
   onToggleCollapse: () => void
   onToggleFolder: (id: string) => void
@@ -92,7 +92,6 @@ type ProjectItemProps = {
   index: number
   isCollapsed?: boolean
   openFolderIds: Set<string>
-  searchTerm: string
   selectedNodeId: string
   draggedId: string | null
   /** The resolved item being dragged — lets a folder refuse to drop into its own subtree. */
@@ -117,63 +116,6 @@ const selectedRowClass = 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]'
 
 const treeTextClass =
   '[&_span]:min-w-0 [&_span]:overflow-hidden [&_span]:text-ellipsis [&_span]:whitespace-nowrap [&_span]:text-[16px] [&_span]:leading-[22px] [&_span]:font-bold [&_span]:tracking-[0.16px] [&_svg]:shrink-0'
-
-/** The label with every case-insensitive match of the search term highlighted. */
-function HighlightedLabel({ label, searchTerm }: { label: string; searchTerm: string }) {
-  const term = searchTerm.trim()
-  if (!term) {
-    return <span title={label}>{label}</span>
-  }
-
-  const parts: React.ReactNode[] = []
-  const lower = label.toLowerCase()
-  const needle = term.toLowerCase()
-  let cursor = 0
-  let match = lower.indexOf(needle)
-  while (match !== -1) {
-    if (match > cursor) parts.push(label.slice(cursor, match))
-    parts.push(
-      <mark className="rounded-[2px] bg-[#ffe9a8] text-inherit" key={match}>
-        {label.slice(match, match + term.length)}
-      </mark>,
-    )
-    cursor = match + term.length
-    match = lower.indexOf(needle, cursor)
-  }
-  if (cursor < label.length) parts.push(label.slice(cursor))
-
-  return <span title={label}>{parts}</span>
-}
-
-function itemMatchesSearch(item: ProjectTreeItem, searchTerm: string) {
-  return item.label.toLowerCase().includes(searchTerm.toLowerCase())
-}
-
-function filterProjects(
-  projects: ProjectTreeItem[],
-  searchTerm: string,
-): ProjectTreeItem[] {
-  const normalizedTerm = searchTerm.trim()
-
-  if (!normalizedTerm) {
-    return projects
-  }
-
-  return projects.reduce<ProjectTreeItem[]>((filteredProjects, project) => {
-    const children = project.children
-      ? filterProjects(project.children, normalizedTerm)
-      : undefined
-    const matches = itemMatchesSearch(project, normalizedTerm)
-
-    if (!matches && (!children || children.length === 0)) {
-      return filteredProjects
-    }
-
-    filteredProjects.push({ ...project, children })
-
-    return filteredProjects
-  }, [])
-}
 
 function SidebarHeader({
   brand,
@@ -205,13 +147,15 @@ function SidebarHeader({
 
 /** The "/" search shortcut — ignored while typing in a field or with a modifier held. */
 function isSearchShortcut(event: globalThis.KeyboardEvent): boolean {
-  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return false
+  // `code` is the physical key, so it still works with the Thai layout on (that key types "ฝ").
+  const isSlash = event.key === '/' || event.code === 'Slash'
+  if (!isSlash || event.metaKey || event.ctrlKey || event.altKey) return false
   const target = event.target as HTMLElement | null
   return !target?.closest('input, textarea, select, [contenteditable="true"]')
 }
 
 /** What to do once the full sidebar opens, when it was opened from a rail shortcut. */
-type ExpandAction = 'search' | 'create-folder' | null
+type ExpandAction = 'create-folder' | null
 
 // Full-size icons (same as the expanded sidebar) with a small label underneath.
 const railRowClass =
@@ -222,7 +166,7 @@ const railLabelClass = 'text-[11px] leading-3.5 font-semibold tracking-[0.11px]'
  * Desktop's collapsed sidebar: the same sections as the full sidebar, squeezed to
  * an icon column with labels — header (expand), Home / Files between the same
  * dividers, the "My Project" Create button + search, and the profile at the bottom.
- * The project tree only lives in the full sidebar; Search and "Create folder" open it.
+ * The project tree only lives in the full sidebar; "Create folder" opens it.
  * Hidden below 900px, where a collapsed sidebar disappears entirely.
  */
 function SidebarRail({
@@ -230,6 +174,7 @@ function SidebarRail({
   user,
   onCreateForm,
   onExpand,
+  onOpenSearch,
   onGoFiles,
   onGoShared,
   onGoHome,
@@ -239,6 +184,7 @@ function SidebarRail({
   user: SidebarUser
   onCreateForm: () => void
   onExpand: (action: ExpandAction) => void
+  onOpenSearch: () => void
   onGoFiles: () => void
   onGoShared: () => void
   onGoHome: () => void
@@ -326,7 +272,7 @@ function SidebarRail({
         <button
           aria-label="Search"
           className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
-          onClick={() => onExpand('search')}
+          onClick={onOpenSearch}
           title="Search forms"
           type="button"
         >
@@ -429,7 +375,6 @@ function ProjectItem({
   index,
   isCollapsed = false,
   openFolderIds,
-  searchTerm,
   selectedNodeId,
   draggedId,
   draggedItem,
@@ -445,7 +390,7 @@ function ProjectItem({
   // A folder can't be dropped onto itself or any row inside it.
   const rejectsDraggedItem =
     draggedItem?.type === 'folder' && isIdWithinItem(draggedItem, item.id)
-  const isOpen = isFolder && (openFolderIds.has(item.id) || Boolean(searchTerm.trim()))
+  const isOpen = isFolder && openFolderIds.has(item.id)
   // Compared by tree-node id only: a form's node id is `form-<id>`, a folder's is its
   // bare id, so form #2 and folder #2 can't both light up.
   const isSelected = item.id === selectedNodeId
@@ -586,7 +531,7 @@ function ProjectItem({
             type="button"
           >
             <Icon size={22} />
-            <HighlightedLabel label={item.label} searchTerm={searchTerm} />
+            <span title={item.label}>{item.label}</span>
           </button>
           {childCount > 0 ? (
             <em
@@ -614,7 +559,6 @@ function ProjectItem({
                 index={childIndex}
                 isCollapsed={isCollapsed}
                 openFolderIds={openFolderIds}
-                searchTerm={searchTerm}
                 selectedNodeId={selectedNodeId}
                 draggedId={draggedId}
                 draggedItem={draggedItem}
@@ -655,7 +599,7 @@ function ProjectItem({
       onDrop={handleDrop}
     >
       <Icon size={22} />
-      <HighlightedLabel label={item.label} searchTerm={searchTerm} />
+      <span title={item.label}>{item.label}</span>
     </button>
   )
 }
@@ -740,11 +684,10 @@ function ProjectNavigation({
   loadError = false,
   onRetryLoad,
   openFolderIds,
-  searchTerm,
   selectedNodeId,
   onCreateFolder,
   onCreateForm,
-  onSearchChange,
+  onOpenSearch,
   onSelectProject,
   onMoveProject,
   onToggleFolder,
@@ -759,36 +702,12 @@ function ProjectNavigation({
   | 'onGoHome'
   | 'onLogout'
   | 'onToggleCollapse'
-> & { expandAction?: ExpandAction }) {
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const hasSearch = searchTerm.trim().length > 0
-
-  // "/" jumps to search from anywhere (unless already typing somewhere). While the
-  // sidebar is collapsed, Sidebar's own listener expands it first instead.
-  useEffect(() => {
-    function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (!isSearchShortcut(event)) return
-      event.preventDefault()
-      searchInputRef.current?.focus()
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  // Opened from the rail's Search button: land in the search box. Read once on
-  // mount — this component remounts each time the sidebar expands.
-  const initialExpandActionRef = useRef(expandAction)
-  useEffect(() => {
-    if (initialExpandActionRef.current === 'search') {
-      searchInputRef.current?.focus()
-    }
-  }, [])
-
+  | 'onOpenSharedForm'
+> & { expandAction?: ExpandAction; onOpenSearch: () => void }) {
   // Opened from the rail's "Create folder": start with the new-folder row showing.
   const [isCreatingFolder, setIsCreatingFolder] = useState(expandAction === 'create-folder')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverTarget, setDragOverTarget] = useState<DragOverTarget>(null)
-  const visibleProjects = filterProjects(projects, searchTerm)
   const draggedItem = draggedId ? findProjectById(projects, draggedId) : null
 
   function updateDragOverTarget(target: DragOverTarget) {
@@ -861,55 +780,29 @@ function ProjectNavigation({
             Create form
           </DropdownMenuItem>
           <DropdownMenuItem
-            onSelect={() => {
-              onSearchChange('')
-              setIsCreatingFolder(true)
-            }}
+            onSelect={() => setIsCreatingFolder(true)}
           >
             <FolderPlus size={16} />
             Create folder
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="mt-4 mb-5.25 flex h-10.5 items-center gap-2 rounded-lg border border-[#e9ebf0] px-2.5 text-[#6e7180] transition-colors focus-within:border-[#1e55c5]">
+      {/* Looks like a search box, opens the search dialog (like Notion). */}
+      <button
+        className="mt-4 mb-5.25 flex h-10.5 w-full cursor-pointer items-center gap-2 rounded-lg border border-[#e9ebf0] bg-transparent px-2.5 text-left text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:bg-[#f7f8fb]"
+        onClick={onOpenSearch}
+        type="button"
+      >
         <Search className="shrink-0" size={20} />
-        <input
-          aria-label="Search forms"
-          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[#3f4045] outline-0 placeholder:text-[#6e7180] placeholder:opacity-100 [&::-webkit-search-cancel-button]:hidden"
-          type="search"
-          placeholder="Search forms..."
-          ref={searchInputRef}
-          value={searchTerm}
-          onChange={(event) => onSearchChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape' && searchTerm) {
-              event.preventDefault()
-              onSearchChange('')
-            }
-          }}
-        />
-        {searchTerm ? (
-          <button
-            aria-label="Clear search"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-[#8a8d97] transition-colors hover:bg-black/5 hover:text-[#3f4045]"
-            onClick={() => {
-              onSearchChange('')
-              searchInputRef.current?.focus()
-            }}
-            type="button"
-          >
-            <X size={16} />
-          </button>
-        ) : (
-          <kbd
-            aria-hidden="true"
-            className="shrink-0 rounded border border-[#e0e2e7] px-1.5 font-sans text-[11px] leading-4.5 font-semibold text-[#8a8d97]"
-            title="Press / to search"
-          >
-            /
-          </kbd>
-        )}
-      </div>
+        <span className="min-w-0 flex-1 text-[14px] font-medium">Search forms...</span>
+        <kbd
+          aria-hidden="true"
+          className="shrink-0 rounded border border-[#e0e2e7] px-1.5 font-sans text-[11px] leading-4.5 font-semibold text-[#8a8d97]"
+          title="Press / to search"
+        >
+          /
+        </kbd>
+      </button>
 
       <div className="flex flex-col items-stretch">
         {isCreatingFolder ? (
@@ -936,16 +829,15 @@ function ProjectNavigation({
               </button>
             ) : null}
           </div>
-        ) : visibleProjects.length > 0 ? (
-          visibleProjects.map((project, index) => (
+        ) : projects.length > 0 ? (
+          projects.map((project, index) => (
             <ProjectItem
               item={project}
               key={project.id}
               parentFolderId={null}
-              siblings={visibleProjects}
+              siblings={projects}
               index={index}
               openFolderIds={openFolderIds}
-              searchTerm={searchTerm}
               selectedNodeId={selectedNodeId}
               draggedId={draggedId}
               draggedItem={draggedItem}
@@ -958,18 +850,7 @@ function ProjectNavigation({
               onToggleFolder={onToggleFolder}
             />
           ))
-        ) : isCreatingFolder ? null : hasSearch ? (
-          <div className="flex flex-col items-start gap-1 p-2.5 text-[14px] font-medium tracking-[0.14px] text-[#6e7180]">
-            <p className="m-0">No results for “{searchTerm.trim()}”</p>
-            <button
-              className="cursor-pointer p-0 text-[13px] font-semibold text-[#1e55c5] hover:underline"
-              onClick={() => onSearchChange('')}
-              type="button"
-            >
-              Clear search
-            </button>
-          </div>
-        ) : (
+        ) : isCreatingFolder ? null : (
           <p className="m-0 p-2.5 text-[14px] leading-5 font-medium tracking-[0.14px] text-[#6e7180]">
             No forms yet. Use <strong className="text-[#3f4045]">Create</strong> to make your first
             form or folder.
@@ -1025,7 +906,6 @@ export function Sidebar({
   onRetryLoad,
   openFolderIds,
   projects,
-  searchTerm,
   selectedNodeId,
   user,
   onCreateFolder,
@@ -1035,29 +915,40 @@ export function Sidebar({
   onGoHome,
   onLogout,
   onMoveProject,
-  onSearchChange,
+  onOpenSharedForm,
   onSelectProject,
   onToggleCollapse,
   onToggleFolder,
 }: SidebarProps) {
   const [expandAction, setExpandAction] = useState<ExpandAction>(null)
 
-  // "/" works while collapsed too: open the sidebar and land in the search box
-  // (the expanded sidebar's own listener handles it once it's open).
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // "/" opens search from any page, sidebar open or not.
   useEffect(() => {
-    if (!isCollapsed) return
     function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (!isSearchShortcut(event)) return
       event.preventDefault()
-      setExpandAction('search')
-      onToggleCollapse()
+      setIsSearchOpen(true)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isCollapsed, onToggleCollapse])
+  }, [])
+
+  const searchDialog = (
+    <SearchDialog
+      onOpenChange={setIsSearchOpen}
+      onOpenResult={(result: SearchResult) =>
+        result.kind === 'shared' ? onOpenSharedForm(result.urlId) : onSelectProject(result.item)
+      }
+      open={isSearchOpen}
+      projects={projects}
+    />
+  )
 
   if (isCollapsed) {
     return (
+      <>
       <SidebarRail
         activeNav={activeNav}
         user={user}
@@ -1070,7 +961,10 @@ export function Sidebar({
         onGoShared={onGoShared}
         onGoHome={onGoHome}
         onLogout={onLogout}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
+      {searchDialog}
+      </>
     )
   }
 
@@ -1119,12 +1013,11 @@ export function Sidebar({
             onRetryLoad={onRetryLoad}
             projects={projects}
             openFolderIds={openFolderIds}
-            searchTerm={searchTerm}
             selectedNodeId={selectedNodeId}
             onCreateFolder={onCreateFolder}
             onCreateForm={onCreateForm}
             onMoveProject={onMoveProject}
-            onSearchChange={onSearchChange}
+            onOpenSearch={() => setIsSearchOpen(true)}
             onSelectProject={onSelectProject}
             onToggleFolder={onToggleFolder}
           />
@@ -1132,6 +1025,7 @@ export function Sidebar({
         </>
       ) : null}
     </aside>
+    {searchDialog}
     </>
   )
 }

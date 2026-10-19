@@ -85,7 +85,6 @@ function App() {
     name: authUser?.fullName?.trim() || authUser?.email || 'Account',
     email: authUser?.email ?? '',
   }
-  const [searchTerm, setSearchTerm] = useState('')
   // Phones/tablets: the sidebar is an overlay, so it starts closed and closes again
   // after each navigation. Desktop: it's a column, and its open/closed choice is
   // remembered across reloads.
@@ -593,7 +592,6 @@ function App() {
           onRetryLoad={workspace.retry}
           openFolderIds={openFolderIds}
           projects={projects}
-          searchTerm={searchTerm}
           selectedNodeId={selectedNodeId}
           user={sidebarUser}
           onCreateFolder={handleCreateFolder}
@@ -603,7 +601,10 @@ function App() {
           onGoHome={handleGoHome}
           onLogout={handleLogout}
           onMoveProject={handleMoveProject}
-          onSearchChange={setSearchTerm}
+          onOpenSharedForm={(urlId) => {
+            closeSidebarOnNarrowViewport()
+            navigate(formPath(urlId, 'dashboard'))
+          }}
           onSelectProject={handleSelectProject}
           onToggleCollapse={() => setSidebarCollapsed(!isSidebarCollapsed)}
           onToggleFolder={toggleFolder}
