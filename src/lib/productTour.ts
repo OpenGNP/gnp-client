@@ -1,8 +1,11 @@
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
-/** One stop: the element to spotlight (a `[data-tour="…"]` selector) and what to say. */
-export type TourStep = { target: string; title: string; text: string }
+/**
+ * One stop: the element to spotlight (a `[data-tour="…"]` selector) and what to say.
+ * `interactive` lets the person try the spotlit element (only where that changes nothing lasting).
+ */
+export type TourStep = { target: string; title: string; text: string; interactive?: boolean }
 
 const seenKey = (tour: string, userId: number) => `gnp.tour.${tour}.${userId}`
 
@@ -36,6 +39,7 @@ export function startTour(steps: TourStep[], onEnd?: () => void): { stop: () => 
     steps: present.map((step) => ({
       element: step.target,
       popover: { title: step.title, description: step.text },
+      disableActiveInteraction: !step.interactive,
     })),
     showProgress: true,
     progressText: '{{current}} of {{total}}',
@@ -46,8 +50,6 @@ export function startTour(steps: TourStep[], onEnd?: () => void): { stop: () => 
     stagePadding: 6,
     stageRadius: 10,
     popoverClass: 'gnp-tour',
-    // Look, don't touch: the spotlit element can't be clicked mid-tour (it may be sample data).
-    disableActiveInteraction: true,
     // A stray click on the dimmed page shouldn't end it — use ✕ or Esc.
     overlayClickBehavior: 'none',
     onDestroyed: () => onEnd?.(),

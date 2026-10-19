@@ -26,7 +26,7 @@ import { FormLoadError } from '../components/FormLoadError'
 import { PrintPortal } from '../components/report/PrintPortal'
 import { ThemesReport } from '../components/report/ThemesReport'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
-import { DASHBOARD_TOUR, INDIVIDUAL_TOUR, TREND_TOUR } from '../components/dashboard/dashboardTour'
+import { DASHBOARD_TOUR, INDIVIDUAL_TOUR, RESPONSE_TOUR, TREND_TOUR } from '../components/dashboard/dashboardTour'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { ExportMenu } from '../components/dashboard/ExportMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
@@ -399,7 +399,7 @@ export function FormDashboardPage({
   // A short tour the first time each tab is opened. With real data it points at the
   // real topics, charts and rows; on an empty tab it runs over sample data instead (a
   // yellow banner says so, Export / Share are off) and the real view returns when the
-  // tour ends. Response explains itself — no tour. The Tour button replays it.
+  // tour ends. Response explains itself, so its tour only runs from the Tour button.
   const { user } = useAuth()
   const tabTour =
     activeView === 'themes'
@@ -423,11 +423,17 @@ export function FormDashboardPage({
               loaded: realIndividual !== null,
               empty: (realIndividual?.responses.length ?? 0) === 0,
             }
-          : null
+          : {
+              id: 'dashboard-response',
+              steps: RESPONSE_TOUR,
+              loaded: form !== null && realResponses !== null,
+              empty: (realResponses?.totalResponses ?? 0) === 0,
+              manual: true,
+            }
 
   // The running tour, so "Exit preview" on the banner can end it too.
   const activeTour = useRef<{ stop: () => void } | null>(null)
-  const runTabTour = (tour: NonNullable<typeof tabTour>, onEnd?: () => void) => {
+  const runTabTour = (tour: typeof tabTour, onEnd?: () => void) => {
     const finish = () => {
       activeTour.current = null
       setPreviewing(false)
@@ -449,9 +455,10 @@ export function FormDashboardPage({
   }
 
   // First visit to a tab, once its data has loaded: run that tab's tour, once.
-  const autoTourKey = tabTour?.loaded && user && !hasSeenTour(tabTour.id, user.id) ? tabTour.id : null
+  const autoTourKey =
+    tabTour.loaded && !('manual' in tabTour) && user && !hasSeenTour(tabTour.id, user.id) ? tabTour.id : null
   const startAutoTour = useEffectEvent((key: string) => {
-    if (tabTour?.id === key && user) runTabTour(tabTour, () => markTourSeen(key, user.id))
+    if (tabTour.id === key && user) runTabTour(tabTour, () => markTourSeen(key, user.id))
   })
   useEffect(() => {
     if (!autoTourKey) return
@@ -727,13 +734,7 @@ export function FormDashboardPage({
                 className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
                 icon={<CircleHelp size={18} strokeWidth={2.2} />}
                 onClick={() => {
-                  if (tabTour?.loaded) {
-                    runTabTour(tabTour)
-                    return
-                  }
-                  // Response has no tour of its own: show the main one, on Themes.
-                  setActiveView('themes')
-                  setTimeout(() => startTour(DASHBOARD_TOUR), 50)
+                  if (tabTour.loaded) runTabTour(tabTour)
                 }}
               >
                 Tour
@@ -973,11 +974,13 @@ export function FormDashboardPage({
                           breakdowns={responses.demographic}
                           hideNames={hideNames}
                           title="Demographic Overview"
+                          tourId="response-demographic"
                         />
                         <ResponseOverviewSection
                           breakdowns={responses.feedback}
                           hideNames={hideNames}
                           title="Feedback Overview"
+                          tourId="response-feedback"
                         />
                       </>
                     )}
