@@ -15,7 +15,8 @@ import {
 export type FormCardProps = {
   title: string
   image: string
-  updatedAt: string
+  /** null = no date to show: the line is left blank (same height, so cards still line up). */
+  updatedAt: string | null
   /** What `updatedAt` is, e.g. "Opened" when the list is sorted by Date opened. */
   timeLabel?: string
   imageAlt?: string
@@ -43,7 +44,7 @@ function CardBody({
   imageAlt: string
   badge?: string
   titleSlot: ReactNode
-  updatedAt: string
+  updatedAt: string | null
   timeLabel: string
 }) {
   return (
@@ -62,11 +63,15 @@ function CardBody({
       </div>
       <div className="px-[11px] pt-[15px] pb-2.5">
         {titleSlot}
-        <div className="flex items-center gap-[7px] pr-6 text-[9px] leading-3 font-normal tracking-[0.09px] text-[#969696] [&_svg]:shrink-0">
-          <Clock3 className="shrink-0" size={18} />
-          <span>{timeLabel}</span>
-          <strong className="font-bold text-[#828282]">{updatedAt}</strong>
-        </div>
+        {updatedAt ? (
+          <div className="flex items-center gap-[7px] pr-6 text-[9px] leading-3 font-normal tracking-[0.09px] text-[#969696] [&_svg]:shrink-0">
+            <Clock3 className="shrink-0" size={18} />
+            <span>{timeLabel}</span>
+            <strong className="font-bold text-[#828282]">{updatedAt}</strong>
+          </div>
+        ) : (
+          <div aria-hidden="true" className="h-[18px]" />
+        )}
       </div>
     </>
   )
