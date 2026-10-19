@@ -3,7 +3,10 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { ShareControl } from '../dashboard/ShareDialog'
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
-import { SidebarToggleButton } from './SidebarToggleButton'
+import { TopBar } from './TopBar'
+
+// Same highlight as the sidebar's current page, plus the tab underline.
+const SELECTED_TAB = 'border-[#1e55c5] bg-[#edf2fd] text-[#1e55c5] hover:text-[#1e55c5]'
 
 export type FormDetailTabsProps = {
   showSidebarToggle?: boolean
@@ -35,12 +38,12 @@ export function FormDetailTabs({
   }
 
   return (
-    <div
-      className="relative z-100 flex h-12.5 items-center gap-3 border-2 border-l-0 border-[#e8eaf1] bg-white px-10 font-['Inter_Variable'] max-[900px]:border-l-2 max-[560px]:px-4"
+    <TopBar
+      actions={<ShareControl />}
+      className="relative z-100"
+      onToggleSidebar={onToggleSidebar}
+      showSidebarToggle={showSidebarToggle}
     >
-      {showSidebarToggle ? (
-        <SidebarToggleButton onToggleSidebar={onToggleSidebar} />
-      ) : null}
       <Tabs
         className="h-full"
         onValueChange={handleValueChange}
@@ -52,7 +55,7 @@ export function FormDetailTabs({
               'flex h-full w-32.25 cursor-pointer items-center justify-center border-0 border-b-2 bg-transparent text-[16px] tracking-[0.16px]',
               isDashboardActive
                 ? 'border-transparent text-[#726f6f] hover:text-black'
-                : 'border-[#4c71f7] text-black',
+                : SELECTED_TAB,
               !canEdit && 'cursor-not-allowed text-[#b0b1b3] hover:text-[#b0b1b3]',
             )}
             disabled={!canEdit}
@@ -64,10 +67,11 @@ export function FormDetailTabs({
           <TabsTrigger
             className={cn(
               'flex h-full w-32.25 items-center justify-center border-0 border-b-2 bg-transparent text-[16px] tracking-[0.16px]',
-              isDashboardActive ? 'border-[#4c71f7] text-black' : 'border-transparent',
               hasDashboardData
                 ? 'cursor-pointer text-[#726f6f] hover:text-black'
                 : 'cursor-not-allowed text-[#b0b1b3]',
+              // Last, so the selected colours win over the ones above.
+              isDashboardActive ? SELECTED_TAB : 'border-transparent',
             )}
             disabled={!hasDashboardData}
             title={hasDashboardData ? undefined : 'No dashboard data yet for this form'}
@@ -77,9 +81,6 @@ export function FormDetailTabs({
           </TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="ml-auto flex min-w-0 items-center">
-        <ShareControl />
-      </div>
-    </div>
+    </TopBar>
   )
 }

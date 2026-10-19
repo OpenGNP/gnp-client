@@ -160,7 +160,6 @@ function App() {
   }
   const isCreateFormRoute = location.pathname === '/create-form'
   const isFormDetailRoute = location.pathname.startsWith('/forms/')
-  const isFilesRoute = location.pathname.startsWith('/files')
 
   function handleGoHome() {
     setIsCreateFormSettingsOpen(false)
@@ -627,7 +626,7 @@ function App() {
           />
         ) : isFormDetailRoute ? null : (
           <Navbar
-            title={isFilesRoute ? 'Files' : 'Overview'}
+            title={activeNav === 'files' ? 'Files' : activeNav === 'shared' ? 'Shared with me' : 'Home'}
             showSidebarToggle={isSidebarCollapsed}
             onToggleSidebar={() => setSidebarCollapsed(false)}
           />
