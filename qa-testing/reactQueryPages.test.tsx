@@ -162,13 +162,42 @@ describe('pages on React Query', () => {
     expect(count('/forms/public/tok123')).toBe(1)
   })
 
+  it('Home shows names and deletions from the sidebar tree, not just the cache', async () => {
+    renderAt(
+      '/',
+      '/',
+      <HomePage
+        onDeleteItem={() => {}}
+        onMoveItem={() => {}}
+        onRenameItem={() => {}}
+        projects={[{ id: 'form-4', label: 'Renamed in sidebar', type: 'document', formId: '4' }]}
+      />,
+    )
+    expect(await screen.findByText('Renamed in sidebar')).toBeInTheDocument()
+    expect(screen.queryByText('Canteen survey')).not.toBeInTheDocument()
+  })
+
+  it('Home hides a form already deleted from the tree', async () => {
+    renderAt(
+      '/',
+      '/',
+      <HomePage
+        onDeleteItem={() => {}}
+        onMoveItem={() => {}}
+        onRenameItem={() => {}}
+        projects={[{ id: 'form-99', label: 'Another', type: 'document', formId: '99' }]}
+      />,
+    )
+    expect(await screen.findByText('No forms yet. Create your first form to get started.')).toBeInTheDocument()
+  })
+
   it('Home and the sidebar tree share one /forms request', async () => {
     renderAt(
       '/',
       '/',
       <>
         <TreeProbe />
-        <HomePage onMoveItem={() => {}} />
+        <HomePage onDeleteItem={() => {}} onMoveItem={() => {}} onRenameItem={() => {}} projects={[]} />
       </>,
     )
     expect(await screen.findByText('tree ready 1')).toBeInTheDocument()

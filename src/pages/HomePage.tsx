@@ -1,20 +1,20 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
-import { deleteForm, updateForm, type ApiForm } from '../api/forms'
-import { formsQuery, queryKeys, sharedFormsQuery } from '../api/queries'
+import { formsQuery, sharedFormsQuery } from '../api/queries'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
 import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
 import { SkeletonRegion } from '../components/ui/skeleton'
+import type { ProjectTreeItem } from '../data/dashboard'
 import { ApiError } from '../lib/api'
-import { showAlert, showConfirm } from '../lib/alertDialog'
+import { showConfirm } from '../lib/alertDialog'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
-import { formNodeId } from '../utils/projectTree'
+import { findProjectById, formNodeId } from '../utils/projectTree'
 
 function firstName(user: { fullName: string | null; email: string } | null): string {
   const source = user?.fullName?.trim() || user?.email || ''
@@ -23,15 +23,18 @@ function firstName(user: { fullName: string | null; email: string } | null): str
 }
 
 export type HomePageProps = {
+  /** The sidebar's tree — the live names and which forms still exist, edits included. */
+  projects: ProjectTreeItem[]
   onMoveItem: (id: string) => void
+  onRenameItem: (id: string, name: string) => void
+  onDeleteItem: (id: string) => void
 }
 
-export function HomePage({ onMoveItem }: HomePageProps) {
+export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem }: HomePageProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const queryClient = useQueryClient()
-  // The same `['forms']` query the sidebar tree uses — one request feeds both, and
-  // the optimistic edits below (written to that cache) show in the sidebar too.
+  // The same `['forms']` query the sidebar tree is built from (dates, response counts);
+  // names and deletions come from the tree, which holds edits not yet refetched.
   const formsResult = useQuery(formsQuery())
   // "Recent": whichever is later — when I last opened it, or when it last changed.
   const recency = (form: { lastOpenedAt: string | null; updatedAt: string | null; createdAt: string | null }) =>
@@ -39,7 +42,14 @@ export function HomePage({ onMoveItem }: HomePageProps) {
   // Forms shared with me join in once I've opened them — just being shared isn't "recent".
   const sharedResult = useQuery(sharedFormsQuery())
   const recentShared = (sharedResult.data ?? []).filter((form) => form.lastOpenedAt)
-  const forms = [...(formsResult.data ?? [])].sort((a, b) => recency(b) - recency(a))
+  const forms = [...(formsResult.data ?? [])]
+    .flatMap((form) => {
+      const node = findProjectById(projects, formNodeId(form.id))
+      // Deleted here or in the sidebar, not refetched yet.
+      if (projects.length > 0 && !node) return []
+      return [{ ...form, formTitle: node?.label ?? form.formTitle }]
+    })
+    .sort((a, b) => recency(b) - recency(a))
   const recent = [
     ...forms.map((form) => ({ kind: 'own' as const, form, at: recency(form) })),
     ...recentShared.map((form) => ({ kind: 'shared' as const, form, at: Date.parse(form.lastOpenedAt ?? '') || 0 })),
@@ -49,21 +59,13 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       ? formsResult.error.message
       : 'Something went wrong loading your forms.'
 
-  /** Optimistically rewrites the cached list; returns the snapshot to roll back to. */
-  function updateCachedForms(transform: (current: ApiForm[]) => ApiForm[]) {
-    const snapshot = queryClient.getQueryData<ApiForm[]>(queryKeys.forms)
-    queryClient.setQueryData<ApiForm[]>(queryKeys.forms, (current) => transform(current ?? []))
-    return snapshot
-  }
-
-  function settleForms(formId: number) {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
-    void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
-  }
-
+  // Delete / rename go through App's tree handlers — the same path as the sidebar and
+  // Files page — so nothing here rewrites the `['forms']` cache (doing that re-seeds the
+  // tree from data that may predate a drag just made in the sidebar).
   async function handleDeleteForm(id: number) {
+    const node = findProjectById(projects, formNodeId(id))
     const target = forms.find((form) => form.id === id)
-    const title = target?.formTitle?.trim() || 'Untitled form'
+    const title = node?.label.trim() || target?.formTitle?.trim() || 'Untitled form'
     const responses = target?.submissionCount ?? 0
     // Collected responses can't be got back — losing them takes typing the form's name.
     const confirmed = await showConfirm({
@@ -75,52 +77,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
       destructive: true,
       typeToConfirm: responses > 0 ? title : undefined,
     })
-    if (!confirmed) return
-
-    const snapshot = updateCachedForms((current) => current.filter((form) => form.id !== id))
-    try {
-      await deleteForm(id)
-      queryClient.removeQueries({ queryKey: queryKeys.form(id) })
-      queryClient.removeQueries({ queryKey: queryKeys.analytics(id) })
-    } catch (error) {
-      queryClient.setQueryData(queryKeys.forms, snapshot)
-      void showAlert(error instanceof ApiError ? error.message : 'Could not delete the form.')
-    } finally {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
-    }
-  }
-
-  // Like handleDeleteForm: optimistic write to the shared `['forms']` cache (so the
-  // sidebar tree shows the new name immediately), persist, roll back on failure.
-  async function handleRenameForm(id: number, label: string) {
-    const trimmed = label.trim()
-    if (!trimmed) {
-      return
-    }
-
-    const target = forms.find((form) => form.id === id)
-    const clashesInSameFolder = forms.some(
-      (form) =>
-        form.id !== id &&
-        form.folderId === (target?.folderId ?? null) &&
-        (form.formTitle ?? '').trim().toLowerCase() === trimmed.toLowerCase(),
-    )
-    if (clashesInSameFolder && trimmed.toLowerCase() !== (target?.formTitle ?? '').trim().toLowerCase()) {
-      void showAlert(`A form named “${trimmed}” already exists in this location.`, { title: 'Name already taken' })
-      return
-    }
-
-    const snapshot = updateCachedForms((current) =>
-      current.map((form) => (form.id === id ? { ...form, formTitle: trimmed } : form)),
-    )
-    try {
-      await updateForm(id, { formTitle: trimmed })
-    } catch (error) {
-      queryClient.setQueryData(queryKeys.forms, snapshot)
-      void showAlert(error instanceof ApiError ? error.message : 'Could not rename the form.')
-    } finally {
-      settleForms(id)
-    }
+    if (confirmed) onDeleteItem(formNodeId(id))
   }
 
   return (
@@ -176,7 +133,7 @@ export function HomePage({ onMoveItem }: HomePageProps) {
                   onDelete={() => handleDeleteForm(item.form.id)}
                   onMove={() => onMoveItem(formNodeId(item.form.id))}
                   onOpen={() => navigate(formPath(item.form.urlId))}
-                  onRename={(name) => handleRenameForm(item.form.id, name)}
+                  onRename={(name) => onRenameItem(formNodeId(item.form.id), name)}
                 />
               ) : (
                 // Someone else's: view only, so it opens the dashboard and offers nothing else.
