@@ -29,6 +29,8 @@ import { SortableQuestionCard } from "./SortableQuestionCard";
 
 type FormSectionProps = {
   title: string;
+  /** Why the section exists, under its title. */
+  description: string;
   questionTypes: QuestionTypeOption[];
   showAiAnalyze?: boolean;
   questions: Question[];
@@ -72,6 +74,7 @@ const feedbackQuestionTypes: QuestionTypeOption[] = [
 
 function FormSection({
   title,
+  description,
   questionTypes,
   showAiAnalyze = false,
   questions,
@@ -126,6 +129,7 @@ function FormSection({
       >
         {title}
       </h2>
+      <p className="m-0 -mt-1 text-[13px] text-[#726f6f]">{description}</p>
 
       {questions.length > 0 ? (
         <DndContext
@@ -166,7 +170,12 @@ export type CreateFormCardProps = {
 };
 
 const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_COVER_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const ALLOWED_COVER_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+];
 
 function revokeIfBlobUrl(url: string | null) {
   if (url?.startsWith("blob:")) {
@@ -182,15 +191,22 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   // stages it and previews it locally.
   const handleSelectImage = (file: File) => {
     if (!ALLOWED_COVER_IMAGE_TYPES.includes(file.type)) {
-      void showAlert("Please choose a PNG, JPEG, WEBP, or GIF image.", { title: "Can't use this image" });
+      void showAlert("Please choose a PNG, JPEG, WEBP, or GIF image.", {
+        title: "Can't use this image",
+      });
       return;
     }
     if (file.size > MAX_COVER_IMAGE_BYTES) {
-      void showAlert("Please choose an image under 5MB.", { title: "Image too large" });
+      void showAlert("Please choose an image under 5MB.", {
+        title: "Image too large",
+      });
       return;
     }
     revokeIfBlobUrl(coverImageUrl);
-    onChange({ coverImageUrl: URL.createObjectURL(file), coverImageFile: file });
+    onChange({
+      coverImageUrl: URL.createObjectURL(file),
+      coverImageFile: file,
+    });
   };
 
   const handleRemoveImage = () => {
@@ -235,6 +251,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             onChange({ demographic: questions })
           }
           questions={value.demographic}
+          description="Who's answering, e.g. year or program. Used to filter and compare results."
           questionTypes={demographicQuestionTypes}
           title="Demographic"
         />
@@ -245,6 +262,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           onQuestionsChange={(questions) => onChange({ feedback: questions })}
           questions={value.feedback}
           questionTypes={feedbackQuestionTypes}
+          description="What you want to learn. Written answers here are grouped into topics by AI."
           showAiAnalyze
           title="Feedback"
         />
