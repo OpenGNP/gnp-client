@@ -45,6 +45,7 @@ import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
+import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
 import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
@@ -237,6 +238,8 @@ export function FormDashboardPage({
   const formId = routeForm.formId ?? 0
   const hasValidId = routeForm.formId !== null
   useRecordFormOpen(routeForm.formId)
+  // New responses, finished AI runs and form edits show up without a refresh.
+  useFormEvents(routeForm.formId)
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
