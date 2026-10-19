@@ -67,7 +67,11 @@ export function FolderBreadcrumbBar({
       <div className="flex h-9.5 min-w-0 flex-1 items-center">
         <FolderBreadcrumb path={path} />
       </div>
-      {actions ? <div className="ml-auto flex h-9.5 shrink-0 items-center gap-2.5">{actions}</div> : null}
+      {actions ? (
+        <div className="ml-auto flex h-9.5 shrink-0 items-center gap-2.5" data-tour="page-actions">
+          {actions}
+        </div>
+      ) : null}
       {/* Its own full-width line: only the breadcrumb shares a line with the actions. */}
       {heading ? <div className="min-w-0 basis-full">{heading}</div> : null}
     </div>

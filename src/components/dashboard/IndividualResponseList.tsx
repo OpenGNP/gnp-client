@@ -61,7 +61,10 @@ export function IndividualResponseList({
   return (
     <div className="flex flex-col gap-4 rounded-[10px] border border-[#e9eaed] bg-white p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-60 flex-1 items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-3 py-2 focus-within:border-[#1e55c5]">
+        <div
+          className="flex min-w-60 flex-1 items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-3 py-2 focus-within:border-[#1e55c5]"
+          data-tour="individual-search"
+        >
           <Search className="shrink-0 text-[#929292]" size={16} />
           <input
             aria-label="Search responses"
@@ -92,7 +95,7 @@ export function IndividualResponseList({
       {results.length === 0 ? (
         <p className="m-0 py-6 text-center text-[13px] text-[#726f6f]">No responses match “{query.trim()}”.</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0" data-tour="individual-list">
           {visible.map(({ response, snippet }) => {
             const isSelected = response.id === selectedId
 

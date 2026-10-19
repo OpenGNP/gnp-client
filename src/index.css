@@ -158,3 +158,52 @@ button {
     @apply bg-background text-foreground;
   }
 }
+
+/* Product tour (lib/productTour.ts, driver.js): match the app's type, colours and corners. */
+.driver-popover.gnp-tour {
+  max-width: 340px;
+  border-radius: 12px;
+  padding: 16px 18px;
+  font-family: inherit;
+  color: #3f4045;
+}
+
+.gnp-tour .driver-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #14181f;
+}
+
+.gnp-tour .driver-popover-description {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gnp-tour .driver-popover-progress-text {
+  font-size: 12px;
+  color: #929292;
+}
+
+.gnp-tour .driver-popover-navigation-btns button {
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+.gnp-tour .driver-popover-prev-btn {
+  border: 1px solid #d7dbe6;
+  background: white;
+  color: #3f4045;
+}
+
+.gnp-tour .driver-popover-next-btn {
+  border: 0;
+  background: #1e55c5;
+  color: white;
+}
+
+.gnp-tour .driver-popover-next-btn:hover {
+  background: #1a49aa;
+}

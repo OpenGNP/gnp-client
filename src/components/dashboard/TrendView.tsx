@@ -343,20 +343,22 @@ export function TrendView({ trend, topicControl, pinned, onPinnedChange }: Trend
     <div className="flex flex-col gap-4.5">
       {/* Full width: volume lines + the sentiment strip under them, and the topic
           detail side panel. */}
-      <TopicTrendsCard
-        action={topicControl}
-        data={trend.volumeSeries}
-        onPinnedTopicChange={onPinnedChange}
-        pinnedTopic={pinnedTopic}
-        sentimentByTopic={trend.topicSentimentSeries ?? {}}
-        sentimentSeries={trend.sentimentSeries}
-        series={trend.topicVolumeSeries}
-        summaries={trend.topicSummaries ?? []}
-      />
+      <div data-tour="trend-chart">
+        <TopicTrendsCard
+          action={topicControl}
+          data={trend.volumeSeries}
+          onPinnedTopicChange={onPinnedChange}
+          pinnedTopic={pinnedTopic}
+          sentimentByTopic={trend.topicSentimentSeries ?? {}}
+          sentimentSeries={trend.sentimentSeries}
+          series={trend.topicVolumeSeries}
+          summaries={trend.topicSummaries ?? []}
+        />
+      </div>
 
       {/* Rising | Declining, half the row each. Both take the taller card's height
           (grid stretch), so the shorter one's note fills its spare space. */}
-      <div className="grid grid-cols-2 gap-4.5 max-[900px]:grid-cols-1">
+      <div className="grid grid-cols-2 gap-4.5 max-[900px]:grid-cols-1" data-tour="trend-movement">
         <TopicMovementCard
           comparisonLabel={trend.comparisonLabel}
           direction="rising"
@@ -376,7 +378,7 @@ export function TrendView({ trend, topicControl, pinned, onPinnedChange }: Trend
       </div>
 
       {/* items-start: short cards (few issues/events) keep their own height. */}
-      <div className="grid grid-cols-2 items-start gap-4.5 max-[900px]:grid-cols-1">
+      <div className="grid grid-cols-2 items-start gap-4.5 max-[900px]:grid-cols-1" data-tour="trend-emerging">
         <EmergingIssuesCard issues={trend.emergingIssues} />
         <TimelineCard events={trend.timelineEvents} />
       </div>

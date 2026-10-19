@@ -1,6 +1,7 @@
 import {
   ArrowUp,
   BarChart3,
+  CircleHelp,
   Eye,
   EyeOff,
   FileSpreadsheet,
@@ -16,7 +17,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { downloadFormResponses, downloadFormThemes, type FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
@@ -25,6 +26,7 @@ import { FormLoadError } from '../components/FormLoadError'
 import { PrintPortal } from '../components/report/PrintPortal'
 import { ThemesReport } from '../components/report/ThemesReport'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
+import { DASHBOARD_TOUR, INDIVIDUAL_TOUR, TREND_TOUR } from '../components/dashboard/dashboardTour'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
 import { ExportMenu } from '../components/dashboard/ExportMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
@@ -45,6 +47,8 @@ import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
+import { useAuth } from '../lib/auth'
+import { hasSeenTour, markTourSeen, startTour } from '../lib/productTour'
 import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
@@ -383,6 +387,26 @@ export function FormDashboardPage({
     }
   }
 
+  // A short tour the first time each tab is opened, once its data is on screen (so the
+  // steps point at real topics, charts and rows). Response explains itself — no tour.
+  // The Tour button replays the open tab's tour.
+  const { user } = useAuth()
+  const tabTour =
+    activeView === 'themes'
+      ? { id: 'dashboard', steps: DASHBOARD_TOUR, ready: form !== null && themes !== null }
+      : activeView === 'trend'
+        ? { id: 'dashboard-trend', steps: TREND_TOUR, ready: trend !== null && themes !== null && trend.totalMentions > 0 }
+        : activeView === 'individual'
+          ? { id: 'dashboard-individual', steps: INDIVIDUAL_TOUR, ready: (individualResult.data?.responses.length ?? 0) > 0 }
+          : null
+  const tourId = tabTour?.ready ? tabTour.id : null
+  useEffect(() => {
+    if (!tourId || !user || hasSeenTour(tourId, user.id)) return
+    const steps = tourId === 'dashboard-trend' ? TREND_TOUR : tourId === 'dashboard-individual' ? INDIVIDUAL_TOUR : DASHBOARD_TOUR
+    const timer = setTimeout(() => startTour(steps, () => markTourSeen(tourId, user.id)), 500)
+    return () => clearTimeout(timer)
+  }, [tourId, user])
+
   const loadFailure =
     routeForm.status === 'error'
       ? (routeForm.error ?? "This form hasn't been saved yet, so there's no dashboard.")
@@ -623,6 +647,22 @@ export function FormDashboardPage({
         }
         actions={
           <>
+            <FormActionButton
+              aria-label="Show the tour for this tab"
+              className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+              icon={<CircleHelp size={18} strokeWidth={2.2} />}
+              onClick={() => {
+                if (tabTour) {
+                  startTour(tabTour.steps)
+                  return
+                }
+                // Response has no tour of its own: show the main one, on Themes.
+                setActiveView('themes')
+                setTimeout(() => startTour(DASHBOARD_TOUR), 50)
+              }}
+            >
+              Tour
+            </FormActionButton>
             {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}
             {hasNames ? (
               <FormActionButton
@@ -715,7 +755,9 @@ export function FormDashboardPage({
       />
 
       <div className="flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
-        <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
+        <div className="w-fit" data-tour="dashboard-views">
+          <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
+        </div>
 
         <div
           className="w-full"
@@ -766,7 +808,7 @@ export function FormDashboardPage({
               ) : themes.aiDiscoveredTopics.length === 0 ? (
                 <>
                   {themes.totalMentions > 0 ? (
-                    <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
                       <DateRangeFilter
                         isDefault={range === null}
                         label={range === null ? themes.rangeLabel : undefined}
@@ -790,7 +832,7 @@ export function FormDashboardPage({
                 </>
               ) : (
                 <>
-                  <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
                     <DateRangeFilter
                       isDefault={range === null}
                       label={range === null ? themes.rangeLabel : undefined}
@@ -906,7 +948,7 @@ export function FormDashboardPage({
                   value={range ?? { from: trend.from, to: trend.to }}
                 />
                 {demoFilterControl}
-                <div className="flex flex-col items-start gap-2">
+                <div className="flex flex-col items-start gap-2" data-tour="trend-bucket">
                   <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
                   <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
                     {BUCKETS.map((option) => (

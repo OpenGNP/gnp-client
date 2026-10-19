@@ -89,6 +89,7 @@ export function TopicPicker({
                 ? 'h-8.75 gap-1.5 rounded-[10px] border border-[#e6e7eb] bg-white px-2.5 text-[12px] font-semibold hover:border-[#1e55c5]'
                 : 'h-11.25 min-w-33.75 gap-1.75 rounded-[10px] border border-[#1e55c5] bg-white px-4 text-[12px] font-semibold',
             )}
+            data-tour="trend-topic-picker"
             title="Choose which topics are drawn on this chart"
             type="button"
           >

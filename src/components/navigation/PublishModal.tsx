@@ -402,7 +402,7 @@ export function PublishModal({
               className="rounded-[10px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#726f6f]"
               variant="ghost"
             >
-              {isPublished ? 'Done' : 'Cancel'}
+              Close
             </Button>
           </PopoverClose>
           {isPublished ? (

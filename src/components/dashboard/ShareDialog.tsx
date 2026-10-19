@@ -109,6 +109,7 @@ function ShareButton({ formId }: { formId: number }) {
         {viewers.length > 0 ? <ViewerAvatars onOpen={() => setOpen(true)} viewers={viewers} /> : null}
         {/* Its own compact button: the top bar is navigation, so it stays lighter than the page actions. */}
         <button
+          data-tour="share-results"
           aria-label={viewers.length > 0 ? `Share results (shared with ${viewers.length})` : 'Share results'}
           className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:px-0"
           onClick={() => setOpen(true)}
