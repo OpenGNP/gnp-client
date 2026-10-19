@@ -26,13 +26,13 @@ export function markTourSeen(tour: string, userId: number) {
 /**
  * Dims the page and walks through `steps`, spotlighting one element at a time. Steps
  * whose element isn't on screen (e.g. no topics yet) are skipped. `onEnd` runs when it
- * finishes or is closed, either way.
+ * finishes or is closed, either way. Returns a handle to end it from outside.
  */
-export function startTour(steps: TourStep[], onEnd?: () => void) {
+export function startTour(steps: TourStep[], onEnd?: () => void): { stop: () => void } | null {
   const present = steps.filter((step) => document.querySelector(step.target))
-  if (present.length === 0) return
+  if (present.length === 0) return null
 
-  driver({
+  const tour = driver({
     steps: present.map((step) => ({
       element: step.target,
       popover: { title: step.title, description: step.text },
@@ -46,6 +46,12 @@ export function startTour(steps: TourStep[], onEnd?: () => void) {
     stagePadding: 6,
     stageRadius: 10,
     popoverClass: 'gnp-tour',
+    // Look, don't touch: the spotlit element can't be clicked mid-tour (it may be sample data).
+    disableActiveInteraction: true,
+    // A stray click on the dimmed page shouldn't end it — use ✕ or Esc.
+    overlayClickBehavior: 'none',
     onDestroyed: () => onEnd?.(),
-  }).drive()
+  })
+  tour.drive()
+  return { stop: () => tour.destroy() }
 }

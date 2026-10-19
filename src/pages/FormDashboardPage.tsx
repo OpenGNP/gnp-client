@@ -17,7 +17,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { downloadFormResponses, downloadFormThemes, type FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
@@ -48,6 +48,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/toolti
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { useAuth } from '../lib/auth'
+import { SamplePreviewContext } from '../lib/samplePreview'
+import { SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
 import { hasSeenTour, markTourSeen, startTour } from '../lib/productTour'
 import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
@@ -345,8 +347,13 @@ export function FormDashboardPage({
   })
 
   const form = formResult.data ?? null
-  const responses = responsesResult.data ?? null
-  const individual = individualResult.data ?? null
+  // While an empty form's tour runs, every tab shows sample data instead (see the tour
+  // below); `real*` is what the server sent.
+  const [previewing, setPreviewing] = useState(false)
+  const realResponses = responsesResult.data ?? null
+  const realIndividual = individualResult.data ?? null
+  const responses = previewing ? SAMPLE_RESPONSES : realResponses
+  const individual = previewing ? SAMPLE_INDIVIDUAL : realIndividual
 
   // A failed filter change shouldn't blank the tab: keep the last successful
   // themes/trend for this form on screen (only a *first* themes failure is fatal).
@@ -370,8 +377,10 @@ export function FormDashboardPage({
     })
   }
   const sameFormLastGood = lastGood.formId === formId ? lastGood : null
-  const themes = themesResult.data ?? sameFormLastGood?.themes ?? null
-  const trend = trendResult.data ?? sameFormLastGood?.trend ?? null
+  const realThemes = themesResult.data ?? sameFormLastGood?.themes ?? null
+  const realTrend = trendResult.data ?? sameFormLastGood?.trend ?? null
+  const themes = previewing ? SAMPLE_THEMES : realThemes
+  const trend = previewing ? SAMPLE_TREND : realTrend
   const themesPending = themesResult.isPlaceholderData
   const trendPending = trendResult.isPlaceholderData
   const trendPagePending = trendPending && trendChangeScope === 'page'
@@ -387,25 +396,68 @@ export function FormDashboardPage({
     }
   }
 
-  // A short tour the first time each tab is opened, once its data is on screen (so the
-  // steps point at real topics, charts and rows). Response explains itself — no tour.
-  // The Tour button replays the open tab's tour.
+  // A short tour the first time each tab is opened. With real data it points at the
+  // real topics, charts and rows; on an empty tab it runs over sample data instead (a
+  // yellow banner says so, Export / Share are off) and the real view returns when the
+  // tour ends. Response explains itself — no tour. The Tour button replays it.
   const { user } = useAuth()
   const tabTour =
     activeView === 'themes'
-      ? { id: 'dashboard', steps: DASHBOARD_TOUR, ready: form !== null && themes !== null }
+      ? {
+          id: 'dashboard',
+          steps: DASHBOARD_TOUR,
+          loaded: form !== null && realThemes !== null,
+          empty: (realThemes?.aiDiscoveredTopics.length ?? 0) === 0,
+        }
       : activeView === 'trend'
-        ? { id: 'dashboard-trend', steps: TREND_TOUR, ready: trend !== null && themes !== null && trend.totalMentions > 0 }
+        ? {
+            id: 'dashboard-trend',
+            steps: TREND_TOUR,
+            loaded: realTrend !== null && realThemes !== null,
+            empty: (realTrend?.topicVolumeSeries.length ?? 0) === 0,
+          }
         : activeView === 'individual'
-          ? { id: 'dashboard-individual', steps: INDIVIDUAL_TOUR, ready: (individualResult.data?.responses.length ?? 0) > 0 }
+          ? {
+              id: 'dashboard-individual',
+              steps: INDIVIDUAL_TOUR,
+              loaded: realIndividual !== null,
+              empty: (realIndividual?.responses.length ?? 0) === 0,
+            }
           : null
-  const tourId = tabTour?.ready ? tabTour.id : null
+
+  // The running tour, so "Exit preview" on the banner can end it too.
+  const activeTour = useRef<{ stop: () => void } | null>(null)
+  const runTabTour = (tour: NonNullable<typeof tabTour>, onEnd?: () => void) => {
+    const finish = () => {
+      activeTour.current = null
+      setPreviewing(false)
+      onEnd?.()
+    }
+    if (!tour.empty) {
+      activeTour.current = startTour(tour.steps, finish)
+      return
+    }
+    setPreviewing(true)
+    // After the sample data has rendered, so the steps have something to point at.
+    setTimeout(() => {
+      activeTour.current = startTour(tour.steps, finish)
+    }, 80)
+  }
+  const exitPreview = () => {
+    if (activeTour.current) activeTour.current.stop()
+    else setPreviewing(false)
+  }
+
+  // First visit to a tab, once its data has loaded: run that tab's tour, once.
+  const autoTourKey = tabTour?.loaded && user && !hasSeenTour(tabTour.id, user.id) ? tabTour.id : null
+  const startAutoTour = useEffectEvent((key: string) => {
+    if (tabTour?.id === key && user) runTabTour(tabTour, () => markTourSeen(key, user.id))
+  })
   useEffect(() => {
-    if (!tourId || !user || hasSeenTour(tourId, user.id)) return
-    const steps = tourId === 'dashboard-trend' ? TREND_TOUR : tourId === 'dashboard-individual' ? INDIVIDUAL_TOUR : DASHBOARD_TOUR
-    const timer = setTimeout(() => startTour(steps, () => markTourSeen(tourId, user.id)), 500)
+    if (!autoTourKey) return
+    const timer = setTimeout(() => startAutoTour(autoTourKey), 500)
     return () => clearTimeout(timer)
-  }, [tourId, user])
+  }, [autoTourKey])
 
   const loadFailure =
     routeForm.status === 'error'
@@ -632,182 +684,232 @@ export function FormDashboardPage({
   )
 
   return (
-    <div>
-      <FormDetailTabs
-        canEdit={routeForm.role === 'owner'}
-        hasDashboardData
-        onToggleSidebar={onToggleSidebar}
-        showSidebarToggle={showSidebarToggle}
-      />
-      <FolderBreadcrumbBar
-        reserveRight={
-          (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
-            ? detailPanelLayout.width
-            : undefined
-        }
-        actions={
-          <>
-            <FormActionButton
-              aria-label="Show the tour for this tab"
-              className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
-              icon={<CircleHelp size={18} strokeWidth={2.2} />}
-              onClick={() => {
-                if (tabTour) {
-                  startTour(tabTour.steps)
-                  return
-                }
-                // Response has no tour of its own: show the main one, on Themes.
-                setActiveView('themes')
-                setTimeout(() => startTour(DASHBOARD_TOUR), 50)
-              }}
+    <SamplePreviewContext.Provider value={previewing}>
+      <div>
+        <FormDetailTabs
+          canEdit={routeForm.role === 'owner'}
+          hasDashboardData
+          onToggleSidebar={onToggleSidebar}
+          showSidebarToggle={showSidebarToggle}
+        />
+        {previewing ? (
+          // Top centre, in the empty middle of the Edit form | Dashboard bar (tabs left, Share
+          // right); under 900px that middle is too narrow, so it sits at the bottom instead.
+          // Above the tour's dimmed overlay (driver.js: z-index 10000) on every step.
+          // `!pointer-events-auto`: during a tour driver.js makes everything else
+          // unclickable, and Exit preview must still work.
+          <div
+            className="fixed top-2 left-1/2 z-[10001] flex !pointer-events-auto -translate-x-1/2 items-center gap-2.5 rounded-[10px] border border-[#f3d27a] bg-[#fff6d6] py-1.5 pr-1.5 pl-2 text-[13px] font-medium whitespace-nowrap text-[#7a5a00] shadow-[0_8px_24px_rgba(15,23,42,0.14)] max-[900px]:top-auto max-[900px]:bottom-5"
+            role="status"
+          >
+            {/* A tinted icon tile like the dashboard's stat cards, in the notice's amber. */}
+            <Eye className="text-[#7a5a00]" size={14} />
+            You're viewing sample data
+            <button
+              className="!pointer-events-auto h-7 cursor-pointer rounded-[10px] border border-[#f3d27a] bg-white px-2.5 text-[12px] font-semibold text-[#7a5a00] transition-colors hover:bg-[#fffbeb]"
+              onClick={exitPreview}
+              type="button"
             >
-              Tour
-            </FormActionButton>
-            {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}
-            {hasNames ? (
-              <FormActionButton
-                aria-pressed={!hideNames}
-                className={
-                  hideNames
-                    ? 'border border-[#d2d8e5] bg-white text-[#726f6f] hover:bg-[#f7f8fb]'
-                    : 'border border-[#1e55c5] bg-[#eef3ff] text-[#1e55c5] hover:bg-[#e3ebfd]'
-                }
-                icon={hideNames ? <EyeOff size={18} strokeWidth={2.2} /> : <Eye size={18} strokeWidth={2.2} />}
-                onClick={toggleHideNames}
-              >
-                Show names
-              </FormActionButton>
-            ) : null}
-            {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
-              <ExportMenu
-                formTitle={form.formTitle}
-                includeNames={!hasNames || !hideNames}
-                options={[
-                  {
-                    label: 'Excel (.xlsx)',
-                    icon: FileSpreadsheet,
-                    extension: 'xlsx',
-                    download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
-                  },
-                  {
-                    label: 'CSV (.csv)',
-                    icon: FileText,
-                    extension: 'csv',
-                    download: () => downloadFormResponses(formId, 'csv', !hideNames),
-                  },
-                ]}
-                what="responses"
-              />
-            ) : null}
-            {/* Exports what's on screen: the same date range and demographic filter. */}
-            {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
-              <ExportMenu
-                formTitle={form.formTitle}
-                includeNames={!hasNames || !hideNames}
-                options={[
-                  {
-                    label: 'Excel (.xlsx)',
-                    icon: FileSpreadsheet,
-                    extension: 'xlsx',
-                    download: () =>
-                      downloadFormThemes(
-                        formId,
-                        { from: range?.from, to: range?.to, demo: demoSel },
-                        topicSort,
-                        !hideNames,
-                      ),
-                  },
-                  { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
-                ]}
-                scope={themesScope}
-                what="AI analysis"
-              />
-            ) : null}
-          </>
-        }
-        // The form's name heads every tab, so a screenshot or screen-share shows which form it is.
-        heading={
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {form ? (
-              <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
-                {form.formTitle?.trim() || 'Untitled form'}
-              </h1>
-            ) : (
-              <Skeleton className="h-8 w-72" />
-            )}
-            <StatusRow
-              form={form}
-              // Response / Individual show raw responses; Themes / Trend wait on the AI.
-              freshness={
-                activeView === 'themes' || activeView === 'trend'
-                  ? themes
-                    ? { kind: 'ai', at: themes.lastAnalysedAt, pending: themes.awaitingAnalysis }
-                    : null
-                  : responses
-                    ? { kind: 'response', at: responses.lastResponseAt }
-                    : null
-              }
-              now={now}
-            />
+              Exit preview
+            </button>
           </div>
-        }
-        path={folderPath}
-      />
-
-      <div className="flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
-        <div className="w-fit" data-tour="dashboard-views">
-          <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
-        </div>
-
-        <div
-          className="w-full"
-          style={
+        ) : null}
+        <FolderBreadcrumbBar
+          reserveRight={
             (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
-              ? { paddingRight: detailPanelLayout.width }
+              ? detailPanelLayout.width
               : undefined
           }
-        >
+          actions={
+            <>
+              <FormActionButton
+                aria-label="Show the tour for this tab"
+                className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+                icon={<CircleHelp size={18} strokeWidth={2.2} />}
+                onClick={() => {
+                  if (tabTour?.loaded) {
+                    runTabTour(tabTour)
+                    return
+                  }
+                  // Response has no tour of its own: show the main one, on Themes.
+                  setActiveView('themes')
+                  setTimeout(() => startTour(DASHBOARD_TOUR), 50)
+                }}
+              >
+                Tour
+              </FormActionButton>
+              {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}
+              {hasNames ? (
+                <FormActionButton
+                  aria-pressed={!hideNames}
+                  data-tour="show-names"
+                  className={
+                    hideNames
+                      ? 'border border-[#d2d8e5] bg-white text-[#726f6f] hover:bg-[#f7f8fb]'
+                      : 'border border-[#1e55c5] bg-[#eef3ff] text-[#1e55c5] hover:bg-[#e3ebfd]'
+                  }
+                  icon={hideNames ? <EyeOff size={18} strokeWidth={2.2} /> : <Eye size={18} strokeWidth={2.2} />}
+                  onClick={toggleHideNames}
+                >
+                  Show names
+                </FormActionButton>
+              ) : null}
+              {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
+                <ExportMenu
+                  disabled={previewing}
+                  formTitle={form.formTitle}
+                  includeNames={!hasNames || !hideNames}
+                  options={[
+                    {
+                      label: 'Excel (.xlsx)',
+                      icon: FileSpreadsheet,
+                      extension: 'xlsx',
+                      download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
+                    },
+                    {
+                      label: 'CSV (.csv)',
+                      icon: FileText,
+                      extension: 'csv',
+                      download: () => downloadFormResponses(formId, 'csv', !hideNames),
+                    },
+                  ]}
+                  what="responses"
+                />
+              ) : null}
+              {/* Exports what's on screen: the same date range and demographic filter. */}
+              {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
+                <ExportMenu
+                  disabled={previewing}
+                  formTitle={form.formTitle}
+                  includeNames={!hasNames || !hideNames}
+                  options={[
+                    {
+                      label: 'Excel (.xlsx)',
+                      icon: FileSpreadsheet,
+                      extension: 'xlsx',
+                      download: () =>
+                        downloadFormThemes(
+                          formId,
+                          { from: range?.from, to: range?.to, demo: demoSel },
+                          topicSort,
+                          !hideNames,
+                        ),
+                    },
+                    { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
+                  ]}
+                  scope={themesScope}
+                  what="AI analysis"
+                />
+              ) : null}
+            </>
+          }
+          // The form's name heads every tab, so a screenshot or screen-share shows which form it is.
+          heading={
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              {form ? (
+                <h1 className="m-0 text-[24px] leading-8 font-bold wrap-break-word text-black">
+                  {form.formTitle?.trim() || 'Untitled form'}
+                </h1>
+              ) : (
+                <Skeleton className="h-8 w-72" />
+              )}
+              <StatusRow
+                form={form}
+                // Response / Individual show raw responses; Themes / Trend wait on the AI.
+                freshness={
+                  activeView === 'themes' || activeView === 'trend'
+                    ? themes
+                      ? { kind: 'ai', at: themes.lastAnalysedAt, pending: themes.awaitingAnalysis }
+                      : null
+                    : responses
+                      ? { kind: 'response', at: responses.lastResponseAt }
+                      : null
+                }
+                now={now}
+              />
+            </div>
+          }
+          path={folderPath}
+        />
+
+        <div className="flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
+          <div className="w-fit" data-tour="dashboard-views">
+            <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
+          </div>
+
           <div
-            className={cn(
-              'mx-auto flex w-full flex-col gap-5',
-              // Every tab is the same width, so switching doesn't shift the page. A docked
-              // detail panel shrinks the content (down to min-w-150, which
-              // useDetailPanelLayout assumes; Trend has no panel).
-              'max-w-366.5',
-              activeView !== 'trend' && 'min-w-150',
-            )}
+            className="w-full"
+            style={
+              (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
+                ? { paddingRight: detailPanelLayout.width }
+                : undefined
+            }
           >
-            <div className="-mb-2 flex flex-col gap-1.25">
-              <div className="flex min-h-11.25 items-center justify-between gap-2.5 pt-2.5">
-                <div className="flex items-center gap-2.5">
-                  {activeView === 'themes' ? (
-                    <Tag className="shrink-0 text-[#1e55c5]" size={24} />
-                  ) : activeView === 'individual' ? (
-                    <UserRound className="shrink-0 text-[#1e55c5]" size={24} />
-                  ) : activeView === 'trend' ? (
-                    <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
-                  ) : (
-                    <BarChart3 className="shrink-0 text-[#1e55c5]" size={24} />
-                  )}
-                  <h2 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                    {activeView === 'themes'
-                      ? 'Themes Overview'
-                      : activeView === 'trend'
-                        ? 'Trend Overview'
-                        : activeView === 'individual'
-                          ? 'Individual Responses'
-                          : 'Response Overview'}
-                  </h2>
+            <div
+              className={cn(
+                'mx-auto flex w-full flex-col gap-5',
+                // Every tab is the same width, so switching doesn't shift the page. A docked
+                // detail panel shrinks the content (down to min-w-150, which
+                // useDetailPanelLayout assumes; Trend has no panel).
+                'max-w-366.5',
+                activeView !== 'trend' && 'min-w-150',
+              )}
+            >
+              <div className="-mb-2 flex flex-col gap-1.25">
+                <div className="flex min-h-11.25 items-center justify-between gap-2.5 pt-2.5">
+                  <div className="flex items-center gap-2.5">
+                    {activeView === 'themes' ? (
+                      <Tag className="shrink-0 text-[#1e55c5]" size={24} />
+                    ) : activeView === 'individual' ? (
+                      <UserRound className="shrink-0 text-[#1e55c5]" size={24} />
+                    ) : activeView === 'trend' ? (
+                      <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
+                    ) : (
+                      <BarChart3 className="shrink-0 text-[#1e55c5]" size={24} />
+                    )}
+                    <h2 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
+                      {activeView === 'themes'
+                        ? 'Themes Overview'
+                        : activeView === 'trend'
+                          ? 'Trend Overview'
+                          : activeView === 'individual'
+                            ? 'Individual Responses'
+                            : 'Response Overview'}
+                    </h2>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {activeView === 'themes' ? (
-              !themes ? (
-                <ContentSkeleton label="Loading themes…" />
-              ) : themes.aiDiscoveredTopics.length === 0 ? (
-                <>
-                  {themes.totalMentions > 0 ? (
+              {activeView === 'themes' ? (
+                !themes ? (
+                  <ContentSkeleton label="Loading themes…" />
+                ) : themes.aiDiscoveredTopics.length === 0 ? (
+                  <>
+                    {themes.totalMentions > 0 ? (
+                      <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
+                        <DateRangeFilter
+                          isDefault={range === null}
+                          label={range === null ? themes.rangeLabel : undefined}
+                          onChange={changeRange}
+                          onReset={resetRange}
+                          value={range ?? { from: themes.from, to: themes.to }}
+                        />
+                        {demoFilterControl}
+                        {themesPending ? (
+                          <UpdatingIndicator />
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {themes.totalMentions > 0 ? activeFilterBar : null}
+                    {themesStatCards}
+                    <EmptyNote>
+                      {themes.totalMentions === 0
+                        ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
+                        : `This form has analysed feedback, but none falls in ${themes.rangeLabel}${activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try “All feedback”, a wider date range${activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.`}
+                    </EmptyNote>
+                  </>
+                ) : (
+                  <>
                     <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
                       <DateRangeFilter
                         isDefault={range === null}
@@ -821,258 +923,235 @@ export function FormDashboardPage({
                         <UpdatingIndicator />
                       ) : null}
                     </div>
-                  ) : null}
-                  {themes.totalMentions > 0 ? activeFilterBar : null}
-                  {themesStatCards}
-                  <EmptyNote>
-                    {themes.totalMentions === 0
-                      ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
-                      : `This form has analysed feedback, but none falls in ${themes.rangeLabel}${activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try “All feedback”, a wider date range${activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.`}
-                  </EmptyNote>
-                </>
-              ) : (
-                <>
-                  <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
-                    <DateRangeFilter
-                      isDefault={range === null}
-                      label={range === null ? themes.rangeLabel : undefined}
-                      onChange={changeRange}
-                      onReset={resetRange}
-                      value={range ?? { from: themes.from, to: themes.to }}
+                    {activeFilterBar}
+                    {themesStatCards}
+
+                    <TopicSentimentCard
+                      axisMax={topicAxisMax}
+                      id={TOPIC_LIST_ID}
+                      onQueryChange={setTopicQuery}
+                      onSortChange={setTopicSort}
+                      onSelectTopic={setSelectedTopicId}
+                      pageSize={15}
+                      query={topicQuery}
+                      sort={topicSort}
+                      selectedTopicId={selectedTopicId}
+                      sortable
+                      title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
+                      topics={themes.aiDiscoveredTopics}
                     />
-                    {demoFilterControl}
-                    {themesPending ? (
-                      <UpdatingIndicator />
-                    ) : null}
-                  </div>
-                  {activeFilterBar}
-                  {themesStatCards}
+                  </>
+                )
+              ) : null}
 
-                  <TopicSentimentCard
-                    axisMax={topicAxisMax}
-                    id={TOPIC_LIST_ID}
-                    onQueryChange={setTopicQuery}
-                    onSortChange={setTopicSort}
-                    onSelectTopic={setSelectedTopicId}
-                    pageSize={15}
-                    query={topicQuery}
-                    sort={topicSort}
-                    selectedTopicId={selectedTopicId}
-                    sortable
-                    title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
-                    topics={themes.aiDiscoveredTopics}
-                  />
-                </>
-              )
-            ) : null}
-
-            {activeView === 'response' ? (
-              !formReady ? (
-                <ContentSkeleton label="Loading responses…" />
-              ) : (
-                <>
-                  <div className="flex h-27 w-full shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
-                    <div className="flex size-15.25 shrink-0 items-center justify-center rounded-[6px] bg-[#edf2fd]">
-                      <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
+              {activeView === 'response' ? (
+                !formReady ? (
+                  <ContentSkeleton label="Loading responses…" />
+                ) : (
+                  <>
+                    <div className="flex h-27 w-full shrink-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25">
+                      <div className="flex size-15.25 shrink-0 items-center justify-center rounded-[6px] bg-[#edf2fd]">
+                        <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
+                      </div>
+                      <div className="flex flex-col gap-2.5">
+                        <p className="m-0 text-[12px] font-medium text-[#929292]">Total Responses</p>
+                        <p className="m-0 text-[20px] font-bold text-[#14181f]">
+                          {responses.totalResponses}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2.5">
-                      <p className="m-0 text-[12px] font-medium text-[#929292]">Total Responses</p>
-                      <p className="m-0 text-[20px] font-bold text-[#14181f]">
-                        {responses.totalResponses}
-                      </p>
-                    </div>
-                  </div>
 
-                  {responses.totalResponses === 0 ? (
-                    <div className="flex min-h-40 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-10 text-center">
-                      <p className="m-0 text-[14px] text-[#726f6f]">
-                        No responses have been submitted yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <ResponseOverviewSection
-                        breakdowns={responses.demographic}
-                        hideNames={hideNames}
-                        title="Demographic Overview"
-                      />
-                      <ResponseOverviewSection
-                        breakdowns={responses.feedback}
-                        hideNames={hideNames}
-                        title="Feedback Overview"
-                      />
-                    </>
-                  )}
-                </>
-              )
-            ) : null}
-
-            {activeView === 'individual' ? (
-              individualResult.isError ? (
-                <FormLoadError
-                  error={individualResult.error}
-                  fallbackMessage="Could not load the responses."
-                  onRetry={() => void individualResult.refetch()}
-                />
-              ) : !individual ? (
-                <ContentSkeleton label="Loading responses…" />
-              ) : individual.responses.length === 0 ? (
-                <EmptyNote>No responses have been submitted yet.</EmptyNote>
-              ) : (
-                <IndividualResponseList
-                  labels={individualLabels}
-                  onQueryChange={setResponseQuery}
-                  onSelect={setSelectedResponseId}
-                  query={responseQuery}
-                  results={responseResults}
-                  selectedId={selectedResponse?.id ?? null}
-                  total={individual.responses.length}
-                />
-              )
-            ) : null}
-
-            {activeView === 'trend' && !trendReady ? (
-              <ContentSkeleton label="Loading trend…" />
-            ) : null}
-
-            {/* Same rule as Themes: no filters when the form has no analysed feedback at
-                all (`totalMentions` is all-time) — there's nothing to filter. They stay when
-                data exists but the current range/filters exclude it, so you can widen them. */}
-            {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? (
-              <div className="flex flex-wrap items-end gap-3">
-                <DateRangeFilter
-                  isDefault={range === null}
-                  label={range === null ? trend.rangeLabel : undefined}
-                  onChange={changeRange}
-                  onReset={resetRange}
-                  value={range ?? { from: trend.from, to: trend.to }}
-                />
-                {demoFilterControl}
-                <div className="flex flex-col items-start gap-2" data-tour="trend-bucket">
-                  <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
-                  <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
-                    {BUCKETS.map((option) => (
-                      <button
-                        className={cn(
-                          'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
-                          option.value === bucket
-                            ? 'bg-[#1e55c5] text-white'
-                            : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
-                        )}
-                        key={option.value}
-                        onClick={() => changeBucket(option.value)}
-                        type="button"
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {trendPagePending ? <UpdatingIndicator /> : null}
-              </div>
-            ) : null}
-            {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? activeFilterBar : null}
-
-            {activeView === 'trend' && trendReady ? (
-              trend.topicVolumeSeries.length > 0 ? (
-                <TrendView
-                  topicControl={
-                    trend.availableTopics.length > 0 ? (
+                    {responses.totalResponses === 0 ? (
+                      <div className="flex min-h-40 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-10 text-center">
+                        <p className="m-0 text-[14px] text-[#726f6f]">
+                          No responses have been submitted yet.
+                        </p>
+                      </div>
+                    ) : (
                       <>
-                        {topicChartPending ? (
-                          <span
-                            aria-live="polite"
-                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#726f6f]"
-                            role="status"
-                          >
-                            <RefreshCw className="animate-spin" size={14} />
-                            Updating…
-                          </span>
-                        ) : null}
-                        <TopicPicker
-                          max={TREND_SERIES_MAX}
-                          onRankChange={changeRank}
-                          onReset={resetTopicSel}
-                          onSelectionChange={changeTopicSel}
-                          pending={topicChartPending}
-                          rank={rank}
-                          selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
-                          topics={trend.availableTopics}
-                          variant="compact"
+                        <ResponseOverviewSection
+                          breakdowns={responses.demographic}
+                          hideNames={hideNames}
+                          title="Demographic Overview"
+                        />
+                        <ResponseOverviewSection
+                          breakdowns={responses.feedback}
+                          hideNames={hideNames}
+                          title="Feedback Overview"
                         />
                       </>
-                    ) : null
-                  }
-                  onPinnedChange={setTrendPinned}
-                  pinned={trendPinned}
-                  trend={trend}
-                />
-              ) : trend.totalMentions === 0 ? (
-                <EmptyNote>
-                  No feedback has been analysed for this form yet. The AI pipeline runs once
-                  responses start coming in.
-                </EmptyNote>
-              ) : themes.aiDiscoveredTopics.length > 0 ? (
-                // Feedback is in range, but none of it has a topic yet (only uncategorised).
-                <EmptyNote>
-                  Not enough feedback to group into topics yet, so there are no trends to chart.
-                  The AI starts grouping once more responses come in. You can still read this
-                  feedback on the Themes tab.
-                </EmptyNote>
-              ) : (
-                <EmptyNote>
-                  This form has analysed feedback, but none falls in {trend.rangeLabel}
-                  {activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try a wider date
-                  range{activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.
-                </EmptyNote>
-              )
-            ) : null}
+                    )}
+                  </>
+                )
+              ) : null}
+
+              {activeView === 'individual' ? (
+                individualResult.isError ? (
+                  <FormLoadError
+                    error={individualResult.error}
+                    fallbackMessage="Could not load the responses."
+                    onRetry={() => void individualResult.refetch()}
+                  />
+                ) : !individual ? (
+                  <ContentSkeleton label="Loading responses…" />
+                ) : individual.responses.length === 0 ? (
+                  <EmptyNote>No responses have been submitted yet.</EmptyNote>
+                ) : (
+                  <IndividualResponseList
+                    labels={individualLabels}
+                    onQueryChange={setResponseQuery}
+                    onSelect={setSelectedResponseId}
+                    query={responseQuery}
+                    results={responseResults}
+                    selectedId={selectedResponse?.id ?? null}
+                    total={individual.responses.length}
+                  />
+                )
+              ) : null}
+
+              {activeView === 'trend' && !trendReady ? (
+                <ContentSkeleton label="Loading trend…" />
+              ) : null}
+
+              {/* Same rule as Themes: no filters when the form has no analysed feedback at
+                  all (`totalMentions` is all-time) — there's nothing to filter. They stay when
+                  data exists but the current range/filters exclude it, so you can widen them. */}
+              {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? (
+                <div className="flex flex-wrap items-end gap-3">
+                  <DateRangeFilter
+                    isDefault={range === null}
+                    label={range === null ? trend.rangeLabel : undefined}
+                    onChange={changeRange}
+                    onReset={resetRange}
+                    value={range ?? { from: trend.from, to: trend.to }}
+                  />
+                  {demoFilterControl}
+                  <div className="flex flex-col items-start gap-2" data-tour="trend-bucket">
+                    <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
+                    <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
+                      {BUCKETS.map((option) => (
+                        <button
+                          className={cn(
+                            'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
+                            option.value === bucket
+                              ? 'bg-[#1e55c5] text-white'
+                              : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
+                          )}
+                          key={option.value}
+                          onClick={() => changeBucket(option.value)}
+                          type="button"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {trendPagePending ? <UpdatingIndicator /> : null}
+                </div>
+              ) : null}
+              {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? activeFilterBar : null}
+
+              {activeView === 'trend' && trendReady ? (
+                trend.topicVolumeSeries.length > 0 ? (
+                  <TrendView
+                    topicControl={
+                      trend.availableTopics.length > 0 ? (
+                        <>
+                          {topicChartPending ? (
+                            <span
+                              aria-live="polite"
+                              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#726f6f]"
+                              role="status"
+                            >
+                              <RefreshCw className="animate-spin" size={14} />
+                              Updating…
+                            </span>
+                          ) : null}
+                          <TopicPicker
+                            max={TREND_SERIES_MAX}
+                            onRankChange={changeRank}
+                            onReset={resetTopicSel}
+                            onSelectionChange={changeTopicSel}
+                            pending={topicChartPending}
+                            rank={rank}
+                            selectedIds={topicSel ?? trend.topicVolumeSeries.map((s) => s.id)}
+                            topics={trend.availableTopics}
+                            variant="compact"
+                          />
+                        </>
+                      ) : null
+                    }
+                    onPinnedChange={setTrendPinned}
+                    pinned={trendPinned}
+                    trend={trend}
+                  />
+                ) : trend.totalMentions === 0 ? (
+                  <EmptyNote>
+                    No feedback has been analysed for this form yet. The AI pipeline runs once
+                    responses start coming in.
+                  </EmptyNote>
+                ) : themes.aiDiscoveredTopics.length > 0 ? (
+                  // Feedback is in range, but none of it has a topic yet (only uncategorised).
+                  <EmptyNote>
+                    Not enough feedback to group into topics yet, so there are no trends to chart.
+                    The AI starts grouping once more responses come in. You can still read this
+                    feedback on the Themes tab.
+                  </EmptyNote>
+                ) : (
+                  <EmptyNote>
+                    This form has analysed feedback, but none falls in {trend.rangeLabel}
+                    {activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try a wider date
+                    range{activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.
+                  </EmptyNote>
+                )
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
 
-      {openTopic && themes ? (
-        <TopicDetailPanel
-          demographicFilters={themes.demographicFilters}
-          hidden={activeView !== 'themes'}
-          initialQuery={topicQuery}
-          key={openTopic.id}
-          mainDemoSelection={demoSel}
-          onClose={() => setSelectedTopicId(null)}
-          hideNames={hideNames}
-          onCompareInTrend={() => compareInTrend(openTopic.id)}
-          onOpenResponse={openResponse}
-          topic={openTopic}
-          layout={detailPanelLayout}
-        />
-      ) : null}
-
-      {printingReport && form && themes ? (
-        <PrintPortal onDone={finishPrinting} title={`${form.formTitle?.trim() || 'Form'} - AI analysis`}>
-          <ThemesReport
-            formTitle={form.formTitle?.trim() || 'Untitled form'}
-            scope={themesScope}
-            sort={topicSort}
-            themes={themes}
+        {openTopic && themes ? (
+          <TopicDetailPanel
+            demographicFilters={themes.demographicFilters}
+            hidden={activeView !== 'themes'}
+            initialQuery={topicQuery}
+            key={openTopic.id}
+            mainDemoSelection={demoSel}
+            onClose={() => setSelectedTopicId(null)}
+            hideNames={hideNames}
+            onCompareInTrend={() => compareInTrend(openTopic.id)}
+            onOpenResponse={openResponse}
+            topic={openTopic}
+            layout={detailPanelLayout}
           />
-        </PrintPortal>
-      ) : null}
+        ) : null}
 
-      {selectedResponse && individual ? (
-        <ResponseDetailPanel
-          fields={individual.fields}
-          hideNames={hideNames}
-          index={selectedResultIndex}
-          label={individualLabels.get(selectedResponse.id) ?? ''}
-          layout={detailPanelLayout}
-          onClose={() => setSelectedResponseId(null)}
-          onNext={() => stepResponse(1)}
-          onPrevious={() => stepResponse(-1)}
-          query={responseQuery}
-          response={selectedResponse}
-          total={responseResults.length}
-        />
-      ) : null}
-    </div>
+        {printingReport && form && themes ? (
+          <PrintPortal onDone={finishPrinting} title={`${form.formTitle?.trim() || 'Form'} - AI analysis`}>
+            <ThemesReport
+              formTitle={form.formTitle?.trim() || 'Untitled form'}
+              scope={themesScope}
+              sort={topicSort}
+              themes={themes}
+            />
+          </PrintPortal>
+        ) : null}
+
+        {selectedResponse && individual ? (
+          <ResponseDetailPanel
+            fields={individual.fields}
+            hideNames={hideNames}
+            index={selectedResultIndex}
+            label={individualLabels.get(selectedResponse.id) ?? ''}
+            layout={detailPanelLayout}
+            onClose={() => setSelectedResponseId(null)}
+            onNext={() => stepResponse(1)}
+            onPrevious={() => stepResponse(-1)}
+            query={responseQuery}
+            response={selectedResponse}
+            total={responseResults.length}
+          />
+        ) : null}
+      </div>
+    </SamplePreviewContext.Provider>
   )
 }

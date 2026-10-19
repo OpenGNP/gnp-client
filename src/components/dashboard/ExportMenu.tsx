@@ -33,6 +33,7 @@ export function ExportMenu({
   what,
   includeNames,
   scope,
+  disabled = false,
 }: {
   options: ExportOption[]
   formTitle: string | null
@@ -42,6 +43,8 @@ export function ExportMenu({
   includeNames: boolean
   /** The filters the file is limited to, one per line, e.g. ["1 Sep – 17 Oct 2026", "Year = 4"]. */
   scope?: string[]
+  /** e.g. while showing sample data — there's nothing real to export. */
+  disabled?: boolean
 }) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -75,7 +78,8 @@ export function ExportMenu({
         <DropdownMenuTrigger asChild>
           <FormActionButton
             className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
-            disabled={pending}
+            data-tour="export"
+            disabled={pending || disabled}
             icon={
               pending ? (
                 <RefreshCw className="animate-spin" size={18} strokeWidth={2.2} />

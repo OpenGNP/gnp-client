@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, RefreshCw, Share2 } from 'lucide-react'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { replaceCollaborators, type ApiCollaborator } from '../../api/forms'
 import { collaboratorsQuery, formQuery, formRefQuery, queryKeys } from '../../api/queries'
 import { ApiError } from '../../lib/api'
+import { SamplePreviewContext } from '../../lib/samplePreview'
 import { cn } from '../../lib/utils'
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
@@ -102,6 +103,8 @@ function ViewerAvatars({ viewers, onOpen }: { viewers: ApiCollaborator[]; onOpen
 
 function ShareButton({ formId }: { formId: number }) {
   const [open, setOpen] = useState(false)
+  // Off while the dashboard shows sample data.
+  const previewing = useContext(SamplePreviewContext)
   const viewers = useQuery(collaboratorsQuery(formId)).data ?? []
   return (
     <>
@@ -110,8 +113,9 @@ function ShareButton({ formId }: { formId: number }) {
         {/* Its own compact button: the top bar is navigation, so it stays lighter than the page actions. */}
         <button
           data-tour="share-results"
+          disabled={previewing}
           aria-label={viewers.length > 0 ? `Share results (shared with ${viewers.length})` : 'Share results'}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:px-0"
+          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:px-0 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => setOpen(true)}
           type="button"
         >

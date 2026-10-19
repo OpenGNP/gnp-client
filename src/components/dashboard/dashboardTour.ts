@@ -18,9 +18,15 @@ export const DASHBOARD_TOUR: TourStep[] = [
     text: 'Click a topic to read what people said about it. ⚠ marks feedback the AI flagged as a breach of law, ethics or morals.',
   },
   {
-    target: '[data-tour="page-actions"]',
-    title: 'Names and exports',
-    text: 'Hide respondent names while screen-sharing, and export the results to Excel or a PDF report.',
+    // Only on forms that record names.
+    target: '[data-tour="show-names"]',
+    title: 'Hide names',
+    text: 'Turn names off while screen-sharing or presenting. Exports then leave them out too.',
+  },
+  {
+    target: '[data-tour="export"]',
+    title: 'Export',
+    text: 'Download the results as Excel, or a PDF report to share.',
   },
   {
     target: '[data-tour="share-results"]',
