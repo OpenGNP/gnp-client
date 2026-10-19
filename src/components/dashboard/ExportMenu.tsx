@@ -1,7 +1,7 @@
-import { ChevronDown, Download, EyeOff, ListFilter, type LucideIcon } from 'lucide-react'
+import { ChevronDown, Download, EyeOff, ListFilter, RefreshCw, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { Button } from '../ui/button'
+import { FormActionButton } from '../navigation/FormActionBar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,11 +73,22 @@ export function ExportMenu({
       {failed ? <span className="text-[12px] text-destructive">Export failed</span> : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button disabled={pending} size="sm" variant="outline">
-            <Download />
-            {pending ? 'Exporting…' : 'Export'}
-            <ChevronDown />
-          </Button>
+          <FormActionButton
+            className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+            disabled={pending}
+            icon={
+              pending ? (
+                <RefreshCw className="animate-spin" size={18} strokeWidth={2.2} />
+              ) : (
+                <Download size={18} strokeWidth={2.2} />
+              )
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              {pending ? 'Exporting…' : 'Export'}
+              <ChevronDown size={16} />
+            </span>
+          </FormActionButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {options.map((option) => (
