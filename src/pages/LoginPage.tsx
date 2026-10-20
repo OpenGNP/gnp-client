@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
@@ -20,10 +20,15 @@ function useSignedInRedirect() {
   return <Navigate replace to={postSignInPath(state, user)} />
 }
 
-function LoginCard({ subtitle, children }: { subtitle: string; children: ReactNode }) {
+function LoginCard({ subtitle, busy = false, children }: { subtitle: string; busy?: boolean; children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f5f9ff] px-4 font-['Inter_Variable']">
-      <div className="w-full max-w-95 rounded-[10px] border border-[#e8eaf1] bg-white p-8 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+      <div className="relative w-full max-w-95 overflow-hidden rounded-[10px] border border-[#e8eaf1] bg-white p-8 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+        {busy ? (
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#e8eefc]">
+            <div className="h-full w-2/5 animate-[login-progress_1.2s_ease-in-out_infinite] rounded-full bg-[#1e55c5] motion-reduce:animate-none" />
+          </div>
+        ) : null}
         <div className="mb-7 flex flex-col items-center gap-3 text-center">
           <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
           <div>
@@ -49,13 +54,13 @@ function ErrorNote({ message }: { message: string }) {
 export function LoginPage() {
   const redirect = useSignedInRedirect()
   const [error, setError] = useState('')
-  const [, setMicrosoftBusy] = useState(false)
+  const [microsoftBusy, setMicrosoftBusy] = useState(false)
 
   if (redirect) return redirect
   if (!msalInstance) return <EmailLoginPage />
 
   return (
-    <LoginCard subtitle={`Sign in to your ${brand.name} account`}>
+    <LoginCard busy={microsoftBusy} subtitle={`Sign in to your ${brand.name} account`}>
       <MicrosoftSignInButton onBusyChange={setMicrosoftBusy} onError={setError} />
       <ErrorNote message={error} />
       {/* New tab, so reading them doesn't lose the sign-in in progress. */}
@@ -104,7 +109,7 @@ export function EmailLoginPage() {
   }
 
   return (
-    <LoginCard subtitle="Administrator sign-in">
+    <LoginCard busy={submitting} subtitle="Administrator sign-in">
         <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <label className="flex flex-col gap-1.5 text-left">
             <span className="text-[12px] font-medium text-[#3f4045]">Email</span>
@@ -159,6 +164,7 @@ export function EmailLoginPage() {
             disabled={submitting}
             type="submit"
           >
+            {submitting ? <Loader2 className="animate-spin motion-reduce:animate-none" size={16} /> : null}
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>

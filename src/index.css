@@ -229,3 +229,14 @@ button {
     transform: translateX(-100%);
   }
 }
+
+/* Login's "working on it" bar (LoginPage): a segment sweeping across, so a wait that
+   takes a few seconds (first sign-in sets up the account) reads as progress, not a hang. */
+@keyframes login-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}

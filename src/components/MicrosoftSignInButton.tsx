@@ -1,8 +1,10 @@
 import { BrowserAuthError, BrowserAuthErrorCodes, InteractionStatus } from '@azure/msal-browser'
 import { useMsal } from '@azure/msal-react'
+import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { ApiError } from '../lib/api'
+import { cn } from '../lib/utils'
 import { useAuth } from '../lib/auth'
 import { microsoftLoginRequest } from '../lib/msal'
 
@@ -45,6 +47,10 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
   const [busy, setBusy] = useState(false)
   const attemptRef = useRef(0)
   const phaseRef = useRef<'idle' | 'popup' | 'exchanging'>('idle')
+  // What the button says while busy: waiting on the popup, then on our server, which on
+  // a first sign-in also sets the account up (a few seconds) — say so, so it isn't a hang.
+  const [label, setLabel] = useState('')
+  const slowTimer = useRef(0)
 
   function setBusyState(next: boolean) {
     setBusy(next)
@@ -76,6 +82,7 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
     const attempt = ++attemptRef.current
     onError('')
     phaseRef.current = 'popup'
+    setLabel('Continue in the Microsoft window…')
     setBusyState(true)
     try {
       const result = await instance.loginPopup({
@@ -84,6 +91,9 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
       })
       if (attempt !== attemptRef.current) return
       phaseRef.current = 'exchanging'
+      setLabel('Signing you in…')
+      window.clearTimeout(slowTimer.current)
+      slowTimer.current = window.setTimeout(() => setLabel('Setting up your account…'), 2500)
       setBusyState(true)
       await loginWithMicrosoft(result.idToken, result.accessToken)
     } catch (error) {
@@ -102,18 +112,27 @@ export function MicrosoftSignInButton({ disabled, onBusyChange, onError }: Micro
       }
       phaseRef.current = 'idle'
       setBusyState(false)
+    } finally {
+      window.clearTimeout(slowTimer.current)
     }
   }
 
+  useEffect(() => () => window.clearTimeout(slowTimer.current), [])
+
   return (
     <button
-      className="flex h-10.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-[#d7dbe6] bg-white text-[14px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f5f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+      aria-busy={busy || undefined}
+      className={cn(
+        'flex h-10.5 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-[#d7dbe6] bg-white text-[14px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f5f7fb] disabled:cursor-not-allowed',
+        // Busy is "working", not "unavailable": blue edge, text and spinner, full strength.
+        busy ? 'border-[#1e55c5] text-[#1e55c5] disabled:opacity-100' : 'disabled:opacity-60',
+      )}
       disabled={disabled || busy || inProgress === InteractionStatus.Startup}
       onClick={handleClick}
       type="button"
     >
-      <MicrosoftLogo />
-      {busy ? 'Signing in…' : 'Sign in with Microsoft'}
+      {busy ? <Loader2 className="animate-spin motion-reduce:animate-none" size={18} /> : <MicrosoftLogo />}
+      <span aria-live="polite">{busy ? label : 'Sign in with Microsoft'}</span>
     </button>
   )
 }
