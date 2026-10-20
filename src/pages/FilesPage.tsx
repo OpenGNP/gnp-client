@@ -127,7 +127,7 @@ export function FilesPage({
   )
 
   function openFolder(id: string) {
-    navigate(`/files/${encodeURIComponent(id)}`)
+    navigate(`/my-forms/${encodeURIComponent(id)}`)
   }
 
   function openForm(file: ProjectTreeItem) {
@@ -212,11 +212,11 @@ export function FilesPage({
                 <button
                   className="shrink-0 cursor-pointer rounded-[10px] px-1.5 py-1 font-medium whitespace-nowrap hover:bg-[#f7f8fb] disabled:cursor-default disabled:font-semibold disabled:hover:bg-transparent data-drop-over:bg-[#dbe7ff] data-drop-over:text-[#1e55c5]"
                   disabled={path.length === 0}
-                  onClick={() => navigate('/files')}
+                  onClick={() => navigate('/my-forms')}
                   type="button"
                   {...crumbDropProps(null)}
                 >
-                  My Project
+                  My forms
                 </button>
                 {hiddenCrumbs.length > 0 ? (
                   <span className="flex shrink-0 items-center gap-0.5">
@@ -327,7 +327,7 @@ export function FilesPage({
                     className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]"
                     id="files-files-heading"
                   >
-                    Files
+                    Forms
                   </h2>
                   {files.length > 0 ? (
                     <div className="grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">

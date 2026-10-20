@@ -46,7 +46,7 @@ export function formNodeIdForRef(projects: ProjectTreeItem[], ref: string): stri
 
 export function getSelectedProjectId(pathname: string) {
   // A form route selects the form; a folder route selects that folder.
-  for (const prefix of ['/forms/', '/files/']) {
+  for (const prefix of ['/forms/', '/my-forms/']) {
     if (pathname.startsWith(prefix)) {
       const [projectId] = pathname.slice(prefix.length).split('/')
       return decodeURIComponent(projectId ?? '')

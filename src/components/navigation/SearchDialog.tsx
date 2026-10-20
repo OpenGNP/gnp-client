@@ -4,6 +4,8 @@ import { useState, type ReactNode } from 'react'
 
 import { sharedFormsQuery } from '../../api/queries'
 import type { ProjectTreeItem } from '../../data/dashboard'
+import { formatRelativeTime } from '../../lib/formatRelativeTime'
+import { recency, recentTime } from '../../lib/recentTime'
 import { cn } from '../../lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
 
@@ -22,7 +24,7 @@ const ICONS = { folder: Folder, form: FileText, shared: Users }
 /** My folders and forms (whose name contains `term`, or all of them), each with the folders above it. */
 function flattenTree(items: ProjectTreeItem[], term: string, parents: string[] = []): SearchResult[] {
   return items.flatMap((item) => {
-    const path = ['My Project', ...parents].join(' › ')
+    const path = ['My forms', ...parents].join(' › ')
     const hit: SearchResult[] = item.label.toLowerCase().includes(term)
       ? [{ kind: item.type === 'folder' ? 'folder' : 'form', item, label: item.label, path }]
       : []
@@ -53,7 +55,7 @@ function Highlighted({ label, term }: { label: string; term: string }) {
 
 /**
  * Spotlight-style search, centred over the page: my folders and forms plus forms shared
- * with me, by name, from data already loaded. Empty, it lists recently opened forms.
+ * with me, by name, from data already loaded. Empty, it lists Recent, as Home does.
  */
 export function SearchDialog({
   open,
@@ -116,10 +118,29 @@ function SearchPanel({
       { title: 'Shared with me', icon: Users, results: sharedHits },
     ]
   } else {
-    const openedAt = (result: SearchResult) => (result.kind === 'shared' ? '' : (result.item.lastOpenedAt ?? ''))
-    const recent = flattenTree(projects, '')
-      .filter((result) => result.kind === 'form' && openedAt(result))
-      .sort((a, b) => openedAt(b).localeCompare(openedAt(a)))
+    // Same as Home's Recent: mine by opened-or-modified, shared ones once I've opened them.
+    const when = (time: ReturnType<typeof recentTime>) => `${time.label} ${formatRelativeTime(time.at)}`
+    const recent = [
+      ...flattenTree(projects, '')
+        .filter((result) => result.kind === 'form')
+        .map((result) => {
+          const dated = result.kind === 'shared' ? {} : result.item
+          return { result: { ...result, path: `${result.path} · ${when(recentTime(dated))}` }, at: recency(dated) }
+        }),
+      ...shared
+        .filter((form) => form.lastOpenedAt)
+        .map((form) => ({
+          result: {
+            kind: 'shared' as const,
+            urlId: form.urlId,
+            label: form.formTitle ?? 'Untitled form',
+            path: `${form.ownerName ? `Shared by ${form.ownerName}` : 'Shared with me'} · ${when({ label: 'Opened', at: form.lastOpenedAt })}`,
+          },
+          at: Date.parse(form.lastOpenedAt ?? '') || 0,
+        })),
+    ]
+      .sort((a, b) => b.at - a.at)
+      .map((entry) => entry.result)
     groups = [{ title: 'Recent', icon: FileText, results: recent.slice(0, MAX_RECENT) }]
   }
   groups = groups

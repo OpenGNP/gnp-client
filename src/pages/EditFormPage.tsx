@@ -40,7 +40,7 @@ export type EditFormPageProps = {
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
   onMove?: () => void
-  /** Folders containing this form, outermost first (empty: at the root of My Project). */
+  /** Folders containing this form, outermost first (empty: at the root of My forms). */
   folderPath?: { id: string; label: string }[]
 }
 

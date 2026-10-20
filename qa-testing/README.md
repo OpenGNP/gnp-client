@@ -61,7 +61,7 @@ bun run test:watch  # re-run on file change
   nesting depth.
 
 **`getSelectedProjectId`**
-- Pulls the id out of `/forms/:id` and `/files/:id` routes, stops at the
+- Pulls the id out of `/forms/:id` and `/my-forms/:id` routes, stops at the
   next path segment (so `/forms/:id/dashboard` still resolves to `:id`),
   URL-decodes the id, and returns `''` for routes matching neither prefix
   or a trailing-slash-only path.

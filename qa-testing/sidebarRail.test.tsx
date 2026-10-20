@@ -13,7 +13,9 @@ const projects: ProjectTreeItem[] = [
     id: 'f1',
     label: 'Canteen',
     type: 'folder',
-    children: [{ id: 'form-1', formId: '1', urlId: 'abc', label: 'Canteen survey', type: 'document' }],
+    children: [
+      { id: 'form-1', formId: '1', urlId: 'abc', label: 'Canteen survey', type: 'document', updatedAt: '2026-09-01T00:00:00Z' },
+    ],
   },
 ]
 
@@ -47,7 +49,7 @@ function Harness({ onSelectProject = () => {}, onOpenSharedForm = () => {} }: {
 
 function renderSidebar(props: Parameters<typeof Harness>[0] = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })
-  client.setQueryData(queryKeys.sharedForms, [{ id: 9, urlId: 'xyz', formTitle: 'Canteen prices', ownerName: 'Somchai' }])
+  client.setQueryData(queryKeys.sharedForms, [{ id: 9, urlId: 'xyz', formTitle: 'Canteen prices', ownerName: 'Somchai', lastOpenedAt: '2026-10-01T00:00:00Z' }])
   return render(
     <QueryClientProvider client={client}>
       <Harness {...props} />
@@ -58,7 +60,7 @@ function renderSidebar(props: Parameters<typeof Harness>[0] = {}) {
 describe('collapsed sidebar rail', () => {
   it('shows icon shortcuts with the current page marked, and no project tree', () => {
     renderSidebar()
-    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'My forms' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Home' })).not.toHaveAttribute('aria-current')
     expect(screen.queryByText('Canteen survey')).not.toBeInTheDocument()
   })
@@ -77,8 +79,8 @@ describe('collapsed sidebar rail', () => {
     await user.keyboard('/')
     await user.keyboard('canteen')
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'CanteenMy Project',
-      'Canteen surveyMy Project › Canteen',
+      'CanteenMy forms',
+      'Canteen surveyMy forms › Canteen',
       'Canteen pricesShared by Somchai',
     ])
   })
@@ -97,6 +99,16 @@ describe('collapsed sidebar rail', () => {
     renderSidebar()
     fireEvent.keyDown(document.body, { key: 'ฝ', code: 'Slash' })
     expect(screen.getByRole('combobox', { name: 'Search forms and folders' })).toBeInTheDocument()
+  })
+
+  it('lists Recent before typing: my forms by opened-or-modified, shared ones I opened, with the time', async () => {
+    const user = userEvent.setup()
+    renderSidebar()
+    await user.keyboard('/')
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      expect.stringMatching(/^Canteen pricesShared by Somchai · Opened/),
+      expect.stringMatching(/^Canteen surveyMy forms › Canteen · Modified/),
+    ])
   })
 
   it('says when nothing matches', async () => {

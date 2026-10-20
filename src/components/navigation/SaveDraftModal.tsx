@@ -14,7 +14,7 @@ type BreadcrumbEntry = {
   label: string
 }
 
-const ROOT_ENTRY: BreadcrumbEntry = { id: null, label: 'My Project' }
+const ROOT_ENTRY: BreadcrumbEntry = { id: null, label: 'My forms' }
 
 export type SaveDraftModalMode = 'save' | 'publish' | 'move'
 

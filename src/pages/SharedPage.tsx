@@ -35,7 +35,7 @@ function cardTime(form: ApiSharedForm, sortKey: SortKey): { label: string; at: s
   return { label: 'Modified', at: form.updatedAt }
 }
 
-/** Forms other people shared with me to view — laid out like the Files page; each opens its dashboard. */
+/** Forms other people shared with me to view — laid out like the My forms page; each opens its dashboard. */
 export function SharedPage() {
   const navigate = useNavigate()
   const shared = useQuery(sharedFormsQuery())
@@ -45,7 +45,7 @@ export function SharedPage() {
   return (
     <div className="min-h-[calc(100vh-50px)] min-[900px]:min-h-screen">
       <PageContainer>
-        {/* Same title row as the Files page: title left, Sort at the end. */}
+        {/* Same title row as the My forms page: title left, Sort at the end. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-8 pb-1">
           <h1 className="m-0 px-1.5 py-1 text-[22px] font-semibold text-[#3c4043]">Shared with me</h1>
           <SortControls
@@ -65,7 +65,7 @@ export function SharedPage() {
 
         <section aria-labelledby="shared-files-heading" className="mt-4">
           <h2 className="m-0 mb-3 text-[13px] font-semibold tracking-[0.13px] text-[#5f6368]" id="shared-files-heading">
-            Files
+            Forms
           </h2>
           {shared.isPending ? (
             <SkeletonRegion label="Loading shared forms…">

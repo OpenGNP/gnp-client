@@ -228,7 +228,7 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
 }
 
 export type FormDashboardPageProps = {
-  /** Folders containing this form, outermost first (empty: at the root of My Project). */
+  /** Folders containing this form, outermost first (empty: at the root of My forms). */
   folderPath?: { id: string; label: string }[]
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void

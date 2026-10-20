@@ -164,8 +164,8 @@ const railLabelClass = 'text-[11px] leading-3.5 font-semibold tracking-[0.11px]'
 
 /**
  * Desktop's collapsed sidebar: the same sections as the full sidebar, squeezed to
- * an icon column with labels — header (expand), Home / Files between the same
- * dividers, the "My Project" Create button + search, and the profile at the bottom.
+ * an icon column with labels — header (expand), Home / My forms between the same
+ * dividers, the "My forms" Create button + search, and the profile at the bottom.
  * The project tree only lives in the full sidebar; "Create folder" opens it.
  * Hidden below 900px, where a collapsed sidebar disappears entirely.
  */
@@ -220,12 +220,12 @@ function SidebarRail({
         </Button>
       </div>
 
-      {/* Home / Files — same block as HomeNav */}
+      {/* Home / My forms — same block as HomeNav */}
       <nav aria-label="Main" className="border-y border-[#e8eaf1] py-2">
         {(
           [
             { key: 'home', label: 'Home', icon: Home, onClick: onGoHome },
-            { key: 'files', label: 'Files', icon: HardDrive, onClick: onGoFiles },
+            { key: 'files', label: 'My forms', icon: HardDrive, onClick: onGoFiles },
             { key: 'shared', label: 'Shared', icon: Users, onClick: onGoShared },
           ] as const
         ).map(({ key, label, icon: Icon, onClick }) => {
@@ -251,7 +251,7 @@ function SidebarRail({
         })}
       </nav>
 
-      {/* "My Project" — Create + search */}
+      {/* "My forms" — Create + search */}
       <div className="flex flex-col gap-3 px-3 pt-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -364,7 +364,7 @@ function HomeNav({
         type="button"
       >
         <HardDrive size={26} strokeWidth={2.1} />
-        {!isCollapsed ? <span>Files</span> : null}
+        {!isCollapsed ? <span>My forms</span> : null}
       </button>
       <button
         aria-current={activeNav === 'shared' ? 'page' : undefined}
@@ -765,7 +765,7 @@ function ProjectNavigation({
         className="mt-0 mr-0 mb-3.25 ml-0.75 text-[14px] leading-5.5 font-medium tracking-[0.14px] text-black"
         id="project-nav-title"
       >
-        My Project
+        My forms
       </h2>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

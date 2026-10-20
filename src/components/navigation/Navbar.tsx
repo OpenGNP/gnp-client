@@ -9,7 +9,7 @@ export type NavbarProps = {
 }
 
 /**
- * Home / Files / Shared with me, narrow screens only: the ☰ that opens the hidden sidebar,
+ * Home / My forms / Shared with me, narrow screens only: the ☰ that opens the hidden sidebar,
  * and the logo the sidebar would otherwise show. Each page has its own heading.
  */
 export function Navbar({ brand, showSidebarToggle = false, onToggleSidebar }: NavbarProps) {

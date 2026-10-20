@@ -14,7 +14,7 @@ export type TopBarProps = {
   className?: string
 }
 
-/** The 50px bar above every page's content: Home / Files / Shared titles and a form's Edit | Dashboard tabs. */
+/** The 50px bar above every page's content: Home / My forms / Shared titles and a form's Edit | Dashboard tabs. */
 export function TopBar({ children, actions, showSidebarToggle = false, onToggleSidebar, className }: TopBarProps) {
   return (
     <div

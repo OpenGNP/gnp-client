@@ -12,6 +12,7 @@ import { ApiError } from '../lib/api'
 import { showConfirm } from '../lib/alertDialog'
 import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
+import { recency, recentTime } from '../lib/recentTime'
 import { formPath } from '../lib/formPath'
 import { placeholderFormImage } from '../lib/formCardImage'
 import { findProjectById, formNodeId } from '../utils/projectTree'
@@ -36,9 +37,6 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem }: H
   // The same `['forms']` query the sidebar tree is built from (dates, response counts);
   // names and deletions come from the tree, which holds edits not yet refetched.
   const formsResult = useQuery(formsQuery())
-  // "Recent": whichever is later — when I last opened it, or when it last changed.
-  const recency = (form: { lastOpenedAt: string | null; updatedAt: string | null; createdAt: string | null }) =>
-    Math.max(Date.parse(form.lastOpenedAt ?? '') || 0, Date.parse(form.updatedAt ?? form.createdAt ?? '') || 0)
   // Forms shared with me join in once I've opened them — just being shared isn't "recent".
   const sharedResult = useQuery(sharedFormsQuery())
   const recentShared = (sharedResult.data ?? []).filter((form) => form.lastOpenedAt)
@@ -129,7 +127,8 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem }: H
                   key={`own-${item.form.id}`}
                   image={placeholderFormImage(item.form.id)}
                   title={item.form.formTitle ?? 'Untitled form'}
-                  updatedAt={formatRelativeTime(item.form.updatedAt ?? item.form.createdAt)}
+                  timeLabel={recentTime(item.form).label}
+                  updatedAt={formatRelativeTime(recentTime(item.form).at)}
                   onDelete={() => handleDeleteForm(item.form.id)}
                   onMove={() => onMoveItem(formNodeId(item.form.id))}
                   onOpen={() => navigate(formPath(item.form.urlId))}
@@ -142,7 +141,9 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem }: H
                   key={`shared-${item.form.id}`}
                   image={placeholderFormImage(item.form.id)}
                   title={item.form.formTitle ?? 'Untitled form'}
-                  updatedAt={item.form.updatedAt ? formatRelativeTime(item.form.updatedAt) : '—'}
+                  // In Recent because I opened it, so that's the time it shows.
+                  timeLabel="Opened"
+                  updatedAt={formatRelativeTime(item.form.lastOpenedAt)}
                   onOpen={() => navigate(formPath(item.form.urlId, 'dashboard'))}
                 />
               ),

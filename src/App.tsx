@@ -143,7 +143,7 @@ function App() {
   const activeNav =
     location.pathname === '/'
       ? 'home'
-      : location.pathname.startsWith('/files')
+      : location.pathname.startsWith('/my-forms')
         ? 'files'
         : location.pathname === '/shared'
           ? 'shared'
@@ -175,7 +175,7 @@ function App() {
   function handleGoFiles() {
     setIsCreateFormSettingsOpen(false)
     closeSidebarOnNarrowViewport()
-    navigate('/files')
+    navigate('/my-forms')
   }
 
   // No navigate() needed — AppGate reacts to the status flip and swaps <App/> for
@@ -522,7 +522,7 @@ function App() {
     closeSidebarOnNarrowViewport()
     const path =
       project.type === 'folder'
-        ? `/files/${encodeURIComponent(project.id)}`
+        ? `/my-forms/${encodeURIComponent(project.id)}`
         : project.urlId
           ? formPath(project.urlId)
           : `/forms/${encodeURIComponent(project.formId ?? project.id)}`
@@ -564,7 +564,7 @@ function App() {
   const moveTargetItem = moveTargetId ? findProjectById(projects, moveTargetId) : null
   const moveItemIsFolder = moveTargetItem?.type === 'folder'
 
-  // Both /files routes render the same element — useParams() inside handles the folder id.
+  // Both /my-forms routes render the same element — useParams() inside handles the folder id.
   const filesPageElement = (
     <FilesPage
       onCreateFolder={handleCreateFolder}
@@ -644,9 +644,9 @@ function App() {
               />
             }
           />
-          <Route path="/files" element={filesPageElement} />
+          <Route path="/my-forms" element={filesPageElement} />
           <Route path="/shared" element={<SharedPage />} />
-          <Route path="/files/:folderId" element={filesPageElement} />
+          <Route path="/my-forms/:folderId" element={filesPageElement} />
           <Route
             path="/create-form"
             element={

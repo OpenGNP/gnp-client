@@ -219,8 +219,8 @@ describe('getSelectedProjectId', () => {
     expect(getSelectedProjectId('/forms/form-1')).toBe('form-1')
   })
 
-  it('extracts the id after /files/', () => {
-    expect(getSelectedProjectId('/files/folder-1')).toBe('folder-1')
+  it('extracts the id after /my-forms/', () => {
+    expect(getSelectedProjectId('/my-forms/folder-1')).toBe('folder-1')
   })
 
   it('stops at the next path segment', () => {
@@ -228,7 +228,7 @@ describe('getSelectedProjectId', () => {
   })
 
   it('decodes URL-encoded ids', () => {
-    expect(getSelectedProjectId('/files/folder%20a')).toBe('folder a')
+    expect(getSelectedProjectId('/my-forms/folder%20a')).toBe('folder a')
   })
 
   it('returns empty string for a route matching neither prefix', () => {
