@@ -18,7 +18,15 @@ import { Circle, Type } from "lucide-react";
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
 import { AddQuestionButton } from "./AddQuestionButton";
 import { CoverImageField } from "./CoverImageField";
+import {
+  FORM_DESCRIPTION_CLASS,
+  FORM_DIVIDER_CLASS,
+  FORM_TITLE_CLASS,
+  FormPaper,
+  FormSectionTitle,
+} from "./FormPaper";
 import { showAlert } from "../../lib/alertDialog";
+import { cn } from "../../lib/utils";
 import { createQuestion } from "./question-types";
 import type {
   Question,
@@ -37,7 +45,6 @@ type FormSectionProps = {
   onQuestionsChange: (questions: Question[]) => void;
 };
 
-const dividerClass = "h-px w-full bg-[#e8eaf1]";
 
 const demographicQuestionTypes: QuestionTypeOption[] = [
   {
@@ -123,12 +130,7 @@ function FormSection({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby={`${title}-title`}>
-      <h2
-        className="m-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] max-[560px]:text-[28px]"
-        id={`${title}-title`}
-      >
-        {title}
-      </h2>
+      <FormSectionTitle id={`${title}-title`}>{title}</FormSectionTitle>
       <p className="m-0 -mt-1 text-[13px] text-[#726f6f]">{description}</p>
 
       {questions.length > 0 ? (
@@ -215,8 +217,8 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   };
 
   return (
-    <section
-      className="min-h-[657px] w-full max-w-[978px] overflow-hidden rounded-[10px] bg-white pt-15.25 pr-17.5 pb-28.75 pl-20 shadow-[0_1px_0_rgba(22,29,57,0.02)] max-[760px]:min-h-[560px] max-[760px]:px-6 max-[760px]:pt-9 max-[760px]:pb-12"
+    <FormPaper
+      className="min-h-[657px] max-[760px]:min-h-[560px]"
       aria-labelledby="create-form-title"
     >
       <div className="flex w-full flex-col gap-5">
@@ -228,7 +230,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
 
         <div className="flex flex-col gap-3">
           <input
-            className="w-full border-0 bg-transparent p-0 text-[32px] leading-[25.376px] font-semibold tracking-[0.32px] text-[#616161] outline-none placeholder:text-[#616161] max-[560px]:text-[28px]"
+            className={cn(FORM_TITLE_CLASS, "w-full border-0 bg-transparent p-0 leading-[25.376px] outline-none placeholder:text-[#616161]")}
             aria-label="Form title"
             id="create-form-title"
             onChange={(event) => onChange({ title: event.target.value })}
@@ -236,7 +238,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             value={value.title}
           />
           <textarea
-            className="h-6 w-full resize-none border-0 bg-transparent p-0 text-[16px] leading-6 font-normal tracking-[0.16px] text-[#616161] outline-none placeholder:text-[#616161]"
+            className={cn(FORM_DESCRIPTION_CLASS, "h-6 w-full resize-none border-0 bg-transparent p-0 outline-none placeholder:text-[#616161]")}
             aria-label="Form description"
             onChange={(event) => onChange({ description: event.target.value })}
             placeholder="Form description"
@@ -244,7 +246,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           />
         </div>
 
-        <div className={dividerClass} />
+        <div className={FORM_DIVIDER_CLASS} />
 
         <FormSection
           onQuestionsChange={(questions) =>
@@ -256,7 +258,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           title="Demographic"
         />
 
-        <div className={dividerClass} />
+        <div className={FORM_DIVIDER_CLASS} />
 
         <FormSection
           onQuestionsChange={(questions) => onChange({ feedback: questions })}
@@ -267,6 +269,6 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           title="Feedback"
         />
       </div>
-    </section>
+    </FormPaper>
   );
 }

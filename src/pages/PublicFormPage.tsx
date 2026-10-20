@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { submitFeedback, type FeedbackAnswerPayload } from "../api/feedback";
 import type { ApiFormField } from "../api/forms";
-import formArchitecture from "../assets/form-architecture.png";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { brand } from "../data/dashboard";
@@ -17,6 +16,14 @@ import { logout } from "../lib/auth";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
 import { PublicFormSkeleton } from "../components/skeletons/PublicFormSkeleton";
 import { cn } from "../lib/utils";
+import {
+  FORM_DESCRIPTION_CLASS,
+  FORM_DIVIDER_CLASS,
+  FORM_TITLE_CLASS,
+  FormCover,
+  FormPaper,
+  FormSectionTitle,
+} from "../components/forms/FormPaper";
 
 const OTHER_VALUE = "__other__";
 const TEXTAREA_MAX_LENGTH = 2000;
@@ -125,34 +132,24 @@ function describeLoadError(error: unknown): {
 const inputClass =
   "w-full rounded-lg border border-input bg-white px-3.5 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary";
 
-function Shell({
-  children,
-  recordsName = false,
-}: {
-  children: React.ReactNode;
-  /** True when the form's `recordName` setting attributes responses to the respondent. */
-  recordsName?: boolean;
-}) {
+/**
+ * The respondent page frame. `wide` for the form itself: its children bring their own
+ * FormPaper, the editor's card. Short notices (closed, submitted, errors) get a narrow card.
+ */
+function Shell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+  const width = wide ? "max-w-[978px]" : "max-w-105";
   return (
-    <div className="min-h-screen bg-[#f5f9ff]">
+    <div className="min-h-screen bg-[#f5f9ff] font-['Inter_Variable']">
       <div className="sticky top-0 z-10 flex justify-center bg-[#f5f9ff] px-3 pt-6 pb-3 sm:px-4 sm:pt-10">
-        <div className="w-full max-w-105">
+        <div className={cn("w-full", width)}>
           <Link aria-label={`${brand.name} home`} className="inline-block" to="/">
             <img alt={brand.name} className="h-8 w-15.25 object-cover object-center" src={brand.logo} />
           </Link>
         </div>
       </div>
       <div className="flex justify-center px-3 pb-6 sm:px-4 sm:pb-10">
-        <div className="w-full max-w-105">
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            {children}
-          </div>
-          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-            <ShieldCheck className="size-3.5" />
-            {recordsName
-              ? "Your name has been collected but won't be shared publicly."
-              : "Your feedback is anonymous and confidential."}
-          </p>
+        <div className={cn("w-full", width)}>
+          {wide ? children : <div className="overflow-hidden rounded-2xl bg-white shadow-sm">{children}</div>}
         </div>
       </div>
     </div>
@@ -382,7 +379,7 @@ export function PublicFormPage() {
 
   if (status === "loading") {
     return (
-      <Shell>
+      <Shell wide>
         <PublicFormSkeleton />
       </Shell>
     );
@@ -424,7 +421,7 @@ export function PublicFormPage() {
     const canSubmitAnother = !form?.oneResponsePerPerson;
 
     return (
-      <Shell recordsName={form?.recordName ?? false}>
+      <Shell>
         <div className="flex flex-col items-center gap-4 p-10 text-center">
           <div className="flex size-24 items-center justify-center rounded-full bg-primary">
             <Check className="size-11 text-white" strokeWidth={3} />
@@ -480,7 +477,7 @@ export function PublicFormPage() {
   if (!isOpen && !hasInteracted) {
     if (responseState === "scheduled") {
       return (
-        <Shell recordsName={form.recordName ?? false}>
+        <Shell>
           <Notice
             body={
               form.startDate
@@ -496,7 +493,7 @@ export function PublicFormPage() {
     // "accepting responses" toggle being off (endDate, if any, may not be reached
     // yet) — only claim a specific close date when the window actually ended.
     return (
-      <Shell recordsName={form.recordName ?? false}>
+      <Shell>
         <Notice
           body={
             form.endDate && now > Date.parse(form.endDate)
@@ -572,35 +569,52 @@ export function PublicFormPage() {
   };
 
   return (
-    <Shell recordsName={form.recordName ?? false}>
-      <img
-        alt=""
-        className="h-44 w-full object-cover"
-        src={form.coverImageUrl ?? formArchitecture}
-      />
-      <div className="px-6 pt-6 pb-8">
-        <h1 className="text-xl font-bold text-foreground">
+    <Shell wide>
+      {/* The editor's card, cover and headings: the form looks as its author built it. */}
+      <FormPaper aria-labelledby="public-form-title">
+      <div className="flex w-full flex-col gap-5">
+        {form.coverImageUrl ? <FormCover src={form.coverImageUrl} /> : null}
+        <div className="flex flex-col gap-3">
+        <h1 className={cn(FORM_TITLE_CLASS, "leading-tight")} id="public-form-title">
           {form.formTitle ?? "Untitled form"}
         </h1>
         {showAccount ? (
           <AccountBar className="mt-1" email={viewer.email} onSwitch={() => void switchAccount()} />
         ) : null}
         {form.formDescription ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {form.formDescription}
-          </p>
+          <p className={cn(FORM_DESCRIPTION_CLASS, "whitespace-pre-line")}>{form.formDescription}</p>
         ) : null}
+        </div>
 
         {!isOpen ? (
-          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-xs text-destructive">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-xs text-destructive">
             {closedNotice}
           </div>
         ) : null}
 
-        <form className="mt-6 flex flex-col gap-6" onSubmit={handleSubmit}>
+        {/* Before the questions: whether answers carry a name changes what people write. */}
+        <p className="flex gap-1.5 text-xs leading-5 text-[#8b8e98]">
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            {form.recordName
+              ? "Your name will be recorded with your answers. Only the form's owner and people they share results with can see it."
+              : "Your answers are anonymous. Your name isn't recorded."}{" "}
+            <Link
+              className="text-[#1e55c5] hover:underline"
+              rel="noopener"
+              target="_blank"
+              to={`/privacy?from=${encodeURIComponent(`/f/${token ?? ""}`)}`}
+            >
+              Privacy Notice
+            </Link>
+          </span>
+        </p>
+
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           {demographicFields.length > 0 ? (
             <div className="flex flex-col gap-5">
-              <h2 className="text-sm font-bold text-primary">Demographic</h2>
+              <div className={FORM_DIVIDER_CLASS} />
+              <FormSectionTitle>Demographic</FormSectionTitle>
               {demographicFields.map((field, index) => {
                 const answer = answers[field.id];
                 return (
@@ -650,7 +664,8 @@ export function PublicFormPage() {
 
           {feedbackFields.length > 0 ? (
             <div className="flex flex-col gap-5">
-              <h2 className="text-sm font-bold text-primary">Feedback</h2>
+              <div className={FORM_DIVIDER_CLASS} />
+              <FormSectionTitle>Feedback</FormSectionTitle>
               {feedbackFields.map((field) => {
                 const answer = answers[field.id];
                 const text = answer?.kind === "text" ? answer.value : "";
@@ -709,8 +724,10 @@ export function PublicFormPage() {
             <p className="text-sm text-destructive">{submitError}</p>
           ) : null}
 
+          {/* Full width on phones; on a wide form, a normal button under the questions'
+              left edge, where the eye already is after the last answer. */}
           <Button
-            className="w-full"
+            className="w-full sm:w-auto sm:self-start sm:px-10"
             disabled={submitState === "submitting" || !isOpen}
             size="lg"
             type="submit"
@@ -720,6 +737,7 @@ export function PublicFormPage() {
           </Button>
         </form>
       </div>
+      </FormPaper>
     </Shell>
   );
 }

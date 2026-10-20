@@ -37,7 +37,7 @@ export function createQuestion(type: QuestionTypeValue, id: string): Question {
       options: [''],
       allowMultiple: false,
       hasOther: false,
-      required: false,
+      required: true,
     }
   }
 
@@ -46,6 +46,6 @@ export function createQuestion(type: QuestionTypeValue, id: string): Question {
     type: 'text',
     question: '',
     answerLength: 'short',
-    required: false,
+    required: true,
   }
 }
