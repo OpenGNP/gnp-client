@@ -4,7 +4,7 @@ import formGradient from '../assets/form-gradient.png'
 import formMeeting from '../assets/form-meeting.png'
 import formTech from '../assets/form-tech.png'
 import formVolunteer from '../assets/form-volunteer.png'
-import logoGnp from '../assets/logo-gnp.png'
+import logoGnp from '../assets/logo.png'
 
 export type ProjectTreeItem = {
   id: string
@@ -35,6 +35,8 @@ export type RecentForm = {
 }
 
 export const brand = {
+  // The one logo file, used everywhere (favicon too, from index.html). It's square with
+  // room around the wordmark: show it with object-cover in a ~1.9:1 box.
   logo: logoGnp,
   name: 'GNP',
 }

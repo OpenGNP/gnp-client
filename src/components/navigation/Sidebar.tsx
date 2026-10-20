@@ -129,7 +129,7 @@ function SidebarHeader({
       <img
         src={brand.logo}
         alt={brand.name}
-        className="h-9.5 w-18.25 object-cover object-center"
+        className="h-5 w-9.5 object-cover object-center"
       />
       <Button
         className="size-10 text-[#3f4045]"
@@ -206,7 +206,7 @@ function SidebarRail({
           title="Home"
           type="button"
         >
-          <img alt={brand.name} className="h-6 w-11.5 object-cover object-center" src={brand.logo} />
+          <img alt={brand.name} className="h-5 w-9.5 object-cover object-center" src={brand.logo} />
         </button>
         <Button
           aria-label="Expand sidebar"

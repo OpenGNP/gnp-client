@@ -48,7 +48,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#f5f9ff] px-4 font-['Inter_Variable']">
       <div className="w-full max-w-95 rounded-[10px] border border-[#e8eaf1] bg-white p-8 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
         <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <img alt={brand.name} className="h-9 w-auto" src={brand.logo} />
+          <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
           <div>
             <h1 className="m-0 text-[18px] font-semibold text-[#14181f]">Sign in</h1>
             <p className="m-0 mt-1 text-[13px] text-[#8b8e98]">

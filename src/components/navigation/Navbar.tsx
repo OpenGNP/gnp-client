@@ -20,7 +20,7 @@ export function Navbar({ brand, showSidebarToggle = false, onToggleSidebar }: Na
       showSidebarToggle={showSidebarToggle}
     >
       <Link aria-label={`${brand.name} home`} className="flex items-center" to="/">
-        <img alt={brand.name} className="h-7.5 w-14.5 object-cover object-center" src={brand.logo} />
+        <img alt={brand.name} className="h-5 w-9.5 object-cover object-center" src={brand.logo} />
       </Link>
     </TopBar>
   )

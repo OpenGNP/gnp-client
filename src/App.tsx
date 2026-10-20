@@ -23,6 +23,7 @@ import { CreateFormPage } from './pages/CreateFormPage'
 import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { SharedPage } from './pages/SharedPage'
 import { HomePage } from './pages/HomePage'
 import {
@@ -681,6 +682,7 @@ function App() {
               />
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       <SaveDraftModal
