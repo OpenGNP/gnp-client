@@ -53,9 +53,7 @@ export function FormDetailTabs({
           <TabsTrigger
             className={cn(
               'flex h-full w-32.25 cursor-pointer items-center justify-center border-0 border-b-2 bg-transparent text-[16px] tracking-[0.16px]',
-              isDashboardActive
-                ? 'border-transparent text-[#726f6f] hover:text-black'
-                : SELECTED_TAB,
+              isDashboardActive ? 'border-transparent text-[#726f6f] hover:text-black' : SELECTED_TAB,
               !canEdit && 'cursor-not-allowed text-[#b0b1b3] hover:text-[#b0b1b3]',
             )}
             disabled={!canEdit}

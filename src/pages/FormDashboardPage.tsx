@@ -58,6 +58,7 @@ import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FolderBreadcrumbBar } from '../components/navigation/FolderBreadcrumb'
 import { FormActionButton } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
+import { HeadroomBar } from '../components/navigation/HeadroomBar'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
 import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
 import { useDetailPanelLayout } from '../hooks/useDetailPanelLayout'
@@ -487,12 +488,14 @@ export function FormDashboardPage({
   if (loadFailure) {
     return (
       <div>
-        <FormDetailTabs
-          canEdit={routeForm.role === 'owner'}
-          hasDashboardData={hasValidId}
-          onToggleSidebar={onToggleSidebar}
-          showSidebarToggle={showSidebarToggle}
-        />
+        <HeadroomBar>
+          <FormDetailTabs
+            canEdit={routeForm.role === 'owner'}
+            hasDashboardData={hasValidId}
+            onToggleSidebar={onToggleSidebar}
+            showSidebarToggle={showSidebarToggle}
+          />
+        </HeadroomBar>
         <div className="flex min-h-100 items-center justify-center px-4 py-16">
           <FormLoadError
             error={loadFailure}
@@ -695,12 +698,14 @@ export function FormDashboardPage({
   return (
     <SamplePreviewContext.Provider value={previewing}>
       <div>
-        <FormDetailTabs
-          canEdit={routeForm.role === 'owner'}
-          hasDashboardData
-          onToggleSidebar={onToggleSidebar}
-          showSidebarToggle={showSidebarToggle}
-        />
+        <HeadroomBar>
+          <FormDetailTabs
+            canEdit={routeForm.role === 'owner'}
+            hasDashboardData
+            onToggleSidebar={onToggleSidebar}
+            showSidebarToggle={showSidebarToggle}
+          />
+        </HeadroomBar>
         {previewing ? (
           // Top centre, in the empty middle of the Edit form | Dashboard bar (tabs left, Share
           // right); under 900px that middle is too narrow, so it sits at the bottom instead.
@@ -835,7 +840,7 @@ export function FormDashboardPage({
           path={folderPath}
         />
 
-        <div className="flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
+        <div className="animate-in duration-300 fade-in-0 motion-reduce:animate-none flex flex-col gap-3 px-10 pb-16 max-[900px]:px-6 max-[560px]:px-4">
           <div className="w-fit" data-tour="dashboard-views">
             <DashboardViewTabs activeView={activeView} onSelectView={setActiveView} />
           </div>

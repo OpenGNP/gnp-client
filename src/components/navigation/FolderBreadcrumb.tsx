@@ -51,22 +51,30 @@ export function FolderBreadcrumbBar({
   actions,
   heading,
   reserveRight,
+  compact = false,
 }: {
   path: { id: string; label: string }[]
   actions?: ReactNode
   heading?: ReactNode
+  /** Floating over the page (scrolled): just the actions, less padding, no own background. */
+  compact?: boolean
   /** Width (px) of a docked side panel to keep clear of, so it doesn't cover the actions. */
   reserveRight?: number
 }) {
   return (
     <div
-      className="flex flex-wrap items-start justify-between gap-x-4 bg-[#f5f9ff] px-10 py-5 max-[900px]:px-6 max-[560px]:px-4"
+      className={cn(
+        'flex flex-wrap items-start justify-between gap-x-4 px-10 transition-[padding] duration-200 max-[900px]:px-6 max-[560px]:px-4',
+        compact ? 'py-2' : 'bg-[#f5f9ff] py-5',
+      )}
       // The panel's width plus the usual px-10 gap — same as the content column below.
       style={reserveRight ? { paddingRight: reserveRight + 40 } : undefined}
     >
-      <div className="flex h-9.5 min-w-0 flex-1 items-center">
-        <FolderBreadcrumb path={path} />
-      </div>
+      {compact ? null : (
+        <div className="flex h-9.5 min-w-0 flex-1 items-center">
+          <FolderBreadcrumb path={path} />
+        </div>
+      )}
       {actions ? (
         <div className="ml-auto flex h-9.5 shrink-0 items-center gap-2.5" data-tour="page-actions">
           {actions}

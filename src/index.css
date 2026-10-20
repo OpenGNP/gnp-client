@@ -207,3 +207,25 @@ button {
 .gnp-tour .driver-popover-next-btn:hover {
   background: #1a49aa;
 }
+
+/* Sidebar open / collapse (Sidebar.tsx). Only a `from`: each animates to the element's
+   own width, whatever the breakpoint makes it. 4.875rem = the rail (w-19.5), 19.5625rem =
+   the full sidebar (w-78.25). Phones, where it overlays the page, slide it in instead. */
+@keyframes sidebar-expand {
+  from {
+    width: 4.875rem;
+    flex-basis: 4.875rem;
+  }
+}
+
+@keyframes sidebar-collapse {
+  from {
+    width: 19.5625rem;
+  }
+}
+
+@keyframes sidebar-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+}

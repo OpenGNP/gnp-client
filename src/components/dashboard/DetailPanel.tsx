@@ -1,15 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
+import { HEADROOM_BAR_HEIGHT, useHeadroomHidden } from '../../hooks/useHeadroom'
 import { cn } from '../../lib/utils'
-
-// Matches FormDetailTabs' h-12.5 (50px) — the panel starts right below it and
-// closes that gap as FormDetailTabs scrolls out of view, instead of overlapping it.
-const NAV_HEIGHT = 50
-
-function getTopOffset() {
-  return Math.max(0, NAV_HEIGHT - window.scrollY)
-}
 
 /** The dashboard's right-side panel: slides in, docked beside the content or as a drawer over it. */
 export function DetailPanel({
@@ -25,7 +18,8 @@ export function DetailPanel({
   children: ReactNode
 }) {
   const [isVisible, setIsVisible] = useState(false)
-  const [topOffset, setTopOffset] = useState(getTopOffset)
+  // Starts right under the Edit form | Dashboard bar, and moves up with it when it hides.
+  const topOffset = useHeadroomHidden() ? 0 : HEADROOM_BAR_HEIGHT
 
   useEffect(() => {
     let innerFrame = 0
@@ -35,19 +29,6 @@ export function DetailPanel({
     return () => {
       cancelAnimationFrame(outerFrame)
       cancelAnimationFrame(innerFrame)
-    }
-  }, [])
-
-  useEffect(() => {
-    let frame = 0
-    const handleScroll = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => setTopOffset(getTopOffset()))
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      cancelAnimationFrame(frame)
     }
   }, [])
 
@@ -70,7 +51,7 @@ export function DetailPanel({
       <aside
         aria-hidden={hidden || undefined}
         className={cn(
-          'fixed right-0 bottom-0 z-50 flex max-w-full flex-col gap-5 overflow-y-auto border-l border-[#e9eaed] bg-white p-10 transition-[translate,opacity] duration-300 ease-out max-[560px]:p-5',
+          'fixed right-0 bottom-0 z-50 flex max-w-full flex-col gap-5 overflow-y-auto border-l border-[#e9eaed] bg-white p-10 transition-[translate,opacity,top] duration-300 ease-out max-[560px]:p-5',
           isOverlay && 'shadow-[-16px_0_40px_rgba(15,23,42,0.14)]',
           isVisible ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0',
           // visibility (not display) keeps the scroll position and takes it out of the tab order.

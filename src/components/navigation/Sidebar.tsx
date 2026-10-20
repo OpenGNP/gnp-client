@@ -180,10 +180,13 @@ function SidebarRail({
   onGoShared,
   onGoHome,
   onLogout,
+  animate = false,
 }: {
   activeNav: 'home' | 'files' | 'shared' | null
   brand: SidebarBrand
   user: SidebarUser
+  /** Just collapsed (not first load): narrow down from the full width. */
+  animate?: boolean
   onCreateForm: () => void
   onExpand: (action: ExpandAction) => void
   onOpenSearch: () => void
@@ -195,128 +198,136 @@ function SidebarRail({
   return (
     <aside
       aria-label="Primary navigation"
-      className="sticky top-0 z-30 flex h-screen w-19.5 shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white max-[900px]:hidden"
+      className={cn(
+        'sticky top-0 z-30 flex h-screen w-19.5 shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white max-[900px]:hidden',
+        animate &&
+          'animate-[sidebar-collapse_250ms_ease-in-out] overflow-x-hidden motion-reduce:animate-none',
+      )}
     >
-      {/* Header — same height as SidebarHeader: a small logo (→ Home) over the expand button. */}
-      <div className="flex h-22 shrink-0 flex-col items-center justify-center gap-1">
-        <button
-          aria-label={`${brand.name} home`}
-          className="flex cursor-pointer items-center rounded-[6px] border-0 bg-transparent p-0"
-          onClick={onGoHome}
-          title="Home"
-          type="button"
-        >
-          <img alt={brand.name} className="h-5 w-9.5 object-cover object-center" src={brand.logo} />
-        </button>
-        <Button
-          aria-label="Expand sidebar"
-          className="size-10 text-[#3f4045]"
-          onClick={() => onExpand(null)}
-          size="icon"
-          title="Expand sidebar"
-          variant="ghost"
-        >
-          <PanelLeftOpen className="size-6" strokeWidth={2} />
-        </Button>
-      </div>
-
-      {/* Home / My forms — same block as HomeNav */}
-      <nav aria-label="Main" className="border-y border-[#e8eaf1] py-2">
-        {(
-          [
-            { key: 'home', label: 'Home', icon: Home, onClick: onGoHome },
-            { key: 'files', label: 'My forms', icon: HardDrive, onClick: onGoFiles },
-            { key: 'shared', label: 'Shared', icon: Users, onClick: onGoShared },
-          ] as const
-        ).map(({ key, label, icon: Icon, onClick }) => {
-          const isActive = activeNav === key
-          return (
-            <button
-              aria-current={isActive ? 'page' : undefined}
-              aria-label={label}
-              className={cn(
-                railRowClass,
-                'rounded-none',
-                isActive && 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]',
-              )}
-              key={key}
-              onClick={onClick}
-              title={label}
-              type="button"
-            >
-              <Icon size={26} strokeWidth={2.1} />
-              <span className={railLabelClass}>{label}</span>
-            </button>
-          )
-        })}
-      </nav>
-
-      {/* "My forms" — Create + search */}
-      <div className="flex flex-col gap-3 px-3 pt-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              aria-label="Create"
-              className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-0 bg-[#1e55c5] py-2 text-white transition-colors hover:bg-[#1a49aa]"
-              title="Create"
-              type="button"
-            >
-              <PlusCircle size={21} />
-              <span className={railLabelClass}>Create</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            side="right"
-            onCloseAutoFocus={(event) => event.preventDefault()}
+      {/* Fixed at the rail's inner width (78px less the 2px border): while the box narrows
+          from full width, nothing moves inside. */}
+      <div className="flex h-full w-[76px] shrink-0 flex-col">
+        {/* Header — same height as SidebarHeader: a small logo (→ Home) over the expand button. */}
+        <div className="flex h-22 shrink-0 flex-col items-center justify-center gap-1">
+          <button
+            aria-label={`${brand.name} home`}
+            className="flex cursor-pointer items-center rounded-[6px] border-0 bg-transparent p-0"
+            onClick={onGoHome}
+            title="Home"
+            type="button"
           >
-            <DropdownMenuItem onSelect={onCreateForm}>
-              <FilePlus size={16} />
-              Create form
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onExpand('create-folder')}>
-              <FolderPlus size={16} />
-              Create folder
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <button
-          aria-label="Search"
-          className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
-          onClick={onOpenSearch}
-          title="Search forms"
-          type="button"
-        >
-          <Search size={20} />
-          <span className={railLabelClass}>Search</span>
-        </button>
-      </div>
+            <img alt={brand.name} className="h-5 w-9.5 object-cover object-center" src={brand.logo} />
+          </button>
+          <Button
+            aria-label="Expand sidebar"
+            className="size-10 text-[#3f4045]"
+            onClick={() => onExpand(null)}
+            size="icon"
+            title="Expand sidebar"
+            variant="ghost"
+          >
+            <PanelLeftOpen className="size-6" strokeWidth={2} />
+          </Button>
+        </div>
 
-      {/* Profile — same strip as UserProfile */}
-      <div className="mt-auto flex h-20.75 shrink-0 items-center justify-center border-t border-[#eef1f5]">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              aria-label="Account options"
-              className="flex size-7.75 cursor-pointer items-center justify-center rounded-full border-0 bg-[#4c71f7] text-white transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20"
-              title={user.name}
-              type="button"
+        {/* Home / My forms — same block as HomeNav */}
+        <nav aria-label="Main" className="border-y border-[#e8eaf1] py-2">
+          {(
+            [
+              { key: 'home', label: 'Home', icon: Home, onClick: onGoHome },
+              { key: 'files', label: 'My forms', icon: HardDrive, onClick: onGoFiles },
+              { key: 'shared', label: 'Shared', icon: Users, onClick: onGoShared },
+            ] as const
+          ).map(({ key, label, icon: Icon, onClick }) => {
+            const isActive = activeNav === key
+            return (
+              <button
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={label}
+                className={cn(
+                  railRowClass,
+                  'rounded-none',
+                  isActive && 'bg-[#edf2fd] text-[#1e55c5] hover:bg-[#edf2fd]',
+                )}
+                key={key}
+                onClick={onClick}
+                title={label}
+                type="button"
+              >
+                <Icon size={26} strokeWidth={2.1} />
+                <span className={railLabelClass}>{label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* "My forms" — Create + search */}
+        <div className="flex flex-col gap-3 px-3 pt-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Create"
+                className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-0 bg-[#1e55c5] py-2 text-white transition-colors hover:bg-[#1a49aa]"
+                title="Create"
+                type="button"
+              >
+                <PlusCircle size={21} />
+                <span className={railLabelClass}>Create</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              side="right"
+              onCloseAutoFocus={(event) => event.preventDefault()}
             >
-              <Smile size={19} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-50" side="right">
-            <div className="px-2 py-1.5">
-              <p className="m-0 truncate text-[13px] font-semibold text-[#3f4045]">{user.name}</p>
-              <p className="m-0 truncate text-[12px] text-[#888683]">{user.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onLogout}>
-              <LogOut size={14} />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onSelect={onCreateForm}>
+                <FilePlus size={16} />
+                Create form
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onExpand('create-folder')}>
+                <FolderPlus size={16} />
+                Create folder
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button
+            aria-label="Search"
+            className="flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-[#e9ebf0] bg-transparent py-2 text-[#6e7180] transition-colors hover:border-[#d7dbe6] hover:text-[#3f4045]"
+            onClick={onOpenSearch}
+            title="Search forms"
+            type="button"
+          >
+            <Search size={20} />
+            <span className={railLabelClass}>Search</span>
+          </button>
+        </div>
+
+        {/* Profile — same strip as UserProfile */}
+        <div className="mt-auto flex h-20.75 shrink-0 items-center justify-center border-t border-[#eef1f5]">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Account options"
+                className="flex size-7.75 cursor-pointer items-center justify-center rounded-full border-0 bg-[#4c71f7] text-white transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20"
+                title={user.name}
+                type="button"
+              >
+                <Smile size={19} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-50" side="right">
+              <div className="px-2 py-1.5">
+                <p className="m-0 truncate text-[13px] font-semibold text-[#3f4045]">{user.name}</p>
+                <p className="m-0 truncate text-[12px] text-[#888683]">{user.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onLogout}>
+                <LogOut size={14} />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </aside>
   )
@@ -932,6 +943,13 @@ export function Sidebar({
   onToggleFolder,
 }: SidebarProps) {
   const [expandAction, setExpandAction] = useState<ExpandAction>(null)
+  // Animate open / collapse only once the user has toggled it, not on page load.
+  const [wasCollapsed, setWasCollapsed] = useState(isCollapsed)
+  const [hasToggled, setHasToggled] = useState(false)
+  if (wasCollapsed !== isCollapsed) {
+    setWasCollapsed(isCollapsed)
+    setHasToggled(true)
+  }
 
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -974,6 +992,7 @@ export function Sidebar({
         onGoHome={onGoHome}
         onLogout={onLogout}
         onOpenSearch={() => setIsSearchOpen(true)}
+        animate={hasToggled}
       />
       {searchDialog}
       </>
@@ -985,12 +1004,14 @@ export function Sidebar({
     {/* Narrow screens: the sidebar overlays the page, so dim it and close on tap. */}
     <div
       aria-hidden="true"
-      className="fixed inset-0 z-39 bg-[#0f172a]/30 min-[900px]:hidden"
+      className="fixed inset-0 z-39 animate-in bg-[#0f172a]/30 duration-250 fade-in-0 min-[900px]:hidden"
       onClick={onToggleCollapse}
     />
     <aside
       className={cn(
         'sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white transition-[width,flex-basis] duration-200 ease-in-out',
+        hasToggled &&
+          'overflow-x-hidden motion-reduce:animate-none max-[900px]:animate-[sidebar-slide-in_250ms_ease-out] min-[900px]:animate-[sidebar-expand_250ms_ease-in-out]',
         'max-[900px]:fixed max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:z-40 max-[900px]:h-dvh max-[900px]:border-b-0 max-[900px]:shadow-2xl',
         'w-78.25 basis-78.25 max-[1200px]:w-71.5 max-[1200px]:basis-71.5 max-[900px]:w-[min(313px,calc(100vw_-_24px))] max-[900px]:basis-auto',
       )}
@@ -1002,40 +1023,42 @@ export function Sidebar({
         }
       }}
     >
-      <SidebarHeader
-        brand={brand}
-        onToggleCollapse={() => {
-          setExpandAction(null)
-          onToggleCollapse()
-        }}
-      />
-      <HomeNav
-        activeNav={activeNav}
-        isCollapsed={isCollapsed}
-        onGoFiles={onGoFiles}
-        onGoShared={onGoShared}
-        onGoHome={onGoHome}
-      />
-      {!isCollapsed ? (
-        <>
-          <ProjectNavigation
-            expandAction={expandAction}
-            isLoading={isLoading}
-            loadError={loadError}
-            onRetryLoad={onRetryLoad}
-            projects={projects}
-            openFolderIds={openFolderIds}
-            selectedNodeId={selectedNodeId}
-            onCreateFolder={onCreateFolder}
-            onCreateForm={onCreateForm}
-            onMoveProject={onMoveProject}
-            onOpenSearch={() => setIsSearchOpen(true)}
-            onSelectProject={onSelectProject}
-            onToggleFolder={onToggleFolder}
-          />
-          <UserProfile onLogout={onLogout} user={user} />
-        </>
-      ) : null}
+      <div className="flex h-full w-[311px] shrink-0 flex-col max-[1200px]:w-[284px] max-[900px]:w-full">
+        <SidebarHeader
+          brand={brand}
+          onToggleCollapse={() => {
+            setExpandAction(null)
+            onToggleCollapse()
+          }}
+        />
+        <HomeNav
+          activeNav={activeNav}
+          isCollapsed={isCollapsed}
+          onGoFiles={onGoFiles}
+          onGoShared={onGoShared}
+          onGoHome={onGoHome}
+        />
+        {!isCollapsed ? (
+          <>
+            <ProjectNavigation
+              expandAction={expandAction}
+              isLoading={isLoading}
+              loadError={loadError}
+              onRetryLoad={onRetryLoad}
+              projects={projects}
+              openFolderIds={openFolderIds}
+              selectedNodeId={selectedNodeId}
+              onCreateFolder={onCreateFolder}
+              onCreateForm={onCreateForm}
+              onMoveProject={onMoveProject}
+              onOpenSearch={() => setIsSearchOpen(true)}
+              onSelectProject={onSelectProject}
+              onToggleFolder={onToggleFolder}
+            />
+            <UserProfile onLogout={onLogout} user={user} />
+          </>
+        ) : null}
+      </div>
     </aside>
     {searchDialog}
     </>

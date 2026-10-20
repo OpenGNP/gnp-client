@@ -187,7 +187,7 @@ export function FormSettingsPanel({
 
   return (
     <aside
-      className="min-h-[822px] w-full max-w-[380px] rounded-[10px] bg-white px-7.5 pt-7.5 pb-9 max-[1200px]:max-w-[978px] max-[760px]:min-h-0 max-[560px]:px-5"
+      className="min-h-[822px] w-full max-w-[380px] animate-in rounded-[10px] bg-white px-7.5 pt-7.5 pb-9 duration-300 ease-in-out fade-in-0 slide-in-from-right-8 max-[1200px]:max-w-[978px] max-[760px]:min-h-0 max-[560px]:px-5 motion-reduce:animate-none"
       aria-label="Create form settings"
     >
       <div className="mb-7 flex items-center justify-between gap-4">

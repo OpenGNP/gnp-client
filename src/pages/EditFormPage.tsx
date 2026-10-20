@@ -14,6 +14,8 @@ import { FormSettingsPanel } from '../components/forms/FormSettingsPanel'
 import { FormActionBar, type SaveStatus } from '../components/navigation/FormActionBar'
 import { FolderBreadcrumbBar } from '../components/navigation/FolderBreadcrumb'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
+import { HeadroomBar } from '../components/navigation/HeadroomBar'
+import { useScrolledPastBar } from '../hooks/useHeadroom'
 import {
   defaultFormAccessSettings,
   formAccessSettingsChanged,
@@ -213,13 +215,16 @@ export function EditFormPage({
 
   // Shared with them to view only: there's nothing to edit — send them to the dashboard.
   const { projectId = '' } = useParams()
+  // Scrolled: the Save / Publish row floats over the form on its own, without the breadcrumb.
+  const floating = useScrolledPastBar()
   if (routeForm.role === 'viewer') {
     return <Navigate replace to={`/forms/${encodeURIComponent(projectId)}/dashboard`} />
   }
 
   return (
     <div>
-      <div className="sticky top-0 z-30 bg-[#f5f9ff]">
+      {/* Scrolling down hides the tabs; the Save / Publish row stays. */}
+      <HeadroomBar>
         <FormDetailTabs
           hasDashboardData={hasDashboardData}
           onToggleSidebar={onToggleSidebar}
@@ -249,11 +254,12 @@ export function EditFormPage({
               />
             ) : null
           }
+          compact={floating}
           path={folderPath}
         />
-      </div>
+      </HeadroomBar>
 
-      <div className="bg-[#f5f9ff] px-14 pb-16 max-[900px]:px-6 max-[560px]:px-4">
+      <div className="animate-in duration-300 fade-in-0 motion-reduce:animate-none overflow-x-clip bg-[#f5f9ff] px-14 pb-16 max-[900px]:px-6 max-[560px]:px-4">
         {loadStatus === 'loading' ? (
           <FormEditorSkeleton />
         ) : loadStatus === 'error' ? (
