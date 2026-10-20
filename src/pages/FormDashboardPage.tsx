@@ -736,16 +736,22 @@ export function FormDashboardPage({
           }
           actions={
             <>
-              <FormActionButton
-                aria-label="Show the tour for this tab"
-                className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
-                icon={<CircleHelp size={18} strokeWidth={2.2} />}
-                onClick={() => {
-                  if (tabTour.loaded) runTabTour(tabTour)
-                }}
-              >
-                Tour
-              </FormActionButton>
+              {/* Help, not an action: just the ? icon, borderless, so it doesn't compete with Export. */}
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label="Show the tour for this tab"
+                    className="inline-flex size-9.5 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border-0 bg-transparent text-[#726f6f] transition-colors hover:bg-[#eef1f6] hover:text-[#3f4045]"
+                    onClick={() => {
+                      if (tabTour.loaded) runTabTour(tabTour)
+                    }}
+                    type="button"
+                  >
+                    <CircleHelp size={20} strokeWidth={2.2} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Show tour</TooltipContent>
+              </Tooltip>
               {/* Styled like the editor's action buttons; pressed = names shown, off while screen-sharing. */}
               {hasNames ? (
                 <FormActionButton
@@ -770,17 +776,20 @@ export function FormDashboardPage({
                   options={[
                     {
                       label: 'Excel (.xlsx)',
+                      description: 'Every response, plus a count per question',
                       icon: FileSpreadsheet,
                       extension: 'xlsx',
                       download: () => downloadFormResponses(formId, 'xlsx', !hideNames),
                     },
                     {
                       label: 'CSV (.csv)',
+                      description: 'Every response, as a plain table for other tools',
                       icon: FileText,
                       extension: 'csv',
                       download: () => downloadFormResponses(formId, 'csv', !hideNames),
                     },
                   ]}
+                  heading="Raw answers, one row per response"
                   what="responses"
                 />
               ) : null}
@@ -793,6 +802,7 @@ export function FormDashboardPage({
                   options={[
                     {
                       label: 'Excel (.xlsx)',
+                      description: 'Topics with their sentiment, and every feedback point',
                       icon: FileSpreadsheet,
                       extension: 'xlsx',
                       download: () =>
@@ -803,8 +813,14 @@ export function FormDashboardPage({
                           !hideNames,
                         ),
                     },
-                    { label: 'PDF report', icon: Printer, run: () => setPrintingReport(true) },
+                    {
+                      label: 'PDF report',
+                      description: 'This page, ready to print or share',
+                      icon: Printer,
+                      run: () => setPrintingReport(true),
+                    },
                   ]}
+                  heading="What the AI found in written answers"
                   scope={themesScope}
                   what="AI analysis"
                 />

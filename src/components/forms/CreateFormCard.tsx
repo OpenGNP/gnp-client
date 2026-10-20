@@ -58,7 +58,8 @@ function AutoGrowTextarea(props: ComponentProps<"textarea">) {
     if (!element) return;
     const fit = () => {
       element.style.height = "auto";
-      element.style.height = `${element.scrollHeight}px`;
+      // scrollHeight leaves out the border (the underline); add it back so nothing clips.
+      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
     };
     fit();
     // Narrower card, more wrapped lines. (No ResizeObserver in old browsers / tests.)
@@ -273,7 +274,8 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
 
         <div className="flex flex-col gap-3">
           <input
-            className={cn(FORM_TITLE_CLASS, "w-full border-0 bg-transparent p-0 leading-[25.376px] outline-none placeholder:text-[#616161]")}
+            // Google Forms-style: an underline on hover (editable), blue while editing.
+            className={cn(FORM_TITLE_CLASS, "w-full bg-transparent p-0 leading-tight placeholder:text-[#616161] border-0 border-b-2 border-transparent pb-1 transition-colors duration-150 outline-none hover:border-[#d2d8e5] focus:border-[#1e55c5]")}
             aria-label="Form title"
             id="create-form-title"
             onChange={(event) => onChange({ title: event.target.value })}
@@ -281,7 +283,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             value={value.title}
           />
           <AutoGrowTextarea
-            className={cn(FORM_DESCRIPTION_CLASS, "w-full resize-none overflow-hidden border-0 bg-transparent p-0 outline-none placeholder:text-[#616161]")}
+            className={cn(FORM_DESCRIPTION_CLASS, "w-full resize-none overflow-hidden bg-transparent p-0 placeholder:text-[#616161] border-0 border-b-2 border-transparent pb-1 transition-colors duration-150 outline-none hover:border-[#d2d8e5] focus:border-[#1e55c5]")}
             aria-label="Form description"
             onChange={(event) => onChange({ description: event.target.value })}
             placeholder="Form description"

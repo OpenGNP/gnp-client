@@ -10,7 +10,12 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 
-export type ExportOption = { label: string; icon: LucideIcon } & (
+export type ExportOption = {
+  label: string
+  icon: LucideIcon
+  /** What's in the file, so it's clear before downloading. */
+  description?: string
+} & (
   | {
       /** File extension, without the dot. */
       extension: string
@@ -34,6 +39,7 @@ export function ExportMenu({
   includeNames,
   scope,
   disabled = false,
+  heading,
 }: {
   options: ExportOption[]
   formTitle: string | null
@@ -45,6 +51,8 @@ export function ExportMenu({
   scope?: string[]
   /** e.g. while showing sample data — there's nothing real to export. */
   disabled?: boolean
+  /** One line atop the menu: what the files from this tab are about. */
+  heading?: string
 }) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -76,8 +84,9 @@ export function ExportMenu({
       {failed ? <span className="text-[12px] text-destructive">Export failed</span> : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
+          {/* The dashboard's main action, so the one filled button in its row. */}
           <FormActionButton
-            className="border border-[#d2d8e5] bg-white text-[#3f4045] hover:bg-[#f7f8fb]"
+            className="bg-[#1e55c5] hover:bg-[#1a49aa] disabled:hover:bg-[#1e55c5]"
             data-tour="export"
             disabled={pending || disabled}
             icon={
@@ -94,11 +103,26 @@ export function ExportMenu({
             </span>
           </FormActionButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent className="max-w-72">
+          {heading ? (
+            <>
+              <p className="m-0 px-3 pt-2 pb-1.5 text-[12px] font-semibold text-[#3f4045]">{heading}</p>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           {options.map((option) => (
-            <DropdownMenuItem key={option.label} onSelect={() => void download(option)}>
-              <option.icon size={14} />
-              {option.label}
+            <DropdownMenuItem
+              className="items-start"
+              key={option.label}
+              onSelect={() => void download(option)}
+            >
+              <option.icon className="mt-0.5" size={14} />
+              <span className="flex flex-col">
+                {option.label}
+                {option.description ? (
+                  <span className="text-[11px] leading-4 text-[#929292]">{option.description}</span>
+                ) : null}
+              </span>
             </DropdownMenuItem>
           ))}
           {scope?.length || !includeNames ? <DropdownMenuSeparator /> : null}
