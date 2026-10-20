@@ -272,7 +272,13 @@ export function recordFormOpen(formId: number): Promise<null> {
   return apiPost<null>(`/forms/${formId}/open`);
 }
 
-export type ApiCollaborator = { email: string; role: "viewer"; fullName: string | null };
+export type ApiCollaborator = {
+  email: string;
+  role: "viewer";
+  fullName: string | null;
+  /** Their Microsoft photo, once they've signed in; null → initials. */
+  avatarUrl: string | null;
+};
 
 export function getCollaborators(formId: number): Promise<ApiCollaborator[]> {
   return apiGet<ApiCollaborator[]>(`/forms/${formId}/collaborators`);

@@ -10,6 +10,8 @@ export type AuthUser = {
   role: string | null
   organizationId: number | null
   createdAt?: string | null
+  /** Their Microsoft profile photo (`/users/:id/avatar?v=…`); null → initials. */
+  avatarUrl?: string | null
 }
 
 type LoginResponse = {

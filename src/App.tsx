@@ -85,6 +85,8 @@ function App() {
   const sidebarUser = {
     name: authUser?.fullName?.trim() || authUser?.email || 'Account',
     email: authUser?.email ?? '',
+    fullName: authUser?.fullName ?? null,
+    avatarUrl: authUser?.avatarUrl ?? null,
   }
   // Phones/tablets: the sidebar is an overlay, so it starts closed and closes again
   // after each navigation. Desktop: it's a column, and its open/closed choice is

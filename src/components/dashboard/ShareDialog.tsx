@@ -8,6 +8,7 @@ import { collaboratorsQuery, formQuery, formRefQuery, queryKeys } from '../../ap
 import { ApiError } from '../../lib/api'
 import { SamplePreviewContext } from '../../lib/samplePreview'
 import { cn } from '../../lib/utils'
+import { UserAvatar } from '../UserAvatar'
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
@@ -50,23 +51,8 @@ export function ShareControl() {
 }
 
 const MAX_AVATARS = 3
-const AVATAR_COLORS = ['#1e55c5', '#0b842d', '#b7791f', '#c1121f', '#6b46c1', '#0e7490']
 
-/** "Somchai Jaidee" → "SJ"; no name → the email's first letter. */
-function initialsOf(viewer: ApiCollaborator) {
-  const words = (viewer.fullName ?? '').trim().split(/\s+/).filter(Boolean)
-  if (words.length > 0) return words.slice(0, 2).map((word) => [...word][0]).join('').toUpperCase()
-  return ([...viewer.email][0] ?? '?').toUpperCase()
-}
-
-// The same person keeps the same colour everywhere.
-function colorOf(email: string) {
-  let hash = 0
-  for (const char of email.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
-/** Who can see the results, as overlapping initials — the first few, then "+N". */
+/** Who can see the results, as overlapping avatars (photo or initials) — the first few, then "+N". */
 function ViewerAvatars({ viewers, onOpen }: { viewers: ApiCollaborator[]; onOpen: () => void }) {
   const shown = viewers.slice(0, MAX_AVATARS)
   const rest = viewers.length - shown.length
@@ -80,11 +66,13 @@ function ViewerAvatars({ viewers, onOpen }: { viewers: ApiCollaborator[]; onOpen
       {shown.map((viewer) => (
         <Tooltip delayDuration={200} key={viewer.email}>
           <TooltipTrigger asChild>
-            <span
-              className="-ml-1.5 flex size-7 items-center justify-center rounded-full text-[11px] font-semibold text-white ring-2 ring-white first:ml-0"
-              style={{ backgroundColor: colorOf(viewer.email) }}
-            >
-              {initialsOf(viewer)}
+            <span className="-ml-1.5 rounded-full ring-2 ring-white first:ml-0">
+              <UserAvatar
+                avatarUrl={viewer.avatarUrl}
+                className="size-7 text-[11px]"
+                email={viewer.email}
+                name={viewer.fullName}
+              />
             </span>
           </TooltipTrigger>
           <TooltipContent side="bottom">

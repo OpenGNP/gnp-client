@@ -14,12 +14,12 @@ import {
   PanelLeftOpen,
   PlusCircle,
   Search,
-  Smile,
   Users,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 
 import { SidebarTreeSkeleton } from '../skeletons/SidebarTreeSkeleton'
+import { UserAvatar } from '../UserAvatar'
 import { SearchDialog, type SearchResult } from './SearchDialog'
 import type { ProjectTreeItem } from '../../data/dashboard'
 import { cn } from '../../lib/utils'
@@ -37,6 +37,8 @@ import {
 type SidebarUser = {
   name: string
   email: string
+  fullName?: string | null
+  avatarUrl?: string | null
 }
 
 type SidebarBrand = {
@@ -308,11 +310,16 @@ function SidebarRail({
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Account options"
-                className="flex size-7.75 cursor-pointer items-center justify-center rounded-full border-0 bg-[#4c71f7] text-white transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20"
+                className="flex cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20"
                 title={user.name}
                 type="button"
               >
-                <Smile size={19} />
+                <UserAvatar
+                  avatarUrl={user.avatarUrl}
+                  className="size-7.75 text-[12px]"
+                  email={user.email}
+                  name={user.fullName}
+                />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-50" side="right">
@@ -886,9 +893,12 @@ function ProjectNavigation({
 function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => void }) {
   return (
     <div className="flex h-20.75 items-center gap-2.5 border-t border-[#eef1f5] pr-5.75 pl-7.25">
-      <div className="flex size-7.75 shrink-0 items-center justify-center rounded-full bg-[#4c71f7] text-white">
-        <Smile size={19} />
-      </div>
+      <UserAvatar
+        avatarUrl={user.avatarUrl}
+        className="size-7.75 text-[12px]"
+        email={user.email}
+        name={user.fullName}
+      />
       <div className="min-w-0 flex-1 leading-tight">
         <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[16px] font-semibold tracking-[0.16px] text-[#3f4045]">
           {user.name}
