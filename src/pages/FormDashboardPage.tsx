@@ -562,6 +562,8 @@ export function FormDashboardPage({
     activeView === 'individual'
       ? (individual?.responses.find((response) => response.id === selectedResponseId) ?? null)
       : null
+  // A detail panel open beside the content (wide screens), rather than over it.
+  const isPanelDocked = Boolean(selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
   const individualLabels = individual ? responseLabels(individual.responses, hideNames) : new Map<number, string>()
   // The panel's Previous / Next step through the search results, not every response.
   const responseResults = individual ? searchResponses(individual.responses, individualLabels, responseQuery) : []
@@ -723,7 +725,7 @@ export function FormDashboardPage({
         ) : null}
         <FolderBreadcrumbBar
           reserveRight={
-            (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
+            isPanelDocked
               ? detailPanelLayout.width
               : undefined
           }
@@ -840,20 +842,16 @@ export function FormDashboardPage({
 
           <div
             className="w-full"
-            style={
-              (selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
-                ? { paddingRight: detailPanelLayout.width }
-                : undefined
-            }
+            style={isPanelDocked ? { paddingRight: detailPanelLayout.width } : undefined}
           >
             <div
               className={cn(
                 'mx-auto flex w-full flex-col gap-5',
                 // Every tab is the same width, so switching doesn't shift the page. A docked
-                // detail panel shrinks the content (down to min-w-150, which
-                // useDetailPanelLayout assumes; Trend has no panel).
+                // detail panel shrinks the content down to min-w-150 (which useDetailPanelLayout
+                // assumes). Only then: always on, it'd make phones zoom out to fit 600px.
                 'max-w-366.5',
-                activeView !== 'trend' && 'min-w-150',
+                isPanelDocked && 'min-w-150',
               )}
             >
               <div className="-mb-2 flex flex-col gap-1.25">
