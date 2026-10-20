@@ -61,7 +61,7 @@ export function EditFormPage({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isPublished, setIsPublished] = useState(false)
   // Raw forms.status ('draft' | 'active' | 'closed' | 'archived') — drives the
-  // editor's status chip (via formStatusBadge) and the Close/Reopen action.
+  // editor's status chip (via formStatusBadge).
   const [formStatus, setFormStatus] = useState<string | null>(null)
   // The form's unguessable public token, for the respondent-facing share link.
   const [publicToken, setPublicToken] = useState('')
@@ -205,23 +205,6 @@ export function EditFormPage({
     }
   }
 
-  async function handleReopenForm(): Promise<boolean> {
-    if (!hasValidId) return false
-    try {
-      await updateForm(formId, { status: 'active' })
-      setFormStatus('active')
-      setIsPublished(true)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.forms })
-      return true
-    } catch (error) {
-      void showAlert(
-        error instanceof ApiError ? error.message : 'Could not reopen the form. Please try again.',
-      )
-      return false
-    }
-  }
-
   // While a save is in flight the editor is read-only, so nothing typed meanwhile is
   // silently left out of it. Unlocked again if the server is unusually slow, so a stuck
   // request never traps anyone.
@@ -255,7 +238,6 @@ export function EditFormPage({
                 onEditSchedule={() => setIsSettingsOpen(true)}
                 onMove={onMove}
                 onPublish={() => handleSave(true)}
-                onReopenForm={handleReopenForm}
                 onSaveDraft={() => handleSave(false)}
                 onToggleSettings={() => setIsSettingsOpen((open) => !open)}
                 onUpdateFormAccessSettings={updateSettings}

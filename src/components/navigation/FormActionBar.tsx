@@ -26,14 +26,12 @@ export type FormActionBarProps = {
   isSettingsOpen: boolean
   onToggleSettings: () => void
   defaultPublished?: boolean
-  /** The raw `forms.status` as last loaded/saved — drives the chip + Reopen. */
+  /** The raw `forms.status` as last loaded/saved — drives the chip. */
   defaultStatus?: string | null
   mode?: 'create' | 'edit'
   onSaveDraft?: () => void
   onPublish?: () => void | Promise<void>
   onMove?: () => void
-  /** Reopens a manually-closed form (status → 'active'); resolves whether it worked. Omitted in create mode. */
-  onReopenForm?: () => Promise<boolean>
   saveStatus?: SaveStatus
   /** A save is in flight: Save / Publish / Move are disabled until it answers. */
   saveLocked?: boolean
@@ -82,7 +80,6 @@ export function FormActionBar({
   onSaveDraft,
   onPublish,
   onMove,
-  onReopenForm,
   saveStatus = 'idle',
   saveLocked = false,
   saveSlow = false,
@@ -103,16 +100,6 @@ export function FormActionBar({
     endDate: savedWindow.endDate,
   }
   const responseBadge = formStatusBadge(status, responseWindow, now)
-
-  // Only once the server confirms — the chip never claims "accepting" for a form still closed.
-  const handleReopenForm = async () => {
-    const reopened = (await onReopenForm?.()) ?? false
-    if (reopened) {
-      setStatus('active')
-      setIsPublished(true)
-    }
-    return reopened
-  }
 
   return (
     <div className="flex shrink-0 items-center gap-2.5">
@@ -165,7 +152,6 @@ export function FormActionBar({
         <PopoverContent align="end" className="z-40" sideOffset={8} side="bottom">
           <PublishModal
             isPublished={isPublished}
-            onReopenForm={onReopenForm ? handleReopenForm : undefined}
             savedAccessSettings={savedAccessSettings}
             status={status}
             onPublish={() => {

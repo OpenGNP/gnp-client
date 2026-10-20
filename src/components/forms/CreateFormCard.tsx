@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Circle, Type } from "lucide-react";
+import { useLayoutEffect, useRef, type ComponentProps } from "react";
 
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
 import { AddQuestionButton } from "./AddQuestionButton";
@@ -45,6 +46,26 @@ type FormSectionProps = {
   onQuestionsChange: (questions: Question[]) => void;
 };
 
+
+/** A textarea as tall as its text: one line empty, more as the author writes or pastes. */
+function AutoGrowTextarea(props: ComponentProps<"textarea">) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const fit = () => {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight}px`;
+    };
+    fit();
+    // Narrower card, more wrapped lines. (No ResizeObserver in old browsers / tests.)
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [props.value]);
+  return <textarea ref={ref} {...props} />;
+}
 
 const demographicQuestionTypes: QuestionTypeOption[] = [
   {
@@ -237,11 +258,12 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             placeholder="Untitled form"
             value={value.title}
           />
-          <textarea
-            className={cn(FORM_DESCRIPTION_CLASS, "h-6 w-full resize-none border-0 bg-transparent p-0 outline-none placeholder:text-[#616161]")}
+          <AutoGrowTextarea
+            className={cn(FORM_DESCRIPTION_CLASS, "w-full resize-none overflow-hidden border-0 bg-transparent p-0 outline-none placeholder:text-[#616161]")}
             aria-label="Form description"
             onChange={(event) => onChange({ description: event.target.value })}
             placeholder="Form description"
+            rows={1}
             value={value.description}
           />
         </div>

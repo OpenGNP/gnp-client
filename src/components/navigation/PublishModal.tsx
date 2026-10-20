@@ -5,8 +5,6 @@ import {
   MessageSquareText,
   PencilLine,
   TriangleAlert,
-  Unlock,
-  RefreshCw,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
@@ -101,15 +99,10 @@ export type PublishModalProps = {
   onEditSchedule?: () => void
   /**
    * The raw `forms.status` lifecycle value (`draft | active | closed | archived`),
-   * drives the chip via `formStatusBadge` and whether Reopen shows. Omitted in
+   * drives the chip via `formStatusBadge`. Omitted in
    * create mode, where there's no saved form yet to have a status.
    */
   status?: string | null
-  /**
-   * Reopens a manually-closed form (status → 'active'); shown only when `status === 'closed'`.
-   * Waits for the server: the button spins until it resolves whether it worked.
-   */
-  onReopenForm?: () => Promise<boolean>
 }
 
 export function PublishModal({
@@ -121,22 +114,8 @@ export function PublishModal({
   shareUrl,
   onEditSchedule,
   status = null,
-  onReopenForm,
 }: PublishModalProps) {
   const [isCopied, setIsCopied] = useState(false)
-  const [isReopening, setIsReopening] = useState(false)
-
-  // The popover stays open: on success `status` turns 'active', so the chip above
-  // changes and this button goes away — the confirmation is right where they clicked.
-  const reopen = async () => {
-    if (!onReopenForm) return
-    setIsReopening(true)
-    try {
-      await onReopenForm()
-    } finally {
-      setIsReopening(false)
-    }
-  }
   const now = useNow()
   // Still shown if a loaded form already uses it, so the radio group isn't left blank.
   const showOrganizationOption = useHasOrganization() || settings.whoCanFill === 'organization'
@@ -150,11 +129,7 @@ export function PublishModal({
   }
   const badge = formStatusBadge(status, windowInputs, now)
   const state = badge.state
-  // `status === 'closed'` (e.g. from an API call, or before this UI dropped the
-  // "Close form" button), as opposed to the response window (endDate) simply having
-  // passed — different copy, and only the former offers a "Reopen form" way back.
-  const isManuallyClosed = status === 'closed'
-  // The other non-manual way `state` reads 'closed': the schedule's end date has
+  // One way `state` reads 'closed': the schedule's end date has
   // actually passed. Distinguishes that from the "accepting responses" toggle being
   // off, which also folds into 'closed' but needs different copy (the link still
   // works; there's no schedule to "reopen").
@@ -178,11 +153,9 @@ export function PublishModal({
     state === 'scheduled'
       ? `Opens ${formatDateTime(saved.startDate)}. Share the link now`
       : state === 'closed'
-        ? isManuallyClosed
-          ? 'This form is closed. The link no longer works'
-          : windowEnded
-            ? 'Response window ended'
-            : 'Not accepting responses. The link still works'
+        ? windowEnded
+          ? 'Response window ended'
+          : 'Not accepting responses. The link still works'
         : 'Your form is live. Share this link'
 
   return (
@@ -219,7 +192,7 @@ export function PublishModal({
                 <span className="text-[11px] leading-4 text-[#b7791f]">
                   This applies once the form opens.
                 </span>
-              ) : state === 'closed' && !isManuallyClosed && windowEnded ? (
+              ) : state === 'closed' && windowEnded ? (
                 <span className="text-[11px] leading-4 text-[#b7791f]">
                   Window ended. Edit the schedule to reopen.
                 </span>
@@ -384,17 +357,6 @@ export function PublishModal({
 
       <div className="flex items-center justify-between gap-2">
         <div>
-          {status === 'closed' && onReopenForm ? (
-            <Button
-              className="rounded-[10px] px-3 text-[13px] font-semibold tracking-[0.13px] text-[#1e55c5] hover:bg-[#eef3ff]"
-              disabled={isReopening}
-              onClick={() => void reopen()}
-              variant="ghost"
-            >
-              {isReopening ? <RefreshCw className="animate-spin" size={14} /> : <Unlock size={14} />}
-              {isReopening ? 'Reopening…' : 'Reopen form'}
-            </Button>
-          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <PopoverClose asChild>
