@@ -171,6 +171,7 @@ const railLabelClass = 'text-[11px] leading-3.5 font-semibold tracking-[0.11px]'
  */
 function SidebarRail({
   activeNav,
+  brand,
   user,
   onCreateForm,
   onExpand,
@@ -181,6 +182,7 @@ function SidebarRail({
   onLogout,
 }: {
   activeNav: 'home' | 'files' | 'shared' | null
+  brand: SidebarBrand
   user: SidebarUser
   onCreateForm: () => void
   onExpand: (action: ExpandAction) => void
@@ -195,8 +197,17 @@ function SidebarRail({
       aria-label="Primary navigation"
       className="sticky top-0 z-30 flex h-screen w-19.5 shrink-0 flex-col border-r-2 border-[#e8eaf1] bg-white max-[900px]:hidden"
     >
-      {/* Header — same height as SidebarHeader */}
-      <div className="flex h-22 shrink-0 items-center justify-center">
+      {/* Header — same height as SidebarHeader: a small logo (→ Home) over the expand button. */}
+      <div className="flex h-22 shrink-0 flex-col items-center justify-center gap-1">
+        <button
+          aria-label={`${brand.name} home`}
+          className="flex cursor-pointer items-center rounded-[6px] border-0 bg-transparent p-0"
+          onClick={onGoHome}
+          title="Home"
+          type="button"
+        >
+          <img alt={brand.name} className="h-6 w-11.5 object-cover object-center" src={brand.logo} />
+        </button>
         <Button
           aria-label="Expand sidebar"
           className="size-10 text-[#3f4045]"
@@ -951,6 +962,7 @@ export function Sidebar({
       <>
       <SidebarRail
         activeNav={activeNav}
+        brand={brand}
         user={user}
         onCreateForm={onCreateForm}
         onExpand={(action) => {

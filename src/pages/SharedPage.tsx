@@ -43,7 +43,7 @@ export function SharedPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   return (
-    <div className="min-h-[calc(100vh-50px)]">
+    <div className="min-h-[calc(100vh-50px)] min-[900px]:min-h-screen">
       <PageContainer>
         {/* Same title row as the Files page: title left, Sort at the end. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-8 pb-1">

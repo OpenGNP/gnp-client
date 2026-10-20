@@ -627,7 +627,7 @@ function App() {
           />
         ) : isFormDetailRoute ? null : (
           <Navbar
-            title={activeNav === 'files' ? 'Files' : activeNav === 'shared' ? 'Shared with me' : 'Home'}
+            brand={brand}
             showSidebarToggle={isSidebarCollapsed}
             onToggleSidebar={() => setSidebarCollapsed(false)}
           />

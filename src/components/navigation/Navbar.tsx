@@ -1,21 +1,27 @@
+import { Link } from 'react-router-dom'
+
 import { TopBar } from './TopBar'
 
 export type NavbarProps = {
-  title: string
+  brand: { logo: string; name: string }
   showSidebarToggle?: boolean
   onToggleSidebar?: () => void
 }
 
-/** Home / Files / Shared with me: just where you are (the sidebar navigates), so a title, not a tab. */
-export function Navbar({ title, showSidebarToggle = false, onToggleSidebar }: NavbarProps) {
+/**
+ * Home / Files / Shared with me, narrow screens only: the ☰ that opens the hidden sidebar,
+ * and the logo the sidebar would otherwise show. Each page has its own heading.
+ */
+export function Navbar({ brand, showSidebarToggle = false, onToggleSidebar }: NavbarProps) {
   return (
     <TopBar
-      className="sticky top-0 z-20"
+      className="sticky top-0 z-20 min-[900px]:hidden"
       onToggleSidebar={onToggleSidebar}
       showSidebarToggle={showSidebarToggle}
     >
-      {/* Not an h1: each page has its own. */}
-      <span>{title}</span>
+      <Link aria-label={`${brand.name} home`} className="flex items-center" to="/">
+        <img alt={brand.name} className="h-7.5 w-14.5 object-cover object-center" src={brand.logo} />
+      </Link>
     </TopBar>
   )
 }

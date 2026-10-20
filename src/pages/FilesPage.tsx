@@ -200,7 +200,7 @@ export function FilesPage({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="min-h-[calc(100vh-50px)]">
+        <div className="min-h-[calc(100vh-50px)] min-[900px]:min-h-screen">
           <PageContainer>
             {/* Title row: the breadcrumb shrinks (long names truncate, deep paths fold into
                 "…") so Sort keeps its place at the end; on phones Sort wraps below. */}
