@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Circle, Type } from "lucide-react";
-import { useLayoutEffect, useRef, type ComponentProps } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
 import { AddQuestionButton } from "./AddQuestionButton";
@@ -44,6 +44,9 @@ type FormSectionProps = {
   showAiAnalyze?: boolean;
   questions: Question[];
   onQuestionsChange: (questions: Question[]) => void;
+  /** The question open for editing, across both sections; the rest show as previews. */
+  activeQuestionId: string | null;
+  onActivateQuestion: (id: string) => void;
 };
 
 
@@ -107,6 +110,8 @@ function FormSection({
   showAiAnalyze = false,
   questions,
   onQuestionsChange,
+  activeQuestionId,
+  onActivateQuestion,
 }: FormSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -115,11 +120,11 @@ function FormSection({
     }),
   );
 
+  // A new question opens straight away, ready to type into.
   const addQuestion = (type: QuestionTypeValue) => {
-    onQuestionsChange([
-      ...questions,
-      createQuestion(type, crypto.randomUUID()),
-    ]);
+    const question = createQuestion(type, crypto.randomUUID());
+    onQuestionsChange([...questions, question]);
+    onActivateQuestion(question.id);
   };
 
   const updateQuestion = (updated: Question) => {
@@ -167,7 +172,9 @@ function FormSection({
             <div className="flex w-full flex-col gap-7.5">
               {questions.map((question) => (
                 <SortableQuestionCard
+                  isActive={question.id === activeQuestionId}
                   key={question.id}
+                  onActivate={() => onActivateQuestion(question.id)}
                   onChange={updateQuestion}
                   onDelete={() => removeQuestion(question.id)}
                   question={question}
@@ -208,6 +215,21 @@ function revokeIfBlobUrl(url: string | null) {
 
 export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   const { coverImageUrl } = value;
+  // One question open at a time (like Google Forms); none when the form first loads.
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+
+  // A press outside the open card closes it. Not inside dialogs or menus, which render
+  // elsewhere in the page (portals) but belong to what's being edited.
+  useEffect(() => {
+    if (activeQuestionId === null) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest('[data-active-question], [role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      setActiveQuestionId(null);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [activeQuestionId]);
 
   // The actual upload happens on save (see App.tsx / EditFormPage.tsx) — a
   // brand-new form has no id yet to upload against, so selecting a file here just
@@ -271,6 +293,8 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
         <div className={FORM_DIVIDER_CLASS} />
 
         <FormSection
+          activeQuestionId={activeQuestionId}
+          onActivateQuestion={setActiveQuestionId}
           onQuestionsChange={(questions) =>
             onChange({ demographic: questions })
           }
@@ -283,6 +307,8 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
         <div className={FORM_DIVIDER_CLASS} />
 
         <FormSection
+          activeQuestionId={activeQuestionId}
+          onActivateQuestion={setActiveQuestionId}
           onQuestionsChange={(questions) => onChange({ feedback: questions })}
           questions={value.feedback}
           questionTypes={feedbackQuestionTypes}

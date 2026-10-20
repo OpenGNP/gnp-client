@@ -121,15 +121,14 @@ export function MoveHandle({
 
 export function AiAnalyzeLabel({ className }: { className?: string }) {
   return (
+    // Same blue as the collapsed card's label, a size up for the open card.
     <span
       className={cn(
-        'inline-flex items-center gap-2.5 text-[16px] tracking-[0.16px] text-[#3f4045]',
+        'inline-flex items-center gap-2 text-[14px] font-medium tracking-[0.14px] text-[#1e55c5]',
         className,
       )}
     >
-      <span className="flex h-6.5 w-7 items-center justify-center rounded-[4px] bg-[#e8eeff] text-[#1e55c5]">
-        <Sparkles size={15} />
-      </span>
+      <Sparkles size={16} />
       AI Analyze
     </span>
   )
