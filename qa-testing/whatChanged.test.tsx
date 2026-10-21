@@ -82,6 +82,22 @@ describe('What changed', () => {
     expect(screen.getByText('Topic 7')).toBeInTheDocument()
   })
 
+  it('groups rows by what to act on, with a summary line', () => {
+    const rows = [row('b', 'better'), row('n', 'new'), row('w', 'worse'), row('s', null, 1)]
+    render(<TrendView onPinnedChange={noop} pinned={null} trend={{ ...base, whatChanged: { ...base.whatChanged!, rows } }} />)
+    expect(screen.getByText('Complaints rise for 1 topic and fall for 1 topic. 1 new topic.')).toBeInTheDocument()
+    const headings = screen.getAllByText(/^(Getting worse|New topics|Improving|Flagged, no clear change)$/)
+    expect(headings.map((h) => h.textContent?.replace(/\d+$/, ''))).toEqual(['Getting worse', 'New topics', 'Improving', 'Flagged, no clear change'])
+  })
+
+  it('the flagged-only group starts folded', async () => {
+    const rows = [row('w', 'worse'), row('s', null, 1)]
+    render(<TrendView onPinnedChange={noop} pinned={null} trend={{ ...base, whatChanged: { ...base.whatChanged!, rows } }} />)
+    expect(screen.queryByText('Topic s')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByText('Flagged, no clear change'))
+    expect(screen.getByText('Topic s')).toBeInTheDocument()
+  })
+
   it('one line when nothing moved, or when there is no comparison', () => {
     const { rerender } = render(
       <TrendView onPinnedChange={noop} pinned={null} trend={{ ...base, whatChanged: { ...base.whatChanged!, rows: [] } }} />,

@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   ArrowUp,
+  ChevronRight,
   Info,
   MessageSquareText,
   Minus,
@@ -17,6 +18,8 @@ import type {
   WhatChanged,
   WhatChangedRow,
 } from '../../data/dashboardAnalytics'
+import { whatChangedSummary } from '../../lib/whatChangedSummary'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { TopicTrendsCard } from './TopicTrendsCard'
 import { ViolationTooltip } from './ViolationTooltip'
@@ -29,33 +32,20 @@ function formatEventDate(iso: string) {
   })
 }
 
-// Pill colours shared with the feedback sentiment tags (FeedbackSegmentSection).
-// Worse = complaints went up, Better = down. Each kind differs in fill, not just
-// colour (solid / soft / outline / plain), so they stay apart without colour vision.
-const KIND_BADGE = {
-  worse: { label: 'Worse', Icon: TrendingUp, className: 'bg-[#f63b56] text-white' },
-  better: { label: 'Better', Icon: TrendingDown, className: 'bg-[#eaf9ec] text-[#08882c]' },
-  new: { label: 'New', Icon: Sparkle, className: 'bg-white text-[#1e55c5] ring-1 ring-[#1e55c5]/50 ring-inset' },
-  steady: { label: 'Steady', Icon: Minus, className: 'text-[#929292]' },
-} as const
+type ChangeKind = 'worse' | 'new' | 'better' | 'steady'
 
-const KIND_HINT: Partial<Record<keyof typeof KIND_BADGE, string>> = {
-  steady: 'No clear change in complaints; listed for its possible violations',
-}
+/** The card's groups, in the order to act on them. Steady rows are only there for violations. */
+const GROUPS: { kind: ChangeKind; title: string; Icon: typeof TrendingUp; tone: string }[] = [
+  { kind: 'worse', title: 'Getting worse', Icon: TrendingUp, tone: 'text-[#e12b0c]' },
+  { kind: 'new', title: 'New topics', Icon: Sparkle, tone: 'text-[#1e55c5]' },
+  { kind: 'better', title: 'Improving', Icon: TrendingDown, tone: 'text-[#08882c]' },
+  { kind: 'steady', title: 'Flagged, no clear change', Icon: Minus, tone: 'text-[#726f6f]' },
+]
 
-/** Rows shown before "Show all". */
+/** Rows shown per group before "Show all". */
 const WHAT_CHANGED_PREVIEW = 5
 
-function Change({ previous, current, isNew }: { previous: number; current: number; isNew: boolean }) {
-  return (
-    <span className="w-28 shrink-0 text-center text-[14px] text-[#14181f] tabular-nums">
-      <span className="text-[#929292]">{isNew ? '—' : `${previous}%`} → </span>
-      {current}%
-    </span>
-  )
-}
-
-const DUMBBELL_COLOR: Record<keyof typeof KIND_BADGE, string> = {
+const DUMBBELL_COLOR: Record<ChangeKind, string> = {
   worse: '#f63b56',
   better: '#269d42',
   new: '#1e55c5',
@@ -66,7 +56,7 @@ const DUMBBELL_COLOR: Record<keyof typeof KIND_BADGE, string> = {
  * Complaints share before (hollow dot) → now (filled dot) on a shared 0–100% track,
  * so rows compare at a glance. A big move on too few mentions = dashed line + hollow dots.
  */
-function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: keyof typeof KIND_BADGE }) {
+function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKind }) {
   const { previous, current } = row.complaints
   const isNew = kind === 'new'
   // Moved a lot, but on too few mentions to rule out chance.
@@ -150,8 +140,6 @@ function WhatChangedItem({
   onOpen?: (id: string) => void
 }) {
   const kind = row.kind ?? 'steady'
-  const badge = KIND_BADGE[kind]
-  const isNew = row.kind === 'new'
   return (
     <li
       className={`flex items-center gap-4 pr-5.5 transition-colors max-[640px]:flex-wrap ${
@@ -159,18 +147,12 @@ function WhatChangedItem({
       }`}
     >
       <button
-        className="flex min-h-13 min-w-0 flex-1 cursor-pointer items-center gap-4 border-l-[3px] border-transparent py-2.5 pl-4.75 text-left max-[640px]:flex-wrap"
+        className={`flex min-h-13 min-w-0 flex-1 cursor-pointer items-center gap-4 border-l-[3px] py-2.5 pl-4.75 text-left max-[640px]:flex-wrap ${
+          kind === 'worse' ? 'border-[#f63b56]' : 'border-transparent'
+        }`}
         onClick={() => onSelect?.(row.id)}
-        title="Show on the chart"
         type="button"
       >
-        <span
-          className={`flex w-21 shrink-0 items-center justify-center gap-1 rounded-full py-1 text-[11px] font-semibold ${badge.className}`}
-          title={KIND_HINT[kind]}
-        >
-          <badge.Icon className="shrink-0" size={13} />
-          {badge.label}
-        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <span className="min-w-0 truncate text-[14px] text-[#14181f]" title={row.label}>
@@ -184,10 +166,14 @@ function WhatChangedItem({
                 </span>
               </ViolationTooltip>
             ) : null}
-            {row.growth ? (
+            {row.complaintCounts ? (
               <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#726f6f]">
-                <TrendingUp className="shrink-0" size={14} />
-                {row.growth}× mentions
+                {/* Arrow only for a real move in share of mentions; plain numbers are context. */}
+                {row.mentionsTrend === 'up' ? <TrendingUp className="shrink-0" size={14} /> : null}
+                {row.mentionsTrend === 'down' ? <TrendingDown className="shrink-0" size={14} /> : null}
+                {row.kind === 'new'
+                  ? `${row.complaintCounts.current.total} mentions`
+                  : `${row.complaintCounts.previous.total} → ${row.complaintCounts.current.total} mentions`}
               </span>
             ) : null}
           </div>
@@ -198,7 +184,6 @@ function WhatChangedItem({
             </span>
           ) : null}
         </div>
-        <Change current={row.share.current} isNew={isNew} previous={row.share.previous} />
         <ComplaintsDumbbell kind={kind} row={row} />
       </button>
       {onOpen ? (
@@ -216,6 +201,68 @@ function WhatChangedItem({
   )
 }
 
+function WhatChangedGroup({
+  kind,
+  title,
+  Icon,
+  tone,
+  rows,
+  onTopicSelect,
+  onTopicOpen,
+}: (typeof GROUPS)[number] & {
+  rows: WhatChangedRow[]
+  onTopicSelect?: (id: string) => void
+  onTopicOpen?: (id: string) => void
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? rows : rows.slice(0, WHAT_CHANGED_PREVIEW)
+  const heading = (
+    <>
+      <Icon className="shrink-0" size={15} />
+      {title}
+      <span className="font-medium text-[#929292]">{rows.length}</span>
+    </>
+  )
+  const list = (
+    <>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {shown.map((row) => (
+          <WhatChangedItem key={row.id} onOpen={onTopicOpen} onSelect={onTopicSelect} row={row} />
+        ))}
+      </ul>
+      {rows.length > WHAT_CHANGED_PREVIEW ? (
+        <button
+          className="mt-1 cursor-pointer self-start border-0 bg-transparent px-5.5 py-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          onClick={() => setShowAll((v) => !v)}
+          type="button"
+        >
+          {showAll ? 'Show less' : `Show all ${rows.length}`}
+        </button>
+      ) : null}
+    </>
+  )
+  const headingClass = `m-0 flex items-center gap-1.5 px-5.5 pt-3 pb-1 text-[13px] font-semibold ${tone}`
+
+  // Steady rows only add violations Themes already lists, so they start folded away.
+  if (kind === 'steady') {
+    return (
+      <Collapsible className="flex flex-col">
+        <CollapsibleTrigger className={`${headingClass} group cursor-pointer border-0 bg-transparent text-left`}>
+          <ChevronRight className="shrink-0 transition-transform group-data-[state=open]:rotate-90" size={15} />
+          {heading}
+        </CollapsibleTrigger>
+        <CollapsibleContent className="flex flex-col">{list}</CollapsibleContent>
+      </Collapsible>
+    )
+  }
+  return (
+    <div className="flex flex-col">
+      <h3 className={headingClass}>{heading}</h3>
+      {list}
+    </div>
+  )
+}
+
 function WhatChangedCard({
   data,
   onTopicSelect,
@@ -225,9 +272,6 @@ function WhatChangedCard({
   onTopicSelect?: (id: string) => void
   onTopicOpen?: (id: string) => void
 }) {
-  const [showAll, setShowAll] = useState(false)
-  const rows = data ? (showAll ? data.rows : data.rows.slice(0, WHAT_CHANGED_PREVIEW)) : []
-
   return (
     <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-2.5 pb-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5.5">
@@ -246,11 +290,9 @@ function WhatChangedCard({
               </button>
             </TooltipTrigger>
             <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-              The latest complete period against the one before. Worse or Better: the Complaints
-              share moved 10 points or more, or the number of people complaining (out of all
-              mentions) at least doubled or halved, and the counts are big enough to rule out
-              chance. New: no mentions before. Topics with possible violations come first. Click a topic to show
-              it on the chart, or View feedback to read it on Themes.
+              The latest full period against the one before. Topics are listed when their
+              complaints clearly rise or fall, not just by chance, or when they&apos;re new. Click a
+              topic to see it on the chart.
             </TooltipContent>
           </HoverTooltip>
         </div>
@@ -271,9 +313,9 @@ function WhatChangedCard({
         </p>
       ) : (
         <>
-          <div className="flex h-6.25 items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
+          <p className="m-0 px-5.5 text-[14px] leading-5 text-[#14181f]">{whatChangedSummary(data.rows)}</p>
+          <div className="mt-2 flex h-6.25 items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
             <span className="min-w-0 flex-1">Topic</span>
-            <span className="w-28 shrink-0 text-center">Share of mentions</span>
             <span className="flex w-44 shrink-0 justify-between">
               <span>0%</span>
               <span>Complaints</span>
@@ -281,22 +323,20 @@ function WhatChangedCard({
             </span>
             {onTopicOpen ? <span aria-hidden="true" className="w-28 shrink-0" /> : null}
           </div>
-          <ul className="m-0 flex list-none flex-col p-0">
-            {rows.map((row) => (
-              <WhatChangedItem key={row.id} onOpen={onTopicOpen} onSelect={onTopicSelect} row={row} />
-            ))}
-          </ul>
+          {GROUPS.map((group) => {
+            const rows = data.rows.filter((row) => (row.kind ?? 'steady') === group.kind)
+            return rows.length > 0 ? (
+              <WhatChangedGroup
+                {...group}
+                key={group.kind}
+                onTopicOpen={onTopicOpen}
+                onTopicSelect={onTopicSelect}
+                rows={rows}
+              />
+            ) : null
+          })}
         </>
       )}
-      {data && data.rows.length > WHAT_CHANGED_PREVIEW ? (
-        <button
-          className="mt-2 cursor-pointer self-start border-0 bg-transparent px-5.5 py-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
-          onClick={() => setShowAll((v) => !v)}
-          type="button"
-        >
-          {showAll ? 'Show less' : `Show all ${data.rows.length}`}
-        </button>
-      ) : null}
     </section>
   )
 }
