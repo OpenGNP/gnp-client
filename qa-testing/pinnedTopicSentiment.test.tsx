@@ -23,7 +23,6 @@ const trend: FormTrendAnalytics = {
   from: '',
   to: '',
   rangeLabel: '',
-  comparisonLabel: 'last 7 days vs the week before',
   totalMentions: 20,
   topicVolumeSeries: [{ id: '1', label: 'Canteen' }],
   availableTopics: [],
@@ -43,10 +42,6 @@ const trend: FormTrendAnalytics = {
     { label: 'W1', negative: 10, neutral: 40, positive: 50, counts: { negative: 2, neutral: 8, positive: 10 } },
     { label: 'W2', negative: 20, neutral: 30, positive: 50, counts: { negative: 4, neutral: 6, positive: 10 } },
   ],
-  risingTopics: [],
-  decliningTopics: [],
-  movementRule: { minDelta: 2, limit: 5 },
-  emergingIssues: [],
   timelineEvents: [],
 }
 

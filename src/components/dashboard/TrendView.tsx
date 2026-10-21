@@ -1,23 +1,25 @@
 import {
-  ArrowDown,
+  ArrowRight,
   ArrowUp,
-  Frown,
   Info,
+  MessageSquareText,
   Minus,
-  Smile,
   Sparkle,
   TrendingDown,
   TrendingUp,
+  TriangleAlert,
 } from 'lucide-react'
+import { useState } from 'react'
 
 import type {
-  EmergingIssue,
   FormTrendAnalytics,
-  TopicMovement,
   TrendTimelineEvent,
+  WhatChanged,
+  WhatChangedRow,
 } from '../../data/dashboardAnalytics'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { TopicTrendsCard } from './TopicTrendsCard'
+import { ViolationTooltip } from './ViolationTooltip'
 
 function formatEventDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -27,257 +29,274 @@ function formatEventDate(iso: string) {
   })
 }
 
-function SentimentDelta({
-  face,
-  value,
-}: {
-  face: 'positive' | 'negative'
-  value: number
-}) {
-  const Face = face === 'positive' ? Smile : Frown
-  const Arrow = value > 0 ? ArrowUp : value < 0 ? ArrowDown : Minus
-  const tone = face === 'positive' ? 'text-[#269d42]' : 'text-[#f63b56]'
+// Pill colours shared with the feedback sentiment tags (FeedbackSegmentSection).
+// Worse = complaints went up, Better = down. Each kind differs in fill, not just
+// colour (solid / soft / outline / plain), so they stay apart without colour vision.
+const KIND_BADGE = {
+  worse: { label: 'Worse', Icon: TrendingUp, className: 'bg-[#f63b56] text-white' },
+  better: { label: 'Better', Icon: TrendingDown, className: 'bg-[#eaf9ec] text-[#08882c]' },
+  new: { label: 'New', Icon: Sparkle, className: 'bg-white text-[#1e55c5] ring-1 ring-[#1e55c5]/50 ring-inset' },
+  steady: { label: 'Steady', Icon: Minus, className: 'text-[#929292]' },
+} as const
 
-  return (
-    <div className="flex w-8.5 flex-col items-center gap-0.5">
-      <Face className={`${tone}`} size={15} />
-      <span className={`flex items-center gap-0.5 text-[10px] font-medium tracking-[0.1px] ${tone}`}>
-        <Arrow size={12} />
-        {Math.abs(value)}
-      </span>
-    </div>
-  )
+const KIND_HINT: Partial<Record<keyof typeof KIND_BADGE, string>> = {
+  steady: 'No clear change in complaints; listed for its possible violations',
 }
 
-function VolumeChangeIndicator({ row }: { row: TopicMovement }) {
-  if (row.status === 'new') {
-    return (
-      <span
-        className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#1e55c5]"
-      >
-        <Sparkle size={13} />
-        New
-      </span>
-    )
-  }
+/** Rows shown before "Show all". */
+const WHAT_CHANGED_PREVIEW = 5
 
-  if (row.status === 'inactive') {
-    return <span className="text-[12px] font-semibold tracking-[0.12px] text-[#929292]">—</span>
-  }
-
-  if (row.delta === 0) {
-    return (
-      <span
-        className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#929292]"
-      >
-        <Minus size={15} />
-        0
-      </span>
-    )
-  }
-
-  const Arrow = row.delta > 0 ? ArrowUp : ArrowDown
-  // Neutral on purpose: more mentions isn't good or bad by itself (it may be more
-  // complaints) — the sentiment faces beside it carry the good/bad colour.
+function Change({ previous, current, isNew }: { previous: number; current: number; isNew: boolean }) {
   return (
-    <span
-      className="flex items-center gap-0.5 text-[12px] font-semibold tracking-[0.12px] text-[#14181f]"
-    >
-      <Arrow size={15} />
-      {row.delta > 0 ? '+' : ''}
-      {row.delta}
+    <span className="w-28 shrink-0 text-center text-[14px] text-[#14181f] tabular-nums">
+      <span className="text-[#929292]">{isNew ? '—' : `${previous}%`} → </span>
+      {current}%
     </span>
   )
 }
 
-function formatSigned(value: number) {
-  return value > 0 ? `+${value}` : value < 0 ? `−${Math.abs(value)}` : '0'
+const DUMBBELL_COLOR: Record<keyof typeof KIND_BADGE, string> = {
+  worse: '#f63b56',
+  better: '#269d42',
+  new: '#1e55c5',
+  steady: '#929292',
 }
 
-/** Hover detail for a Rising/Declining row: now vs before, for mentions and sentiment. */
-function MovementTooltipBody({ row, comparisonLabel }: { row: TopicMovement; comparisonLabel: string }) {
-  const hasCounts = row.currentPositive !== undefined && row.previousPositive !== undefined
-  const lines = [
-    { label: 'Mentions', now: row.currentMentions, before: row.previousMentions, change: row.delta },
-    {
-      label: 'Positive',
-      now: row.currentPositive,
-      before: row.previousPositive,
-      change: row.positiveDelta,
-    },
-    {
-      label: 'Negative',
-      now: row.currentNegative,
-      before: row.previousNegative,
-      change: row.negativeDelta,
-    },
-  ]
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div>
-        <p className="m-0 max-w-72 font-semibold whitespace-normal text-[#14181f]">{row.label}</p>
-        <p className="m-0 text-[11px] text-[#929292]">{comparisonLabel}</p>
-      </div>
-      <table className="border-collapse text-[12px]">
-        <thead>
-          <tr className="text-[10px] text-[#929292]">
-            <th className="pr-4 text-left font-medium" scope="col">
-              <span className="sr-only">Metric</span>
-            </th>
-            {hasCounts ? (
-              <>
-                <th className="pr-3 text-right font-medium" scope="col">Now</th>
-                <th className="pr-3 text-right font-medium" scope="col">Before</th>
-              </>
-            ) : null}
-            <th className="text-right font-medium" scope="col">Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => (
-            <tr key={line.label}>
-              <th className="pr-4 text-left font-medium text-[#726f6f]" scope="row">
-                {line.label}
-              </th>
-              {hasCounts ? (
-                <>
-                  <td className="pr-3 text-right font-semibold text-[#14181f]">{line.now}</td>
-                  <td className="pr-3 text-right text-[#726f6f]">{line.before}</td>
-                </>
-              ) : null}
-              <td className="text-right font-semibold text-[#14181f]">{formatSigned(line.change)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {row.status === 'new' ? (
-        <p className="m-0 text-[11px] text-[#1e55c5]">New — not mentioned before this period</p>
-      ) : null}
-    </div>
+/**
+ * Complaints share before (hollow dot) → now (filled dot) on a shared 0–100% track,
+ * so rows compare at a glance. A big move on too few mentions = dashed line + hollow dots.
+ */
+function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: keyof typeof KIND_BADGE }) {
+  const { previous, current } = row.complaints
+  const isNew = kind === 'new'
+  // Moved a lot, but on too few mentions to rule out chance.
+  const tentative = kind === 'steady' && Math.abs(current - previous) >= 10
+  const color = DUMBBELL_COLOR[kind]
+  const counts = row.complaintCounts
+  const lo = isNew ? current : Math.min(previous, current)
+  const hi = isNew ? current : Math.max(previous, current)
+  const dot = 'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white'
+  // Same marks as on the track, so the tooltip doubles as its legend.
+  const legendDot = (filled: boolean) => (
+    <span
+      aria-hidden="true"
+      className="inline-block size-2.5 shrink-0 rounded-full border-2"
+      style={{ borderColor: color, backgroundColor: filled ? color : 'white' }}
+    />
   )
-}
 
-function TopicMovementRow({ row, comparisonLabel }: { row: TopicMovement; comparisonLabel: string }) {
   return (
-    <div className="flex items-center gap-2 py-2.5 pr-1 pl-2.5">
-      {/* Long AI-generated names wrap to two lines before truncating; the full name
-          is on hover (and at the top of the numbers' tooltip). */}
-      <span
-        className="line-clamp-2 min-w-0 flex-1 text-[12px] leading-4 font-semibold tracking-[0.12px] break-words text-black"
-        title={row.label}
-      >
-        {row.label}
-      </span>
-      <HoverTooltip>
-        <TooltipTrigger asChild>
-          {/* Focusable so the detail is reachable by keyboard too. */}
-          <div
-            aria-label={`${row.label}: ${row.currentMentions} mentions now, ${row.previousMentions} before`}
-            className="flex w-36 shrink-0 cursor-default items-center justify-between rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40"
-            tabIndex={0}
-          >
-            <VolumeChangeIndicator row={row} />
-            <div className="flex items-center gap-1">
-              <SentimentDelta face="positive" value={row.positiveDelta} />
-              <SentimentDelta face="negative" value={row.negativeDelta} />
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent align="end" side="top">
-          <MovementTooltipBody comparisonLabel={comparisonLabel} row={row} />
-        </TooltipContent>
-      </HoverTooltip>
-    </div>
-  )
-}
-
-function TopicMovementCard({
-  title,
-  icon,
-  comparisonLabel,
-  rows,
-  rule,
-  direction,
-}: {
-  title: string
-  icon: React.ReactNode
-  comparisonLabel: string
-  rows: TopicMovement[]
-  rule: { minDelta: number; limit: number }
-  direction: 'rising' | 'declining'
-}) {
-  return (
-    <section className="flex h-full flex-col gap-2 rounded-[15px] border border-[#f3f4f5] bg-white px-2 py-2">
-      <div className="flex h-7 items-center gap-2.5 pl-2.25">
-        {icon}
-        <h3 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-          {title}
-        </h3>
-        <HoverTooltip>
-          <TooltipTrigger asChild>
-            <button
-              aria-label={`How ${title} is worked out`}
-              className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
-              type="button"
-            >
-              <Info size={15} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-70 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-            Topics whose mentions went {direction === 'rising' ? 'up' : 'down'} by at least{' '}
-            {rule.minDelta} ({comparisonLabel}). The top {rule.limit} are shown. Hover a row's numbers
-            for the details.
-          </TooltipContent>
-        </HoverTooltip>
-      </div>
-      {rows.length > 0 ? (
-        <div className="flex items-start justify-between gap-2 pr-1 pl-2.5 text-[10px] leading-4.5 font-medium tracking-[0.1px] text-[#73777e]">
-          <span className="min-w-0">Topic: Change ({comparisonLabel})</span>
-          <div className="flex w-36 shrink-0 items-center justify-between">
-            <span>Volume</span>
-            <span>Sentiment</span>
-          </div>
-        </div>
-      ) : null}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {rows.map((row) => (
-          <TopicMovementRow comparisonLabel={comparisonLabel} key={row.id} row={row} />
-        ))}
-        {/* The card keeps the height of a full list, so say why it isn't full. */}
-        {rows.length < rule.limit ? (
-          <p className="m-0 flex flex-1 items-center justify-center px-4 py-3 text-center text-[12px] leading-4.5 text-[#929292]">
-            {rows.length === 0 ? 'No topics to show' : 'No more topics to show'}
+    <HoverTooltip>
+      <TooltipTrigger asChild>
+        <span className="flex w-44 shrink-0 flex-col items-stretch gap-0.5">
+          {/* px = dot radius, so dots at 0% / 100% stay inside the column. */}
+          <span className="px-1.25">
+            <span aria-hidden="true" className="relative block h-4">
+              <span className="absolute inset-x-0 top-1/2 h-px bg-[#e9eaed]" />
+              <span
+                className="absolute top-1/2 -translate-y-1/2 border-t-2"
+                style={{
+                  left: `${lo}%`,
+                  width: `${hi - lo}%`,
+                  borderColor: color,
+                  borderStyle: tentative ? 'dashed' : 'solid',
+                }}
+              />
+              {isNew ? null : (
+                <span className={`${dot} border-2 bg-white`} style={{ left: `${previous}%`, borderColor: color }} />
+              )}
+              <span
+                className={`${dot} border-2`}
+                style={{ left: `${current}%`, borderColor: color, backgroundColor: tentative ? 'white' : color }}
+              />
+            </span>
+          </span>
+          <span className="text-center text-[11px] text-[#726f6f] tabular-nums">
+            {isNew ? '—' : `${previous}%`} → {current}%
+          </span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="leading-4.5 text-[#3f4045]" side="top">
+        <p className="m-0 font-semibold text-[#14181f]">Complaints</p>
+        {counts ? (
+          <>
+            <p className="m-0 flex items-center gap-1.5">
+              {isNew ? null : legendDot(false)}
+              Before: {isNew ? 'no mentions' : `${counts.previous.negative} of ${counts.previous.total} mentions (${previous}%)`}
+            </p>
+            <p className="m-0 flex items-center gap-1.5">
+              {legendDot(!tentative)}
+              Now: {counts.current.negative} of {counts.current.total} mentions ({current}%)
+            </p>
+          </>
+        ) : (
+          <p className="m-0">
+            {isNew ? '—' : `${previous}%`} → {current}%
           </p>
+        )}
+        {tentative ? <p className="m-0 text-[11px] text-[#929292]">Too few mentions to tell this from chance</p> : null}
+      </TooltipContent>
+    </HoverTooltip>
+  )
+}
+
+function WhatChangedItem({
+  row,
+  onSelect,
+  onOpen,
+}: {
+  row: WhatChangedRow
+  onSelect?: (id: string) => void
+  onOpen?: (id: string) => void
+}) {
+  const kind = row.kind ?? 'steady'
+  const badge = KIND_BADGE[kind]
+  const isNew = row.kind === 'new'
+  return (
+    <li
+      className={`flex items-center gap-4 pr-5.5 transition-colors max-[640px]:flex-wrap ${
+        row.violations > 0 ? 'bg-[#fff7f8] hover:bg-[#fdeff1]' : 'hover:bg-[#f7f8fb]'
+      }`}
+    >
+      <button
+        className="flex min-h-13 min-w-0 flex-1 cursor-pointer items-center gap-4 border-l-[3px] border-transparent py-2.5 pl-4.75 text-left max-[640px]:flex-wrap"
+        onClick={() => onSelect?.(row.id)}
+        title="Show on the chart"
+        type="button"
+      >
+        <span
+          className={`flex w-21 shrink-0 items-center justify-center gap-1 rounded-full py-1 text-[11px] font-semibold ${badge.className}`}
+          title={KIND_HINT[kind]}
+        >
+          <badge.Icon className="shrink-0" size={13} />
+          {badge.label}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-[14px] text-[#14181f]" title={row.label}>
+              {row.label}
+            </span>
+            {row.violations > 0 ? (
+              <ViolationTooltip count={row.violations} scope="topic">
+                <span className="flex items-center gap-1 text-[12px] font-medium text-[#e0507a]">
+                  <TriangleAlert className="shrink-0" size={14} />
+                  {row.violations} possible violation{row.violations === 1 ? '' : 's'}
+                </span>
+              </ViolationTooltip>
+            ) : null}
+            {row.growth ? (
+              <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#726f6f]">
+                <TrendingUp className="shrink-0" size={14} />
+                {row.growth}× mentions
+              </span>
+            ) : null}
+          </div>
+          {row.quote ? (
+            <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-[#726f6f]">
+              <MessageSquareText className="shrink-0 text-[#1e55c5]" size={13} />
+              <span className="min-w-0 truncate">“{row.quote}”</span>
+            </span>
+          ) : null}
+        </div>
+        <Change current={row.share.current} isNew={isNew} previous={row.share.previous} />
+        <ComplaintsDumbbell kind={kind} row={row} />
+      </button>
+      {onOpen ? (
+        <button
+          aria-label={`View feedback for ${row.label}`}
+          className="flex w-28 shrink-0 cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          onClick={() => onOpen(row.id)}
+          type="button"
+        >
+          View feedback
+          <ArrowRight size={13} />
+        </button>
+      ) : null}
+    </li>
+  )
+}
+
+function WhatChangedCard({
+  data,
+  onTopicSelect,
+  onTopicOpen,
+}: {
+  data: WhatChanged | null
+  onTopicSelect?: (id: string) => void
+  onTopicOpen?: (id: string) => void
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const rows = data ? (showAll ? data.rows : data.rows.slice(0, WHAT_CHANGED_PREVIEW)) : []
+
+  return (
+    <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-2.5 pb-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5.5">
+        <div className="flex items-center gap-2">
+          <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+            What changed
+          </h2>
+          <HoverTooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-label="How What changed is worked out"
+                className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
+                type="button"
+              >
+                <Info size={15} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
+              The latest complete period against the one before. Worse or Better: the Complaints
+              share moved 10 points or more, or the number of people complaining (out of all
+              mentions) at least doubled or halved, and the counts are big enough to rule out
+              chance. New: no mentions before. Topics with possible violations come first. Click a topic to show
+              it on the chart, or View feedback to read it on Themes.
+            </TooltipContent>
+          </HoverTooltip>
+        </div>
+        {data ? (
+          <span className="text-[12px] font-medium text-[#726f6f]">
+            {data.currentLabel} compared with {data.previousLabel}
+          </span>
         ) : null}
       </div>
-    </section>
-  )
-}
 
-function EmergingIssuesCard({ issues }: { issues: EmergingIssue[] }) {
-  return (
-    <section className="flex flex-col gap-3 rounded-[15px] border border-[#e9eaed] bg-white px-5.75 py-3">
-      <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-        Emerging / High-Risk Issues
-      </h2>
-      {issues.map((issue) => (
-        <div className="flex items-center justify-between gap-3" key={issue.id}>
-          <div className="flex items-center gap-6.25">
-            <div className="flex size-13.25 shrink-0 items-center justify-center rounded-[10px] bg-[#fdecec]">
-              <TrendingUp className="text-[#f63b56]" size={26} />
-            </div>
-            <div className="flex flex-col">
-              <p className="m-0 text-[14px] font-semibold tracking-[0.14px] text-black">
-                {issue.title}
-              </p>
-              <p className="m-0 text-[12px] tracking-[0.12px] text-black">{issue.description}</p>
-            </div>
+      {!data ? (
+        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#929292]">
+          Not enough feedback yet to compare two complete periods in this range.
+        </p>
+      ) : data.rows.length === 0 ? (
+        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#929292]">
+          No big changes since {data.previousLabel}
+        </p>
+      ) : (
+        <>
+          <div className="flex h-6.25 items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
+            <span className="min-w-0 flex-1">Topic</span>
+            <span className="w-28 shrink-0 text-center">Share of mentions</span>
+            <span className="flex w-44 shrink-0 justify-between">
+              <span>0%</span>
+              <span>Complaints</span>
+              <span>100%</span>
+            </span>
+            {onTopicOpen ? <span aria-hidden="true" className="w-28 shrink-0" /> : null}
           </div>
-          <span className="flex h-8 shrink-0 items-center justify-center rounded-[5px] bg-[#fee6e8] px-2.5 text-[12px] font-bold tracking-[0.12px] text-[#f63b56]">
-            {issue.riskLabel}
-          </span>
-        </div>
-      ))}
+          <ul className="m-0 flex list-none flex-col p-0">
+            {rows.map((row) => (
+              <WhatChangedItem key={row.id} onOpen={onTopicOpen} onSelect={onTopicSelect} row={row} />
+            ))}
+          </ul>
+        </>
+      )}
+      {data && data.rows.length > WHAT_CHANGED_PREVIEW ? (
+        <button
+          className="mt-2 cursor-pointer self-start border-0 bg-transparent px-5.5 py-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          onClick={() => setShowAll((v) => !v)}
+          type="button"
+        >
+          {showAll ? 'Show less' : `Show all ${data.rows.length}`}
+        </button>
+      ) : null}
     </section>
   )
 }
@@ -331,10 +350,20 @@ export type TrendViewProps = {
    */
   pinned: string | null
   onPinnedChange: (id: string | null) => void
+  /** A What changed row was clicked — chart and pin that topic. */
+  onTopicSelect?: (id: string) => void
+  /** A What changed row's "View feedback" — open that topic on the Themes tab. */
+  onTopicOpen?: (id: string) => void
 }
 
-export function TrendView({ trend, topicControl, pinned, onPinnedChange }: TrendViewProps) {
-  const movementRule = trend.movementRule ?? { minDelta: 2, limit: 5 }
+export function TrendView({
+  trend,
+  topicControl,
+  pinned,
+  onPinnedChange,
+  onTopicSelect,
+  onTopicOpen,
+}: TrendViewProps) {
   // Ignored once it's no longer on the chart (e.g. the topic picker removed it) — or
   // not on it yet, while a "Compare" jump's new topic selection is still loading.
   const pinnedTopic = trend.topicVolumeSeries.some((entry) => entry.id === pinned) ? pinned : null
@@ -356,30 +385,15 @@ export function TrendView({ trend, topicControl, pinned, onPinnedChange }: Trend
         />
       </div>
 
-      {/* Rising | Declining, half the row each. Both take the taller card's height
-          (grid stretch), so the shorter one's note fills its spare space. */}
-      <div className="grid grid-cols-2 gap-4.5 max-[900px]:grid-cols-1" data-tour="trend-movement">
-        <TopicMovementCard
-          comparisonLabel={trend.comparisonLabel}
-          direction="rising"
-          icon={<TrendingUp className="text-[#1e55c5]" size={22} />}
-          rows={trend.risingTopics}
-          rule={movementRule}
-          title="Rising Topics"
-        />
-        <TopicMovementCard
-          comparisonLabel={trend.comparisonLabel}
-          direction="declining"
-          icon={<TrendingDown className="text-[#1e55c5]" size={22} />}
-          rows={trend.decliningTopics}
-          rule={movementRule}
-          title="Declining Topics"
+      <div data-tour="trend-movement">
+        <WhatChangedCard
+          data={trend.whatChanged ?? null}
+          onTopicOpen={onTopicOpen}
+          onTopicSelect={onTopicSelect}
         />
       </div>
 
-      {/* items-start: short cards (few issues/events) keep their own height. */}
-      <div className="grid grid-cols-2 items-start gap-4.5 max-[900px]:grid-cols-1" data-tour="trend-emerging">
-        <EmergingIssuesCard issues={trend.emergingIssues} />
+      <div data-tour="trend-emerging">
         <TimelineCard events={trend.timelineEvents} />
       </div>
     </div>

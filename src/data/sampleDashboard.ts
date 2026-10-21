@@ -165,7 +165,6 @@ export const SAMPLE_TREND: FormTrendAnalytics = {
   from: iso(1),
   to: iso(30),
   rangeLabel: SAMPLE_THEMES.rangeLabel,
-  comparisonLabel: 'last 7 days vs the 7 days before',
   totalMentions,
   topicVolumeSeries: charted.map((seed) => ({ id: seed.id, label: seed.label })),
   availableTopics: topics.map((t) => ({
@@ -210,22 +209,15 @@ export const SAMPLE_TREND: FormTrendAnalytics = {
       counts,
     }
   }),
-  risingTopics: [
-    { id: 'sample-wifi', label: 'Unreliable Wi-Fi in classrooms', currentMentions: 14, previousMentions: 9, delta: 5, status: 'existing', positiveDelta: 0, negativeDelta: 4 },
-    { id: 'sample-workload', label: 'Heavy assignment workload', currentMentions: 8, previousMentions: 6, delta: 2, status: 'existing', positiveDelta: 0, negativeDelta: 2 },
-  ],
-  decliningTopics: [
-    { id: 'sample-canteen', label: 'Canteen food and prices', currentMentions: 3, previousMentions: 5, delta: -2, status: 'existing', positiveDelta: 0, negativeDelta: -1 },
-  ],
-  movementRule: { minDelta: 2, limit: 5 },
-  emergingIssues: [
-    {
-      id: 'sample-grading',
-      title: 'Unfair grading reports',
-      description: 'New this month and flagged as a possible violation. Worth reviewing.',
-      riskLabel: 'High risk',
-    },
-  ],
+  whatChanged: {
+    currentLabel: 'Week of 22 Sep',
+    previousLabel: 'Week of 15 Sep',
+    rows: [
+      { id: 'sample-grading', label: 'Unfair grading reports', kind: 'new', share: { previous: 0, current: 6 }, complaints: { previous: 0, current: 80 }, violations: 1, quote: 'Marks were changed without any explanation.' },
+      { id: 'sample-wifi', label: 'Unreliable Wi-Fi in classrooms', kind: 'worse', share: { previous: 8, current: 14 }, complaints: { previous: 55, current: 79 }, violations: 0, quote: 'The Wi-Fi cut out twice during the online quiz.' },
+      { id: 'sample-canteen', label: 'Canteen food and prices', kind: 'better', share: { previous: 9, current: 5 }, complaints: { previous: 60, current: 40 }, violations: 0, quote: null },
+    ],
+  },
   timelineEvents: [
     { id: 'sample-wifi-spike', date: '29 Sep', description: 'Wi-Fi complaints jumped after the network upgrade.', change: 3, metricLabel: 'mentions' },
   ],

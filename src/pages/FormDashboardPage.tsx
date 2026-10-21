@@ -526,6 +526,13 @@ export function FormDashboardPage({
     window.scrollTo({ top: 0 })
   }
 
+  // Trend's What changed → Themes with that topic's panel open (same range + demographics).
+  const openInThemes = (topicId: string) => {
+    setSelectedTopicId(topicId)
+    setActiveView('themes')
+    window.scrollTo({ top: 0 })
+  }
+
   // Themes panel → Individual tab with that response open. The topic stays selected,
   // so going back to Themes reopens it.
   const openResponse = (submissionId: number) => {
@@ -1104,6 +1111,8 @@ export function FormDashboardPage({
                       ) : null
                     }
                     onPinnedChange={setTrendPinned}
+                    onTopicOpen={openInThemes}
+                    onTopicSelect={compareInTrend}
                     pinned={trendPinned}
                     trend={trend}
                   />

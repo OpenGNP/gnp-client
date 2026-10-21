@@ -106,34 +106,26 @@ export type TrendAvailableTopic = {
   violations: number
 }
 
-export type TopicMovementStatus = 'existing' | 'new' | 'inactive'
-
-/** Mention COUNTS over two rolling windows ending at the filter's last day:
- *  current = the last N days, previous = the N days before. */
-export type TopicMovement = {
+/** One "What changed" row: the latest complete period vs the one before it. */
+export type WhatChangedRow = {
   id: string
   label: string
-  currentMentions: number
-  previousMentions: number
-  /** currentMentions − previousMentions. */
-  delta: number
-  status: TopicMovementStatus
-  /** Positive / negative mentions: current count − previous count. */
-  positiveDelta: number
-  negativeDelta: number
-  /** The raw counts behind those deltas (row hover detail). Missing from older API responses. */
-  currentPositive?: number
-  previousPositive?: number
-  currentNegative?: number
-  previousNegative?: number
+  /** null = no clear change; only listed for its violations. */
+  kind: 'worse' | 'better' | 'new' | null
+  /** Share of mentions now ÷ before, when it at least doubled beyond chance. Missing from older API responses. */
+  growth?: number | null
+  /** The topic's share of all mentions in each period (%). */
+  share: { previous: number; current: number }
+  /** Share of the topic's own mentions that were negative (%). */
+  complaints: { previous: number; current: number }
+  /** The counts behind `complaints`. Missing from older API responses. */
+  complaintCounts?: { previous: { negative: number; total: number }; current: { negative: number; total: number } }
+  /** Possible violations in the current period. */
+  violations: number
+  quote: string | null
 }
 
-export type EmergingIssue = {
-  id: string
-  title: string
-  description: string
-  riskLabel: string
-}
+export type WhatChanged = { currentLabel: string; previousLabel: string; rows: WhatChangedRow[] }
 
 export type TrendTimelineEvent = {
   id: string
@@ -179,7 +171,6 @@ export type FormTrendAnalytics = {
   from: string
   to: string
   rangeLabel: string
-  comparisonLabel: string
   /** Analysed mentions for this form across all time — "no data yet" vs "range too narrow". */
   totalMentions: number
   /** The lines currently on the chart. */
@@ -192,11 +183,8 @@ export type FormTrendAnalytics = {
   /** Per charted topic: mentions + sentiment over the whole window. */
   topicSummaries: TrendTopicSummary[]
   sentimentSeries: TrendSentimentPoint[]
-  risingTopics: TopicMovement[]
-  decliningTopics: TopicMovement[]
-  /** How a topic qualifies for Rising/Declining (shown in the cards' info tooltip). */
-  movementRule?: { minDelta: number; limit: number }
-  emergingIssues: EmergingIssue[]
+  /** null = the range doesn't hold two complete periods with feedback. Missing from older API responses. */
+  whatChanged?: WhatChanged | null
   timelineEvents: TrendTimelineEvent[]
 }
 

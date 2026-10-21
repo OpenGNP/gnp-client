@@ -64,13 +64,13 @@ export const TREND_TOUR: TourStep[] = [
   },
   {
     target: '[data-tour="trend-movement"]',
-    title: 'Rising and declining',
-    text: 'Topics people are mentioning more, or less, than in the period before.',
+    title: 'What changed',
+    text: 'The latest full period against the one before: topics with more or fewer complaints, new topics, and possible violations first. Click one to see it on the chart.',
   },
   {
     target: '[data-tour="trend-emerging"]',
-    title: 'What to look at first',
-    text: 'New or high-risk issues the AI picked up, and the moments a topic spiked.',
+    title: 'Spikes',
+    text: 'The moments a topic was mentioned far more than usual.',
   },
 ]
 
