@@ -159,8 +159,8 @@ export type FeedbackSegmentSectionProps = {
    * questions only the chosen answers are offered — the data is already narrowed to them.
    */
   mainDemoSelection?: Record<string, string[]>
-  /** A period picked on the topic's volume chart: only points counted in that bar. */
-  period?: { index: number; label: string } | null
+  /** A period picked on the topic's volume chart (its bar `index`), or a date span [from, to) from What changed. */
+  period?: { label: string; index?: number; from?: string; to?: string } | null
   onClearPeriod?: () => void
   /** The dashboard's "Hide names" toggle. */
   hideNames?: boolean
@@ -249,7 +249,11 @@ export function FeedbackSegmentSection({
       ) {
         return false
       }
-      if (period && point.volumeBucket !== period.index) return false
+      if (period?.index !== undefined && point.volumeBucket !== period.index) return false
+      if (period?.from && period.to) {
+        const t = Date.parse(point.submittedAt)
+        if (t < Date.parse(period.from) || t >= Date.parse(period.to)) return false
+      }
       if (violationsOnly && !point.violation) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false

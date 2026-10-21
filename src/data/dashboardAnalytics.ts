@@ -125,7 +125,17 @@ export type WhatChangedRow = {
   quote: string | null
 }
 
-export type WhatChanged = { currentLabel: string; previousLabel: string; rows: WhatChangedRow[] }
+export type WhatChanged = {
+  currentLabel: string
+  previousLabel: string
+  /** The current period as [currentFrom, currentTo) ISO. Missing from older API responses. */
+  currentFrom?: string
+  currentTo?: string
+  rows: WhatChangedRow[]
+}
+
+/** A date span the Themes feedback list can be narrowed to (from What changed). */
+export type FeedbackDateRange = { label: string; from: string; to: string }
 
 export type TrendTimelineEvent = {
   id: string

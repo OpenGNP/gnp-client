@@ -60,7 +60,7 @@ import { FormActionButton } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { HeadroomBar } from '../components/navigation/HeadroomBar'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
-import type { FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
+import type { FeedbackDateRange, FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
 import { useDetailPanelLayout } from '../hooks/useDetailPanelLayout'
 import { useNow } from '../hooks/useNow'
 import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
@@ -250,6 +250,12 @@ export function FormDashboardPage({
 
   const [activeView, setActiveView] = useState<DashboardView>('themes')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+  // Set when the panel is opened from Trend's What changed: its feedback starts on that period.
+  const [topicDateRange, setTopicDateRange] = useState<FeedbackDateRange | null>(null)
+  const selectTopic = (topicId: string | null) => {
+    setSelectedTopicId(topicId)
+    setTopicDateRange(null)
+  }
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
   const [responseQuery, setResponseQuery] = useState('')
   const [topicQuery, setTopicQuery] = useState('')
@@ -528,7 +534,13 @@ export function FormDashboardPage({
 
   // Trend's What changed → Themes with that topic's panel open (same range + demographics).
   const openInThemes = (topicId: string) => {
+    const changed = trend?.whatChanged
     setSelectedTopicId(topicId)
+    setTopicDateRange(
+      changed?.currentFrom && changed.currentTo
+        ? { label: changed.currentLabel, from: changed.currentFrom, to: changed.currentTo }
+        : null,
+    )
     setActiveView('themes')
     window.scrollTo({ top: 0 })
   }
@@ -958,7 +970,7 @@ export function FormDashboardPage({
                       id={TOPIC_LIST_ID}
                       onQueryChange={setTopicQuery}
                       onSortChange={setTopicSort}
-                      onSelectTopic={setSelectedTopicId}
+                      onSelectTopic={selectTopic}
                       pageSize={15}
                       query={topicQuery}
                       sort={topicSort}
@@ -1145,7 +1157,8 @@ export function FormDashboardPage({
             demographicFilters={themes.demographicFilters}
             hidden={activeView !== 'themes'}
             initialQuery={topicQuery}
-            key={openTopic.id}
+            initialDateRange={topicDateRange}
+            key={`${openTopic.id}-${topicDateRange?.from ?? ''}`}
             mainDemoSelection={demoSel}
             onClose={() => setSelectedTopicId(null)}
             hideNames={hideNames}

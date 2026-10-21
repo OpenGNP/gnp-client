@@ -35,11 +35,31 @@ function formatEventDate(iso: string) {
 type ChangeKind = 'worse' | 'new' | 'better' | 'steady'
 
 /** The card's groups, in the order to act on them. Steady rows are only there for violations. */
-const GROUPS: { kind: ChangeKind; title: string; Icon: typeof TrendingUp; tone: string }[] = [
-  { kind: 'worse', title: 'Getting worse', Icon: TrendingUp, tone: 'text-[#e12b0c]' },
+const GROUPS: {
+  kind: ChangeKind
+  title: string
+  Icon: typeof TrendingUp
+  tone: string
+}[] = [
+  {
+    kind: 'worse',
+    title: 'Getting worse',
+    Icon: TrendingUp,
+    tone: 'text-[#e12b0c]',
+  },
   { kind: 'new', title: 'New topics', Icon: Sparkle, tone: 'text-[#1e55c5]' },
-  { kind: 'better', title: 'Improving', Icon: TrendingDown, tone: 'text-[#08882c]' },
-  { kind: 'steady', title: 'Flagged, no clear change', Icon: Minus, tone: 'text-[#726f6f]' },
+  {
+    kind: 'better',
+    title: 'Improving',
+    Icon: TrendingDown,
+    tone: 'text-[#08882c]',
+  },
+  {
+    kind: 'steady',
+    title: 'Flagged, no clear change',
+    Icon: Minus,
+    tone: 'text-[#726f6f]',
+  },
 ]
 
 /** Rows shown per group before "Show all". */
@@ -93,11 +113,18 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
                 }}
               />
               {isNew ? null : (
-                <span className={`${dot} border-2 bg-white`} style={{ left: `${previous}%`, borderColor: color }} />
+                <span
+                  className={`${dot} border-2 bg-white`}
+                  style={{ left: `${previous}%`, borderColor: color }}
+                />
               )}
               <span
                 className={`${dot} border-2`}
-                style={{ left: `${current}%`, borderColor: color, backgroundColor: tentative ? 'white' : color }}
+                style={{
+                  left: `${current}%`,
+                  borderColor: color,
+                  backgroundColor: tentative ? 'white' : color,
+                }}
               />
             </span>
           </span>
@@ -112,7 +139,10 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
           <>
             <p className="m-0 flex items-center gap-1.5">
               {isNew ? null : legendDot(false)}
-              Before: {isNew ? 'no mentions' : `${counts.previous.negative} of ${counts.previous.total} mentions (${previous}%)`}
+              Before:{' '}
+              {isNew
+                ? 'no mentions'
+                : `${counts.previous.negative} of ${counts.previous.total} mentions (${previous}%)`}
             </p>
             <p className="m-0 flex items-center gap-1.5">
               {legendDot(!tentative)}
@@ -124,7 +154,9 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
             {isNew ? '—' : `${previous}%`} → {current}%
           </p>
         )}
-        {tentative ? <p className="m-0 text-[11px] text-[#929292]">Too few mentions to tell this from chance</p> : null}
+        {tentative ? (
+          <p className="m-0 text-[11px] text-[#929292]">Too few mentions to tell this from chance</p>
+        ) : null}
       </TooltipContent>
     </HoverTooltip>
   )
@@ -146,8 +178,9 @@ function WhatChangedItem({
         row.violations > 0 ? 'bg-[#fff7f8] hover:bg-[#fdeff1]' : 'hover:bg-[#f7f8fb]'
       }`}
     >
+      {/* Capped so on wide screens the dumbbell stays next to the topic name. */}
       <button
-        className={`flex min-h-13 min-w-0 flex-1 cursor-pointer items-center gap-4 border-l-[3px] py-2.5 pl-4.75 text-left max-[640px]:flex-wrap ${
+        className={`flex min-h-13 min-w-0 max-w-220 flex-1 cursor-pointer items-center gap-4 border-l-[3px] py-2.5 pl-4.75 text-left max-[640px]:flex-wrap ${
           kind === 'worse' ? 'border-[#f63b56]' : 'border-transparent'
         }`}
         onClick={() => onSelect?.(row.id)}
@@ -162,7 +195,8 @@ function WhatChangedItem({
               <ViolationTooltip count={row.violations} scope="topic">
                 <span className="flex items-center gap-1 text-[12px] font-medium text-[#e0507a]">
                   <TriangleAlert className="shrink-0" size={14} />
-                  {row.violations} possible violation{row.violations === 1 ? '' : 's'}
+                  {row.violations} possible violation
+                  {row.violations === 1 ? '' : 's'}
                 </span>
               </ViolationTooltip>
             ) : null}
@@ -247,8 +281,13 @@ function WhatChangedGroup({
   if (kind === 'steady') {
     return (
       <Collapsible className="flex flex-col">
-        <CollapsibleTrigger className={`${headingClass} group cursor-pointer border-0 bg-transparent text-left`}>
-          <ChevronRight className="shrink-0 transition-transform group-data-[state=open]:rotate-90" size={15} />
+        <CollapsibleTrigger
+          className={`${headingClass} group cursor-pointer border-0 bg-transparent text-left`}
+        >
+          <ChevronRight
+            className="shrink-0 transition-transform group-data-[state=open]:rotate-90"
+            size={15}
+          />
           {heading}
         </CollapsibleTrigger>
         <CollapsibleContent className="flex flex-col">{list}</CollapsibleContent>
@@ -290,9 +329,9 @@ function WhatChangedCard({
               </button>
             </TooltipTrigger>
             <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-              The latest full period against the one before. Topics are listed when their
-              complaints clearly rise or fall, not just by chance, or when they&apos;re new. Click a
-              topic to see it on the chart.
+              The latest full period against the one before. Topics are listed when their complaints clearly
+              rise or fall, not just by chance, or when they&apos;re new. Click a topic to see it on the
+              chart.
             </TooltipContent>
           </HoverTooltip>
         </div>
@@ -314,12 +353,34 @@ function WhatChangedCard({
       ) : (
         <>
           <p className="m-0 px-5.5 text-[14px] leading-5 text-[#14181f]">{whatChangedSummary(data.rows)}</p>
-          <div className="mt-2 flex h-6.25 items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
-            <span className="min-w-0 flex-1">Topic</span>
-            <span className="flex w-44 shrink-0 justify-between">
-              <span>0%</span>
-              <span>Complaints</span>
-              <span>100%</span>
+          <div className="mt-2 flex items-end gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
+            {/* Same cap as a row's button (minus its 22px left inset), so columns line up. */}
+            <span className="flex min-w-0 max-w-[858px] flex-1 items-end gap-4">
+              <span className="min-w-0 flex-1">Topic</span>
+              <span className="flex w-44 shrink-0 flex-col gap-0.5">
+                {/* Legend for the dumbbell marks: fill tells them apart, not colour. */}
+                <span className="flex items-center justify-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1">
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 rounded-full border-2 border-[#929292] bg-white"
+                    />
+                    Before
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 rounded-full border-2 border-[#929292] bg-[#929292]"
+                    />
+                    Now
+                  </span>
+                </span>
+                <span className="flex justify-between">
+                  <span>0%</span>
+                  <span>Complaints</span>
+                  <span>100%</span>
+                </span>
+              </span>
             </span>
             {onTopicOpen ? <span aria-hidden="true" className="w-28 shrink-0" /> : null}
           </div>
@@ -352,9 +413,7 @@ function TimelineCard({ events }: { events: TrendTimelineEvent[] }) {
           <li className="flex gap-4" key={event.id}>
             <div className="flex flex-col items-center">
               <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[#1e55c5]" />
-              {index < events.length - 1 ? (
-                <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" />
-              ) : null}
+              {index < events.length - 1 ? <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" /> : null}
             </div>
             <div className="flex flex-1 items-start justify-between gap-4 pb-4">
               <div className="flex flex-col">
@@ -368,9 +427,7 @@ function TimelineCard({ events }: { events: TrendTimelineEvent[] }) {
                   <ArrowUp size={15} />
                   {event.change}
                 </span>
-                <span className="text-[10px] tracking-[0.1px] text-[#73777e]">
-                  {event.metricLabel}
-                </span>
+                <span className="text-[10px] tracking-[0.1px] text-[#73777e]">{event.metricLabel}</span>
               </div>
             </div>
           </li>

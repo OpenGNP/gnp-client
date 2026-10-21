@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { TooltipContentProps } from 'recharts'
 
-import type { TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
+import type { FeedbackDateRange, TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SENTIMENT_KEYS, sharesOf } from '../../lib/sentimentTrendSummary'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
 import { DetailPanel } from './DetailPanel'
@@ -110,6 +110,8 @@ export type TopicDetailPanelProps = {
   hidden?: boolean
   /** Docked beside the content, or a drawer over it when docking would be too narrow. */
   layout: DetailPanelLayout
+  /** Opened from What changed: the feedback list starts narrowed to that period. */
+  initialDateRange?: FeedbackDateRange | null
 }
 
 export function TopicDetailPanel({
@@ -121,6 +123,7 @@ export function TopicDetailPanel({
   onOpenResponse,
   initialQuery,
   layout,
+  initialDateRange = null,
   demographicFilters,
   mainDemoSelection,
 }: TopicDetailPanelProps) {
@@ -135,9 +138,12 @@ export function TopicDetailPanel({
   const [picked, setPicked] = useState<{ index: number; label: string } | null>(null)
   // Dropped if a refetch (range/filter change) moved the buckets out from under it.
   const period = picked && volumeBars[picked.index]?.label === picked.label ? picked : null
+  // A bar pick replaces it; clearing the chip clears both.
+  const [dateRange, setDateRange] = useState(initialDateRange)
   const togglePeriod = (index: number) => {
     const bar = volumeBars[index]
     if (!bar || bar.value === 0) return
+    setDateRange(null)
     setPicked(period?.index === index ? null : { index, label: bar.label })
   }
 
@@ -319,10 +325,13 @@ export function TopicDetailPanel({
         hideNames={hideNames}
         key={JSON.stringify(mainDemoSelection ?? {})}
         mainDemoSelection={mainDemoSelection}
-        onClearPeriod={() => setPicked(null)}
+        onClearPeriod={() => {
+          setPicked(null)
+          setDateRange(null)
+        }}
         initialQuery={initialQuery}
         onOpenResponse={onOpenResponse}
-        period={period}
+        period={period ?? dateRange}
       />
     </DetailPanel>
   )
