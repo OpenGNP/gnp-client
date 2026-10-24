@@ -223,7 +223,7 @@ function WhatChangedItem({
       {onOpen ? (
         <button
           aria-label={`View feedback for ${row.label}`}
-          className="flex w-28 shrink-0 cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          className="ml-auto flex w-28 shrink-0 cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
           onClick={() => onOpen(row.id)}
           type="button"
         >
