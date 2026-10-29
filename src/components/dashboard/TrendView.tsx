@@ -438,7 +438,7 @@ function TimelineCard({
                   />
                   {index < events.length - 1 ? <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" /> : null}
                 </div>
-                <div className="flex-1 pb-4">
+                <div className="min-w-0 flex-1 pb-4">
                   <button
                     aria-pressed={isPinned}
                     className={`-mx-2 -my-1 flex w-[calc(100%+1rem)] cursor-pointer items-start justify-between gap-4 rounded-lg border-0 px-2 py-1 text-left transition-colors ${
@@ -456,7 +456,7 @@ function TimelineCard({
                       <p className="m-0 truncate text-[14px] font-semibold tracking-[0.14px] text-black">{label}</p>
                       <p className="m-0 text-[12px] tracking-[0.12px] text-black">
                         {periodOf(event.bucketIndex)} · usually ~{event.usual}
-                        {color ? null : <span className="text-[#73777e]"> · not on chart</span>}
+                        {color ? null : <span className="whitespace-nowrap text-[#73777e]"> · not on chart</span>}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end">
@@ -529,21 +529,24 @@ export function TrendView({
         />
       </div>
 
-      <div data-tour="trend-movement">
-        <WhatChangedCard
-          data={trend.whatChanged ?? null}
-          onTopicOpen={onTopicOpen}
-          onTopicSelect={onTopicSelect}
-        />
-      </div>
+      {/* Wide screens: Timeline is a sticky rail beside What changed; else it stacks below. */}
+      <div className="flex flex-col gap-4.5 min-[1280px]:grid min-[1280px]:grid-cols-[minmax(0,1fr)_300px] min-[1280px]:items-start">
+        <div data-tour="trend-movement">
+          <WhatChangedCard
+            data={trend.whatChanged ?? null}
+            onTopicOpen={onTopicOpen}
+            onTopicSelect={onTopicSelect}
+          />
+        </div>
 
-      <div data-tour="trend-emerging">
-        <TimelineCard
-          onPinnedChange={pinFromTimeline}
-          onTopicSelect={onTopicSelect}
-          pinned={pinnedTopic}
-          trend={trend}
-        />
+        <div className="min-[1280px]:sticky min-[1280px]:top-4" data-tour="trend-emerging">
+          <TimelineCard
+            onPinnedChange={pinFromTimeline}
+            onTopicSelect={onTopicSelect}
+            pinned={pinnedTopic}
+            trend={trend}
+          />
+        </div>
       </div>
     </div>
   )
