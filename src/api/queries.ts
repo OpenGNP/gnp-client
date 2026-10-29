@@ -10,6 +10,7 @@ import {
 } from './analytics'
 import { listFolders } from './folders'
 import { getCollaborators, getForm, getPublicFormByToken, listForms, listSharedForms, resolveFormRef } from './forms'
+import { getMe } from './users'
 import { resolveSession } from '../lib/auth'
 
 /** Every query key lives here so invalidation can't drift from the queries themselves. */
@@ -27,7 +28,10 @@ export const queryKeys = {
   trend: (id: number, query: TrendQuery) => ['analytics', id, 'trend', query] as const,
   publicByToken: (token: string) => ['public-form', 'token', token] as const,
   session: ['session'] as const,
+  me: ['me'] as const,
 }
+
+export const meQuery = () => queryOptions({ queryKey: queryKeys.me, queryFn: getMe })
 
 export const formsQuery = () => queryOptions({ queryKey: queryKeys.forms, queryFn: () => listForms() })
 
