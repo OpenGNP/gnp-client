@@ -24,6 +24,7 @@ import { EditFormPage } from './pages/EditFormPage'
 import { FilesPage } from './pages/FilesPage'
 import { FormDashboardPage } from './pages/FormDashboardPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { SharedPage } from './pages/SharedPage'
 import { HomePage } from './pages/HomePage'
 import {
@@ -183,6 +184,12 @@ function App() {
 
   // No navigate() needed — AppGate reacts to the status flip and swaps <App/> for
   // the /login redirect on its own.
+  function handleGoProfile() {
+    setIsCreateFormSettingsOpen(false)
+    closeSidebarOnNarrowViewport()
+    navigate('/profile')
+  }
+
   function handleLogout() {
     void logout()
   }
@@ -603,6 +610,7 @@ function App() {
           onGoShared={handleGoShared}
           onGoHome={handleGoHome}
           onLogout={handleLogout}
+          onGoProfile={handleGoProfile}
           onMoveProject={handleMoveProject}
           onOpenSharedForm={(urlId) => {
             closeSidebarOnNarrowViewport()
@@ -649,6 +657,7 @@ function App() {
           />
           <Route path="/my-forms" element={filesPageElement} />
           <Route path="/shared" element={<SharedPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/my-forms/:folderId" element={filesPageElement} />
           <Route
             path="/create-form"

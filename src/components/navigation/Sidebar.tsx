@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   PlusCircle,
   Search,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
@@ -79,6 +80,7 @@ export type SidebarProps = {
   onGoShared: () => void
   onGoHome: () => void
   onLogout: () => void
+  onGoProfile: () => void
   onMoveProject: (projectId: string, target: MoveTarget) => void
   /** A form shared with me, picked in search: opens its dashboard. */
   onOpenSharedForm: (urlId: string) => void
@@ -182,6 +184,7 @@ function SidebarRail({
   onGoShared,
   onGoHome,
   onLogout,
+  onGoProfile,
   animate = false,
 }: {
   activeNav: 'home' | 'files' | 'shared' | null
@@ -196,6 +199,7 @@ function SidebarRail({
   onGoShared: () => void
   onGoHome: () => void
   onLogout: () => void
+  onGoProfile: () => void
 }) {
   return (
     <aside
@@ -328,6 +332,10 @@ function SidebarRail({
                 <p className="m-0 truncate text-[12px] text-[#888683]">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onGoProfile}>
+                <UserRound size={14} />
+                Profile
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={onLogout}>
                 <LogOut size={14} />
                 Log out
@@ -730,6 +738,7 @@ function ProjectNavigation({
   | 'onGoShared'
   | 'onGoHome'
   | 'onLogout'
+  | 'onGoProfile'
   | 'onToggleCollapse'
   | 'onOpenSharedForm'
 > & { expandAction?: ExpandAction; onOpenSearch: () => void }) {
@@ -890,7 +899,15 @@ function ProjectNavigation({
   )
 }
 
-function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => void }) {
+function UserProfile({
+  user,
+  onLogout,
+  onGoProfile,
+}: {
+  user: SidebarUser
+  onLogout: () => void
+  onGoProfile: () => void
+}) {
   return (
     <div className="flex h-20.75 items-center gap-2.5 border-t border-[#eef1f5] pr-5.75 pl-7.25">
       <UserAvatar
@@ -919,6 +936,10 @@ function UserProfile({ user, onLogout }: { user: SidebarUser; onLogout: () => vo
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-35">
+          <DropdownMenuItem onSelect={onGoProfile}>
+            <UserRound size={14} />
+            Profile
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onLogout}>
             <LogOut size={14} />
             Log out
@@ -946,6 +967,7 @@ export function Sidebar({
   onGoShared,
   onGoHome,
   onLogout,
+  onGoProfile,
   onMoveProject,
   onOpenSharedForm,
   onSelectProject,
@@ -1001,6 +1023,7 @@ export function Sidebar({
         onGoShared={onGoShared}
         onGoHome={onGoHome}
         onLogout={onLogout}
+        onGoProfile={onGoProfile}
         onOpenSearch={() => setIsSearchOpen(true)}
         animate={hasToggled}
       />
@@ -1065,7 +1088,7 @@ export function Sidebar({
               onSelectProject={onSelectProject}
               onToggleFolder={onToggleFolder}
             />
-            <UserProfile onLogout={onLogout} user={user} />
+            <UserProfile onLogout={onLogout} onGoProfile={onGoProfile} user={user} />
           </>
         ) : null}
       </div>
