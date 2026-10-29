@@ -14,6 +14,7 @@ import { useRef, useState } from 'react'
 
 import type {
   FormTrendAnalytics,
+  TrendTimelineEvent,
   WhatChanged,
   WhatChangedRow,
 } from '../../data/dashboardAnalytics'
@@ -56,6 +57,8 @@ const GROUPS: {
 
 /** Rows shown per group before "Show all". */
 const WHAT_CHANGED_PREVIEW = 5
+/** Spikes shown before "Show all". */
+const TIMELINE_PREVIEW = 5
 
 const DUMBBELL_COLOR: Record<ChangeKind, string> = {
   worse: '#f63b56',
@@ -407,7 +410,12 @@ function TimelineCard({
   /** Charts + pins a topic that isn't on the chart yet. */
   onTopicSelect?: (id: string) => void
 }) {
+  const [showAll, setShowAll] = useState(false)
   const events = trend.timelineEvents
+  // The server ranks by spike size; show the biggest few, in time order.
+  const shown = (showAll ? events : events.slice(0, TIMELINE_PREVIEW)).toSorted(
+    (a, b) => b.date.localeCompare(a.date),
+  )
   // availableTopics covers every in-window topic, not only the charted ones.
   const labelById = new Map(trend.availableTopics.map((entry) => [entry.id, entry.label]))
   const colorById = topicColorMap(trend.topicVolumeSeries)
@@ -415,6 +423,13 @@ function TimelineCard({
   const periodOf = (index: number) => {
     const label = String(trend.volumeSeries[index]?.label ?? '')
     return trend.bucket === 'week' ? `Week of ${label}` : label
+  }
+  // Newest first, so a period's spikes are already next to each other.
+  const groups: { bucketIndex: number; events: TrendTimelineEvent[] }[] = []
+  for (const event of shown) {
+    const last = groups.at(-1)
+    if (last?.bucketIndex === event.bucketIndex) last.events.push(event)
+    else groups.push({ bucketIndex: event.bucketIndex, events: [event] })
   }
   return (
     <section className="flex flex-col gap-3 rounded-[15px] border border-[#f3f4f5] bg-white px-5.75 py-3">
@@ -424,55 +439,80 @@ function TimelineCard({
       {events.length === 0 ? (
         <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#73777e]">No unusual spikes in this range.</p>
       ) : (
-        <ol className="m-0 flex list-none flex-col p-0">
-          {events.map((event, index) => {
-            const label = labelById.get(event.topicId) ?? 'Untitled topic'
-            const isPinned = pinned === event.topicId
-            const color = colorById.get(event.topicId)
-            return (
-              <li className="flex gap-4" key={event.id}>
-                <div className="flex flex-col items-center">
-                  <span
-                    className="mt-1.5 size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: color ?? '#c9cfdb' }}
-                  />
-                  {index < events.length - 1 ? <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" /> : null}
-                </div>
-                <div className="min-w-0 flex-1 pb-4">
-                  <button
-                    aria-pressed={isPinned}
-                    className={`-mx-2 -my-1 flex w-[calc(100%+1rem)] cursor-pointer items-start justify-between gap-4 rounded-lg border-0 px-2 py-1 text-left transition-colors ${
-                      isPinned ? 'bg-[#eef3fd]' : 'bg-transparent hover:bg-[#f7f8fb]'
-                    }`}
-                    onClick={() =>
-                      color ? onPinnedChange(isPinned ? null : event.topicId) : onTopicSelect?.(event.topicId)
-                    }
-                    title={
-                      isPinned ? 'Pinned — click to unpin' : color ? 'Highlight on Topic Trends' : 'Add to Topic Trends'
-                    }
-                    type="button"
-                  >
-                    <div className="flex min-w-0 flex-col">
-                      <p className="m-0 truncate text-[14px] font-semibold tracking-[0.14px] text-black">{label}</p>
-                      <p className="m-0 text-[12px] tracking-[0.12px] text-black">
-                        {periodOf(event.bucketIndex)} · usually ~{event.usual}
-                        {color ? null : <span className="whitespace-nowrap text-[#73777e]"> · not on chart</span>}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end">
-                      <span className="flex items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#f63b56]">
-                        <ArrowUp size={15} />
-                        {event.count - event.usual}
-                      </span>
-                      <span className="text-[10px] tracking-[0.1px] text-[#73777e]">{event.count} mentions</span>
-                    </div>
-                  </button>
-                </div>
-              </li>
-            )
-          })}
+        <ol className="relative m-0 flex list-none flex-col gap-2 p-0 pb-2">
+          <span aria-hidden="true" className="absolute top-2 bottom-6 left-1 w-0.5 rounded-full bg-[#c9cfdb]" />
+          {groups.map((group) => (
+            <li className="flex flex-col" key={group.bucketIndex}>
+              <p className="m-0 py-0.5 pl-6.5 text-[12px] font-semibold tracking-[0.12px] text-[#73777e]">
+                {periodOf(group.bucketIndex)}
+              </p>
+              <ul className="m-0 flex list-none flex-col p-0">
+                {group.events.map((event) => {
+                  const label = labelById.get(event.topicId) ?? 'Untitled topic'
+                  const isPinned = pinned === event.topicId
+                  const color = colorById.get(event.topicId)
+                  return (
+                    <li className="relative flex items-center gap-4" key={event.id}>
+                      <span
+                        aria-hidden="true"
+                        className="size-2.5 shrink-0 rounded-full ring-2 ring-white"
+                        style={{ backgroundColor: color ?? '#c9cfdb' }}
+                      />
+                      <HoverTooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <button
+                            aria-pressed={isPinned}
+                            className={`-mx-2 flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 rounded-lg border-0 px-2 py-1 text-left transition-colors ${
+                              isPinned ? 'bg-[#eef3fd]' : 'bg-transparent hover:bg-[#f7f8fb]'
+                            }`}
+                            onClick={() =>
+                              color ? onPinnedChange(isPinned ? null : event.topicId) : onTopicSelect?.(event.topicId)
+                            }
+                            type="button"
+                          >
+                            <span className="min-w-0 truncate text-[14px] text-[#14181f]">
+                              {label}
+                            </span>
+                            {/* Neutral, not red: more mentions isn't good or bad by itself. */}
+                            <span className="flex shrink-0 items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#1e55c5]">
+                              <ArrowUp size={15} />
+                              {event.count - event.usual}
+                              <span className="sr-only">
+                                {' '}
+                                more mentions than usual ({event.count}, usually about {event.usual})
+                              </span>
+                            </span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-64 whitespace-normal leading-4.5 text-[#3f4045]" side="left">
+                          <span className="block font-semibold">{label}</span>
+                          {event.count} mentions, usually ~{event.usual}
+                          <span className="block text-[#73777e]">
+                            {isPinned
+                              ? 'Pinned. Click to unpin'
+                              : color
+                                ? 'Click to highlight on Topic Trends'
+                                : 'Not on the chart. Click to add it'}
+                          </span>
+                        </TooltipContent>
+                      </HoverTooltip>
+                    </li>
+                  )
+                })}
+              </ul>
+            </li>
+          ))}
         </ol>
       )}
+      {events.length > TIMELINE_PREVIEW ? (
+        <button
+          className="-mt-2 cursor-pointer self-start border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          onClick={() => setShowAll((v) => !v)}
+          type="button"
+        >
+          {showAll ? 'Show less' : `Show all ${events.length}`}
+        </button>
+      ) : null}
     </section>
   )
 }
@@ -539,7 +579,10 @@ export function TrendView({
           />
         </div>
 
-        <div className="min-[1280px]:sticky min-[1280px]:top-4" data-tour="trend-emerging">
+        <div
+          className="min-[1280px]:sticky min-[1280px]:top-4 min-[1280px]:max-h-[calc(100vh-2rem)] min-[1280px]:overflow-y-auto"
+          data-tour="trend-emerging"
+        >
           <TimelineCard
             onPinnedChange={pinFromTimeline}
             onTopicSelect={onTopicSelect}
