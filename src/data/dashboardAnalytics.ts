@@ -112,8 +112,6 @@ export type WhatChangedRow = {
   label: string
   /** null = no clear change; only listed for its violations. */
   kind: 'worse' | 'better' | 'new' | null
-  /** Share of mentions moved ×/÷ 1.5 or more ("up" / "down") beyond chance. Missing from older API responses. */
-  mentionsTrend?: 'up' | 'down' | null
   /** The topic's share of all mentions in each period (%). */
   share: { previous: number; current: number }
   /** Share of the topic's own mentions that were negative (%). */

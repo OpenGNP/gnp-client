@@ -18,7 +18,6 @@ import type {
   WhatChanged,
   WhatChangedRow,
 } from '../../data/dashboardAnalytics'
-import { whatChangedSummary } from '../../lib/whatChangedSummary'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { TopicTrendsCard } from './TopicTrendsCard'
@@ -60,6 +59,8 @@ const WHAT_CHANGED_PREVIEW = 5
 /** Spikes shown before "Show all". */
 const TIMELINE_PREVIEW = 5
 
+const BEFORE_GRAY = '#929292'
+
 const DUMBBELL_COLOR: Record<ChangeKind, string> = {
   worse: '#f63b56',
   better: '#269d42',
@@ -80,13 +81,13 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
   const counts = row.complaintCounts
   const lo = isNew ? current : Math.min(previous, current)
   const hi = isNew ? current : Math.max(previous, current)
-  const dot = 'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white'
+  const dot = 'absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white'
   // Same marks as on the track, so the tooltip doubles as its legend.
-  const legendDot = (filled: boolean) => (
+  const legendDot = (filled: boolean, border = color) => (
     <span
       aria-hidden="true"
       className="inline-block size-2.5 shrink-0 rounded-full border-2"
-      style={{ borderColor: color, backgroundColor: filled ? color : 'white' }}
+      style={{ borderColor: border, backgroundColor: filled ? color : 'white' }}
     />
   )
 
@@ -95,11 +96,12 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
       <TooltipTrigger asChild>
         <span className="flex w-44 shrink-0 flex-col items-stretch gap-0.5">
           {/* px = dot radius, so dots at 0% / 100% stay inside the column. */}
-          <span className="px-1.25">
-            <span aria-hidden="true" className="relative block h-4">
-              <span className="absolute inset-x-0 top-1/2 h-px bg-[#e9eaed]" />
+          <span className="px-1.5">
+            <span aria-hidden="true" className="relative block h-5">
+              <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-[#f0f1f4]" />
+              <span className="absolute top-1/2 left-1/2 h-2.5 w-px -translate-y-1/2 bg-[#d9dce3]" />
               <span
-                className="absolute top-1/2 -translate-y-1/2 border-t-2"
+                className="absolute top-1/2 -translate-y-1/2 border-t-[3px]"
                 style={{
                   left: `${lo}%`,
                   width: `${hi - lo}%`,
@@ -108,9 +110,10 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
                 }}
               />
               {isNew ? null : (
+                // Grey "before" vs coloured "now", so the direction reads without the legend.
                 <span
                   className={`${dot} border-2 bg-white`}
-                  style={{ left: `${previous}%`, borderColor: color }}
+                  style={{ left: `${previous}%`, borderColor: BEFORE_GRAY }}
                 />
               )}
               <span
@@ -123,8 +126,11 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
               />
             </span>
           </span>
+          {/* Counts, not %: the dots already show %, and counts reveal a small sample. */}
           <span className="text-center text-[11px] text-[#726f6f] tabular-nums">
-            {isNew ? '—' : `${previous}%`} → {current}%
+            {counts
+              ? `${isNew ? '—' : `${counts.previous.negative} of ${counts.previous.total}`} → ${counts.current.negative} of ${counts.current.total}`
+              : `${isNew ? '—' : `${previous}%`} → ${current}%`}
           </span>
         </span>
       </TooltipTrigger>
@@ -133,7 +139,7 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
         {counts ? (
           <>
             <p className="m-0 flex items-center gap-1.5">
-              {isNew ? null : legendDot(false)}
+              {isNew ? null : legendDot(false, BEFORE_GRAY)}
               Before:{' '}
               {isNew
                 ? 'no mentions'
@@ -169,7 +175,7 @@ function WhatChangedItem({
   const kind = row.kind ?? 'steady'
   return (
     <li
-      className={`flex items-center gap-4 pr-5.5 transition-colors max-[640px]:flex-wrap ${
+      className={`group flex items-center gap-4 pr-5.5 transition-colors max-[640px]:flex-wrap ${
         row.violations > 0 ? 'bg-[#fff7f8] hover:bg-[#fdeff1]' : 'hover:bg-[#f7f8fb]'
       }`}
     >
@@ -195,16 +201,6 @@ function WhatChangedItem({
                 </span>
               </ViolationTooltip>
             ) : null}
-            {row.complaintCounts ? (
-              <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#726f6f]">
-                {/* Arrow only for a real move in share of mentions; plain numbers are context. */}
-                {row.mentionsTrend === 'up' ? <TrendingUp className="shrink-0" size={14} /> : null}
-                {row.mentionsTrend === 'down' ? <TrendingDown className="shrink-0" size={14} /> : null}
-                {row.kind === 'new'
-                  ? `${row.complaintCounts.current.total} mentions`
-                  : `${row.complaintCounts.previous.total} → ${row.complaintCounts.current.total} mentions`}
-              </span>
-            ) : null}
           </div>
           {row.quote ? (
             <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-[#726f6f]">
@@ -218,7 +214,8 @@ function WhatChangedItem({
       {onOpen ? (
         <button
           aria-label={`View feedback for ${row.label}`}
-          className="ml-auto flex w-28 shrink-0 cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+          // Shown on row hover/focus; always on touch screens, which can't hover.
+          className="ml-auto flex w-28 shrink-0 cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:underline [@media(hover:none)]:opacity-100"
           onClick={() => onOpen(row.id)}
           type="button"
         >
@@ -309,33 +306,57 @@ function WhatChangedCard({
 }) {
   return (
     <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-2.5 pb-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5.5">
-        <div className="flex items-center gap-2">
-          <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-            What changed
-          </h2>
-          <HoverTooltip>
-            <TooltipTrigger asChild>
-              <button
-                aria-label="How What changed is worked out"
-                className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
-                type="button"
-              >
-                <Info size={15} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-              The latest full period against the one before. Topics are listed when their complaints clearly
-              rise or fall, not just by chance, or when they&apos;re new. Click a topic to see it on the
-              chart.
-            </TooltipContent>
-          </HoverTooltip>
+      {/* Same columns as the table header, so the dumbbell legend sits right above "Complaints". */}
+      <div className="flex items-center gap-4 px-5.5">
+        <div className="flex min-w-0 max-w-[858px] flex-1 items-center gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div className="flex items-center gap-2">
+              <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+                What changed
+              </h2>
+              <HoverTooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label="How What changed is worked out"
+                    className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
+                    type="button"
+                  >
+                    <Info size={15} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
+                  The latest full period against the one before. Topics are listed when their complaints
+                  clearly rise or fall, not just by chance, or when they&apos;re new. Click a topic to see it
+                  on the chart.
+                </TooltipContent>
+              </HoverTooltip>
+            </div>
+            {data ? (
+              <span className="text-[12px] font-medium text-[#726f6f]">
+                {data.currentLabel} compared with {data.previousLabel}
+              </span>
+            ) : null}
+          </div>
+          {data && data.rows.length > 0 ? (
+            <span className="flex w-44 shrink-0 items-center justify-center gap-3 text-[11px] font-medium text-[#929292] max-[640px]:hidden">
+              <span className="flex items-center gap-1">
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full border-2 border-[#929292] bg-white"
+                />
+                Before
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full border-2 border-[#929292] bg-[#929292]"
+                />
+                Now
+              </span>
+            </span>
+          ) : null}
         </div>
-        {data ? (
-          <span className="text-[12px] font-medium text-[#726f6f]">
-            {data.currentLabel} compared with {data.previousLabel}
-          </span>
-        ) : null}
+        {onTopicOpen ? <span aria-hidden="true" className="w-28 shrink-0 max-[640px]:hidden" /> : null}
       </div>
 
       {!data ? (
@@ -348,34 +369,14 @@ function WhatChangedCard({
         </p>
       ) : (
         <>
-          <p className="m-0 px-5.5 text-[14px] leading-5 text-[#14181f]">{whatChangedSummary(data.rows)}</p>
-          <div className="mt-2 flex items-end gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
+          <div className="mt-2 flex items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
             {/* Same cap as a row's button (minus its 22px left inset), so columns line up. */}
-            <span className="flex min-w-0 max-w-[858px] flex-1 items-end gap-4">
+            <span className="flex min-w-0 max-w-[858px] flex-1 items-center gap-4">
               <span className="min-w-0 flex-1">Topic</span>
-              <span className="flex w-44 shrink-0 flex-col gap-0.5">
-                {/* Legend for the dumbbell marks: fill tells them apart, not colour. */}
-                <span className="flex items-center justify-center gap-3 text-[11px]">
-                  <span className="flex items-center gap-1">
-                    <span
-                      aria-hidden="true"
-                      className="size-2.5 rounded-full border-2 border-[#929292] bg-white"
-                    />
-                    Before
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span
-                      aria-hidden="true"
-                      className="size-2.5 rounded-full border-2 border-[#929292] bg-[#929292]"
-                    />
-                    Now
-                  </span>
-                </span>
-                <span className="flex justify-between">
-                  <span>0%</span>
-                  <span>Complaints</span>
-                  <span>100%</span>
-                </span>
+              <span className="flex w-44 shrink-0 justify-between">
+                <span>0%</span>
+                <span>Complaints</span>
+                <span>100%</span>
               </span>
             </span>
             {onTopicOpen ? <span aria-hidden="true" className="w-28 shrink-0" /> : null}
@@ -413,8 +414,8 @@ function TimelineCard({
   const [showAll, setShowAll] = useState(false)
   const events = trend.timelineEvents
   // The server ranks by spike size; show the biggest few, in time order.
-  const shown = (showAll ? events : events.slice(0, TIMELINE_PREVIEW)).toSorted(
-    (a, b) => b.date.localeCompare(a.date),
+  const shown = (showAll ? events : events.slice(0, TIMELINE_PREVIEW)).toSorted((a, b) =>
+    b.date.localeCompare(a.date),
   )
   // availableTopics covers every in-window topic, not only the charted ones.
   const labelById = new Map(trend.availableTopics.map((entry) => [entry.id, entry.label]))
@@ -437,10 +438,15 @@ function TimelineCard({
         Timeline of Key Events
       </h2>
       {events.length === 0 ? (
-        <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#73777e]">No unusual spikes in this range.</p>
+        <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#73777e]">
+          No unusual spikes in this range.
+        </p>
       ) : (
         <ol className="relative m-0 flex list-none flex-col gap-2 p-0 pb-2">
-          <span aria-hidden="true" className="absolute top-2 bottom-6 left-1 w-0.5 rounded-full bg-[#c9cfdb]" />
+          <span
+            aria-hidden="true"
+            className="absolute top-2 bottom-6 left-1 w-0.5 rounded-full bg-[#c9cfdb]"
+          />
           {groups.map((group) => (
             <li className="flex flex-col" key={group.bucketIndex}>
               <p className="m-0 py-0.5 pl-6.5 text-[12px] font-semibold tracking-[0.12px] text-[#73777e]">
@@ -466,13 +472,13 @@ function TimelineCard({
                               isPinned ? 'bg-[#eef3fd]' : 'bg-transparent hover:bg-[#f7f8fb]'
                             }`}
                             onClick={() =>
-                              color ? onPinnedChange(isPinned ? null : event.topicId) : onTopicSelect?.(event.topicId)
+                              color
+                                ? onPinnedChange(isPinned ? null : event.topicId)
+                                : onTopicSelect?.(event.topicId)
                             }
                             type="button"
                           >
-                            <span className="min-w-0 truncate text-[14px] text-[#14181f]">
-                              {label}
-                            </span>
+                            <span className="min-w-0 truncate text-[14px] text-[#14181f]">{label}</span>
                             {/* Neutral, not red: more mentions isn't good or bad by itself. */}
                             <span className="flex shrink-0 items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#1e55c5]">
                               <ArrowUp size={15} />
@@ -484,7 +490,10 @@ function TimelineCard({
                             </span>
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-64 whitespace-normal leading-4.5 text-[#3f4045]" side="left">
+                        <TooltipContent
+                          className="max-w-64 whitespace-normal leading-4.5 text-[#3f4045]"
+                          side="left"
+                        >
                           <span className="block font-semibold">{label}</span>
                           {event.count} mentions, usually ~{event.usual}
                           <span className="block text-[#73777e]">
