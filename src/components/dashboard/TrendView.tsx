@@ -10,7 +10,7 @@ import {
   TrendingUp,
   TriangleAlert,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import type {
   FormTrendAnalytics,
@@ -269,8 +269,9 @@ function WhatChangedGroup({
   )
   const headingClass = `m-0 flex items-center gap-1.5 px-5.5 pt-3 pb-1 text-[13px] font-semibold ${tone}`
 
-  // Steady rows only add violations Themes already lists, so they start folded away.
-  if (kind === 'steady') {
+  // Steady rows only add violations Themes already lists, and Improving needs no action,
+  // so both start folded away.
+  if (kind === 'steady' || kind === 'better') {
     return (
       <Collapsible className="flex flex-col">
         <CollapsibleTrigger
@@ -503,12 +504,18 @@ export function TrendView({
   // Ignored once it's no longer on the chart (e.g. the topic picker removed it) — or
   // not on it yet, while a "Compare" jump's new topic selection is still loading.
   const pinnedTopic = trend.topicVolumeSeries.some((entry) => entry.id === pinned) ? pinned : null
+  const chartRef = useRef<HTMLDivElement>(null)
+  // The Timeline sits below What changed, so bring the chart into view to show the pin.
+  const pinFromTimeline = (id: string | null) => {
+    onPinnedChange(id)
+    if (id) chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div className="flex flex-col gap-4.5">
       {/* Full width: volume lines + the sentiment strip under them, and the topic
           detail side panel. */}
-      <div data-tour="trend-chart">
+      <div data-tour="trend-chart" ref={chartRef}>
         <TopicTrendsCard
           action={topicControl}
           data={trend.volumeSeries}
@@ -522,20 +529,20 @@ export function TrendView({
         />
       </div>
 
-      <div data-tour="trend-emerging">
-        <TimelineCard
-          onPinnedChange={onPinnedChange}
-          onTopicSelect={onTopicSelect}
-          pinned={pinnedTopic}
-          trend={trend}
-        />
-      </div>
-
       <div data-tour="trend-movement">
         <WhatChangedCard
           data={trend.whatChanged ?? null}
           onTopicOpen={onTopicOpen}
           onTopicSelect={onTopicSelect}
+        />
+      </div>
+
+      <div data-tour="trend-emerging">
+        <TimelineCard
+          onPinnedChange={pinFromTimeline}
+          onTopicSelect={onTopicSelect}
+          pinned={pinnedTopic}
+          trend={trend}
         />
       </div>
     </div>

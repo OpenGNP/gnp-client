@@ -437,6 +437,10 @@ export function TopicTrendsCard({
               const mentions = point ? count(point, entry.id) : (summary?.mentions ?? 0)
               const delta =
                 point && previousPoint ? count(point, entry.id) - count(previousPoint, entry.id) : null
+              const spike =
+                hoverIndex !== null
+                  ? spikes.find((s) => s.topicId === entry.id && s.bucketIndex === hoverIndex)
+                  : undefined
               return (
                 <li key={entry.id}>
                   <HoverTooltip delayDuration={400}>
@@ -468,6 +472,11 @@ export function TopicTrendsCard({
                           >
                             {entry.label}
                           </span>
+                          {spike ? (
+                            <span className="shrink-0 rounded-full bg-[#fee6e8] px-1.5 text-[10px] font-semibold text-[#f63b56]">
+                              Spike · usually ~{spike.usual}
+                            </span>
+                          ) : null}
                           {pinned ? <Pin className="shrink-0 text-[#1e55c5]" size={12} /> : null}
                         </span>
                         <span className="text-right text-[12px] font-semibold text-[#14181f]">
