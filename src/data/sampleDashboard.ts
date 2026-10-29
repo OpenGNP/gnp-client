@@ -219,7 +219,7 @@ export const SAMPLE_TREND: FormTrendAnalytics = {
     ],
   },
   timelineEvents: [
-    { id: 'sample-wifi-spike', date: '29 Sep', description: 'Wi-Fi complaints jumped after the network upgrade.', change: 3, metricLabel: 'mentions' },
+    { id: 'sample-wifi-spike', date: iso(29), topicId: 'sample-wifi', bucketIndex: 4, count: 12, usual: 6 },
   ],
 }
 

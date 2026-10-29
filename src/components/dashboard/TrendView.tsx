@@ -14,7 +14,6 @@ import { useState } from 'react'
 
 import type {
   FormTrendAnalytics,
-  TrendTimelineEvent,
   WhatChanged,
   WhatChangedRow,
 } from '../../data/dashboardAnalytics'
@@ -22,15 +21,8 @@ import { whatChangedSummary } from '../../lib/whatChangedSummary'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { TopicTrendsCard } from './TopicTrendsCard'
+import { topicColorMap } from './trendColors'
 import { ViolationTooltip } from './ViolationTooltip'
-
-function formatEventDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 type ChangeKind = 'worse' | 'new' | 'better' | 'steady'
 
@@ -402,37 +394,84 @@ function WhatChangedCard({
   )
 }
 
-function TimelineCard({ events }: { events: TrendTimelineEvent[] }) {
+function TimelineCard({
+  trend,
+  pinned,
+  onPinnedChange,
+  onTopicSelect,
+}: {
+  trend: FormTrendAnalytics
+  pinned: string | null
+  onPinnedChange: (id: string | null) => void
+  /** Charts + pins a topic that isn't on the chart yet. */
+  onTopicSelect?: (id: string) => void
+}) {
+  const events = trend.timelineEvents
+  // availableTopics covers every in-window topic, not only the charted ones.
+  const labelById = new Map(trend.availableTopics.map((entry) => [entry.id, entry.label]))
+  const colorById = topicColorMap(trend.topicVolumeSeries)
+  // Same wording as the chart's x-axis (and What changed's "Week of …").
+  const periodOf = (index: number) => {
+    const label = String(trend.volumeSeries[index]?.label ?? '')
+    return trend.bucket === 'week' ? `Week of ${label}` : label
+  }
   return (
     <section className="flex flex-col gap-3 rounded-[15px] border border-[#f3f4f5] bg-white px-5.75 py-3">
       <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
         Timeline of Key Events
       </h2>
-      <ol className="m-0 flex list-none flex-col p-0">
-        {events.map((event, index) => (
-          <li className="flex gap-4" key={event.id}>
-            <div className="flex flex-col items-center">
-              <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[#1e55c5]" />
-              {index < events.length - 1 ? <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" /> : null}
-            </div>
-            <div className="flex flex-1 items-start justify-between gap-4 pb-4">
-              <div className="flex flex-col">
-                <p className="m-0 text-[14px] font-semibold tracking-[0.14px] text-black">
-                  {formatEventDate(event.date)}
-                </p>
-                <p className="m-0 text-[12px] tracking-[0.12px] text-black">{event.description}</p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end">
-                <span className="flex items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#f63b56]">
-                  <ArrowUp size={15} />
-                  {event.change}
-                </span>
-                <span className="text-[10px] tracking-[0.1px] text-[#73777e]">{event.metricLabel}</span>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {events.length === 0 ? (
+        <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#73777e]">No unusual spikes in this range.</p>
+      ) : (
+        <ol className="m-0 flex list-none flex-col p-0">
+          {events.map((event, index) => {
+            const label = labelById.get(event.topicId) ?? 'Untitled topic'
+            const isPinned = pinned === event.topicId
+            const color = colorById.get(event.topicId)
+            return (
+              <li className="flex gap-4" key={event.id}>
+                <div className="flex flex-col items-center">
+                  <span
+                    className="mt-1.5 size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: color ?? '#c9cfdb' }}
+                  />
+                  {index < events.length - 1 ? <span className="w-0.5 flex-1 rounded-full bg-[#c9cfdb]" /> : null}
+                </div>
+                <div className="flex-1 pb-4">
+                  <button
+                    aria-pressed={isPinned}
+                    className={`-mx-2 -my-1 flex w-[calc(100%+1rem)] cursor-pointer items-start justify-between gap-4 rounded-lg border-0 px-2 py-1 text-left transition-colors ${
+                      isPinned ? 'bg-[#eef3fd]' : 'bg-transparent hover:bg-[#f7f8fb]'
+                    }`}
+                    onClick={() =>
+                      color ? onPinnedChange(isPinned ? null : event.topicId) : onTopicSelect?.(event.topicId)
+                    }
+                    title={
+                      isPinned ? 'Pinned — click to unpin' : color ? 'Highlight on Topic Trends' : 'Add to Topic Trends'
+                    }
+                    type="button"
+                  >
+                    <div className="flex min-w-0 flex-col">
+                      <p className="m-0 truncate text-[14px] font-semibold tracking-[0.14px] text-black">{label}</p>
+                      <p className="m-0 text-[12px] tracking-[0.12px] text-black">
+                        {periodOf(event.bucketIndex)} · usually ~{event.usual}
+                        {color ? null : <span className="text-[#73777e]"> · not on chart</span>}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end">
+                      <span className="flex items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#f63b56]">
+                        <ArrowUp size={15} />
+                        {event.count - event.usual}
+                      </span>
+                      <span className="text-[10px] tracking-[0.1px] text-[#73777e]">{event.count} mentions</span>
+                    </div>
+                  </button>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
     </section>
   )
 }
@@ -478,7 +517,17 @@ export function TrendView({
           sentimentByTopic={trend.topicSentimentSeries ?? {}}
           sentimentSeries={trend.sentimentSeries}
           series={trend.topicVolumeSeries}
+          spikes={trend.timelineEvents}
           summaries={trend.topicSummaries ?? []}
+        />
+      </div>
+
+      <div data-tour="trend-emerging">
+        <TimelineCard
+          onPinnedChange={onPinnedChange}
+          onTopicSelect={onTopicSelect}
+          pinned={pinnedTopic}
+          trend={trend}
         />
       </div>
 
@@ -488,10 +537,6 @@ export function TrendView({
           onTopicOpen={onTopicOpen}
           onTopicSelect={onTopicSelect}
         />
-      </div>
-
-      <div data-tour="trend-emerging">
-        <TimelineCard events={trend.timelineEvents} />
       </div>
     </div>
   )

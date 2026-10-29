@@ -137,12 +137,15 @@ export type WhatChanged = {
 /** A date span the Themes feedback list can be narrowed to (from What changed). */
 export type FeedbackDateRange = { label: string; from: string; to: string }
 
+/** A spike on any topic (charted or not); `bucketIndex` indexes `volumeSeries`. */
 export type TrendTimelineEvent = {
   id: string
   date: string
-  description: string
-  change: number
-  metricLabel: string
+  topicId: string
+  bucketIndex: number
+  count: number
+  /** The topic's average per period before this one. */
+  usual: number
 }
 
 export type TrendBucket = 'day' | 'week' | 'month' | 'year'

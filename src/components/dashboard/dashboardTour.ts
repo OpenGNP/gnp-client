@@ -63,14 +63,14 @@ export const TREND_TOUR: TourStep[] = [
     text: 'The chart shows a handful of topics at a time: the most mentioned, or those with violations. Open this to pick which ones (up to 8), or search for a topic.',
   },
   {
+    target: '[data-tour="trend-emerging"]',
+    title: 'Spikes',
+    text: 'The moments a topic was mentioned far more than usual. Topics on the chart get a dot there; click a row to highlight that topic, or add it to the chart.',
+  },
+  {
     target: '[data-tour="trend-movement"]',
     title: 'What changed',
     text: 'The latest full period against the one before: topics with more or fewer complaints, new topics, and possible violations first. Click one to see it on the chart.',
-  },
-  {
-    target: '[data-tour="trend-emerging"]',
-    title: 'Spikes',
-    text: 'The moments a topic was mentioned far more than usual.',
   },
 ]
 

@@ -14,5 +14,9 @@ export const TOPIC_TREND_COLORS = [
   '#9C36B5',
 ] as const
 
+/** Topic id → its line colour, by position in the charted set. */
+export const topicColorMap = (series: { id: string }[]) =>
+  new Map(series.map((entry, index) => [entry.id, TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]!]))
+
 /** Max topic lines the chart / picker allows at once. */
 export const TREND_SERIES_MAX = 8

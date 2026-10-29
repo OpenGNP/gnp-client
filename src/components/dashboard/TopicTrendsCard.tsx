@@ -15,6 +15,7 @@ import {
 import type {
   SentimentCounts,
   TrendSentimentPoint,
+  TrendTimelineEvent,
   TrendTopicSeries,
   TrendTopicSummary,
   TrendVolumePoint,
@@ -30,7 +31,7 @@ import { cn } from '../../lib/utils'
 import { SENTIMENT_COLORS } from './sentimentColors'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { PeriodSentimentDetail, PeriodSentimentTooltip } from './PeriodSentimentTooltip'
-import { TOPIC_TREND_COLORS } from './trendColors'
+import { topicColorMap } from './trendColors'
 
 const AXIS_TICK = { fill: '#73777e', fontSize: 10 } as const
 
@@ -40,7 +41,6 @@ const SYNC_ID = 'topic-trends'
 const CHART_MARGIN = { top: 12, right: 18, bottom: 0, left: 4 }
 const Y_AXIS_WIDTH = 36
 
-const colorFor = (index: number) => TOPIC_TREND_COLORS[index % TOPIC_TREND_COLORS.length]
 const totalOf = (counts: SentimentCounts) => counts.negative + counts.neutral + counts.positive
 
 // One grid for the header and every row, so the columns line up like a table.
@@ -104,6 +104,7 @@ export function TopicTrendsCard({
   action,
   pinnedTopic,
   onPinnedTopicChange,
+  spikes = [],
 }: {
   series: TrendTopicSeries[]
   data: TrendVolumePoint[]
@@ -116,6 +117,8 @@ export function TopicTrendsCard({
   /** The pinned topic — owned by TrendView, since Sentiment Trend follows it too. */
   pinnedTopic: string | null
   onPinnedTopicChange: (id: string | null) => void
+  /** Timeline of Key Events — each gets a dot on its line. */
+  spikes?: TrendTimelineEvent[]
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [hoveredTopic, setHoveredTopic] = useState<string | null>(null)
@@ -137,7 +140,7 @@ export function TopicTrendsCard({
   const lineClickNote =
     overLines && hoveredTopic && hoveredLabel ? pinHint(hoveredTopic, hoveredLabel) : undefined
 
-  const colorById = new Map(series.map((entry, index) => [entry.id, colorFor(index)]))
+  const colorById = topicColorMap(series)
   const summaryById = new Map(summaries.map((summary) => [summary.id, summary]))
   // Fixed order: biggest over the whole window first.
   const rows = [...series].sort(
@@ -236,11 +239,32 @@ export function TopicTrendsCard({
                 {series.map((entry) => {
                   const focused = focusTopic === entry.id
                   const faded = focusTopic !== null && !focused
+                  const spikeAt = new Set(
+                    spikes.filter((spike) => spike.topicId === entry.id).map((spike) => spike.bucketIndex),
+                  )
                   return (
                     <Line
                       activeDot={faded ? false : { r: focused ? 5 : 4 }}
                       dataKey={entry.id}
-                      dot={false}
+                      dot={
+                        spikeAt.size > 0
+                          ? ({ cx, cy, index }) =>
+                              spikeAt.has(index) ? (
+                                <circle
+                                  cx={cx}
+                                  cy={cy}
+                                  fill={colorById.get(entry.id)}
+                                  key={index}
+                                  opacity={faded ? 0.18 : 1}
+                                  r={focused ? 6 : 5}
+                                  stroke="#fff"
+                                  strokeWidth={2}
+                                />
+                              ) : (
+                                <g key={index} />
+                              )
+                          : false
+                      }
                       isAnimationActive={false}
                       key={entry.id}
                       name={entry.label}
