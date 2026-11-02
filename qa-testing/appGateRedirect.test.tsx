@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppGate } from '../src/components/AppGate'
+import { LandingPage } from '../src/pages/LandingPage'
 import { AuthContext, postSignInPath, type AuthContextValue, type AuthUser } from '../src/lib/auth'
 
 function LoginProbe() {
@@ -44,6 +45,25 @@ describe('AppGate sign-in redirect', () => {
   it('remembers the page for a signed-out deep link', () => {
     renderSignedOutAt('/forms/4/dashboard', false)
     expect(screen.getByText('login from=/forms/4/dashboard')).toBeInTheDocument()
+  })
+
+  it('shows the landing page at / instead of redirecting', () => {
+    renderSignedOutAt('/', false)
+    expect(screen.getByRole('heading', { level: 1, name: /know what your people/i })).toBeInTheDocument()
+    expect(screen.queryByText(/^login from=/)).not.toBeInTheDocument()
+  })
+
+  it('offers Home instead of sign-in on /about when signed in', () => {
+    const auth = { status: 'ready', user: null, signedOut: false } as unknown as AuthContextValue
+    render(
+      <AuthContext.Provider value={auth}>
+        <MemoryRouter initialEntries={['/about']}>
+          <LandingPage />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    )
+    expect(screen.getAllByRole('link', { name: /go to home/i }).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/sign in with microsoft/i)).not.toBeInTheDocument()
   })
 
   it('forgets the page after an explicit log out, so sign-in lands on Home', () => {
