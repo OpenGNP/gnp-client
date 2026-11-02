@@ -6,6 +6,7 @@ import type { TooltipContentProps } from 'recharts'
 import type { FeedbackDateRange, TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SENTIMENT_KEYS, sharesOf } from '../../lib/sentimentTrendSummary'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
+import { Switch } from '../ui/switch'
 import { DetailPanel } from './DetailPanel'
 import type { DemographicFilterGroup } from './FeedbackFilter'
 import { FeedbackSegmentSection } from './FeedbackSegmentSection'
@@ -13,6 +14,17 @@ import { PeriodSentimentTooltip } from './PeriodSentimentTooltip'
 import { SentimentGauge } from './SentimentGauge'
 import { percentOf, SENTIMENT_SCORE_OUT_OF, sentimentScore } from './sentimentScore'
 import { SENTIMENT_COLORS } from './sentimentColors'
+
+const SHOW_SENTIMENT_KEY = 'gnp.topicPanel.showSentiment'
+
+// Per-viewer preference; storage can be unavailable (private mode), so default to off.
+function readShowSentiment() {
+  try {
+    return window.localStorage.getItem(SHOW_SENTIMENT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 /** A volume bucket as the bars draw it: the sentiment split, plus anything unsplit. */
 type VolumeBar = {
@@ -131,10 +143,21 @@ export function TopicDetailPanel({
   const score = sentimentScore(topic)
 
   const volumeBars = toVolumeBars(topic.volumeSeries ?? [])
+  // One colour by default (how many, when); the sentiment split is opt-in.
+  const [showSentiment, setShowSentiment] = useState(readShowSentiment)
+  const toggleSentiment = (on: boolean) => {
+    setShowSentiment(on)
+    try {
+      window.localStorage.setItem(SHOW_SENTIMENT_KEY, on ? '1' : '0')
+    } catch {
+      // Not remembered, still applied.
+    }
+  }
   // Clicking a bar narrows the feedback below to that period. Needs every point's
   // bucket from the server (absent on older ones).
   const canSelectPeriod =
-    topic.feedbackSegment.length > 0 && topic.feedbackSegment.every((point) => point.volumeBucket !== undefined)
+    topic.feedbackSegment.length > 0 &&
+    topic.feedbackSegment.every((point) => point.volumeBucket !== undefined)
   const [picked, setPicked] = useState<{ index: number; label: string } | null>(null)
   // Dropped if a refetch (range/filter change) moved the buckets out from under it.
   const period = picked && volumeBars[picked.index]?.label === picked.label ? picked : null
@@ -196,9 +219,7 @@ export function TopicDetailPanel({
                 />
                 <span className="text-[#929292]">
                   Negative:{' '}
-                  <span className="text-[#14181f]">
-                    {percentOf(topic.negative, feedbackPoints)}%
-                  </span>
+                  <span className="text-[#14181f]">{percentOf(topic.negative, feedbackPoints)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-1.5">
@@ -207,10 +228,7 @@ export function TopicDetailPanel({
                   style={{ backgroundColor: SENTIMENT_COLORS.neutral }}
                 />
                 <span className="text-[#929292]">
-                  Neutral:{' '}
-                  <span className="text-[#14181f]">
-                    {percentOf(topic.neutral, feedbackPoints)}%
-                  </span>
+                  Neutral: <span className="text-[#14181f]">{percentOf(topic.neutral, feedbackPoints)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-1.5">
@@ -220,9 +238,7 @@ export function TopicDetailPanel({
                 />
                 <span className="text-[#929292]">
                   Positive:{' '}
-                  <span className="text-[#14181f]">
-                    {percentOf(topic.positive, feedbackPoints)}%
-                  </span>
+                  <span className="text-[#14181f]">{percentOf(topic.positive, feedbackPoints)}%</span>
                 </span>
               </span>
             </div>
@@ -245,17 +261,37 @@ export function TopicDetailPanel({
         <div className="flex items-center justify-between gap-3">
           {/* Not "Topic Trends": that's the Trend tab's multi-topic line chart. */}
           <p className="m-0 text-[12px] font-medium text-[#929292]">Mentions over time</p>
-          {onCompareInTrend ? (
-            <button
-              className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-[12px] font-medium text-[#1e55c5] transition-colors hover:text-[#163f94] hover:underline"
-              onClick={onCompareInTrend}
-              type="button"
-            >
-              Compare with other topics
-              <ArrowRight size={13} />
-            </button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-[#5f6368]">
+              <Switch checked={showSentiment} onCheckedChange={toggleSentiment} />
+              Sentiment
+            </label>
+            {onCompareInTrend ? (
+              <button
+                className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] border-0 bg-transparent px-1 text-[12px] font-medium text-[#1e55c5] transition-colors hover:text-[#163f94] hover:underline"
+                onClick={onCompareInTrend}
+                type="button"
+              >
+                Compare with other topics
+                <ArrowRight size={13} />
+              </button>
+            ) : null}
+          </div>
         </div>
+        {showSentiment ? (
+          <div className="-mt-1 flex flex-wrap items-center gap-3 text-[11px] text-[#726f6f]">
+            {SENTIMENT_KEYS.map((key) => (
+              <span className="flex items-center gap-1" key={key}>
+                <span
+                  aria-hidden="true"
+                  className="size-2 rounded-full"
+                  style={{ backgroundColor: SENTIMENT_COLORS[key] }}
+                />
+                {key[0]!.toUpperCase() + key.slice(1)}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="h-45 w-full">
           <ResponsiveContainer height="100%" width="100%">
             <BarChart
@@ -289,7 +325,11 @@ export function TopicDetailPanel({
               />
               <Tooltip
                 content={(props) => (
-                  <VolumeTooltip {...props} canSelect={canSelectPeriod} selectedIndex={period?.index ?? null} />
+                  <VolumeTooltip
+                    {...props}
+                    canSelect={canSelectPeriod}
+                    selectedIndex={period?.index ?? null}
+                  />
                 )}
                 cursor={{ fill: '#f5f7fd' }}
                 isAnimationActive={false}
@@ -300,7 +340,8 @@ export function TopicDetailPanel({
               {[...SENTIMENT_KEYS, 'unsplit' as const].map((key) => (
                 <Bar
                   dataKey={key}
-                  fill={key === 'unsplit' ? '#1e55c5' : SENTIMENT_COLORS[key]}
+                  // Off: every segment the same blue, so the stack reads as one bar.
+                  fill={key === 'unsplit' || !showSentiment ? '#1e55c5' : SENTIMENT_COLORS[key]}
                   isAnimationActive={false}
                   key={key}
                   stackId="volume"
