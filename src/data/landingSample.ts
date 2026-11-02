@@ -186,7 +186,13 @@ const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 
 export const LANDING_TREND: Pick<
   FormTrendAnalytics,
-  'topicVolumeSeries' | 'volumeSeries' | 'topicSentimentSeries' | 'topicSummaries' | 'sentimentSeries' | 'timelineEvents'
+  | 'topicVolumeSeries'
+  | 'volumeSeries'
+  | 'topicSentimentSeries'
+  | 'topicSummaries'
+  | 'sentimentSeries'
+  | 'responseCounts'
+  | 'timelineEvents'
 > = {
   topicVolumeSeries: TREND_TOPICS.map(({ id, label }) => ({ id, label })),
   volumeSeries: TREND_WEEKS.map((label, w) => ({
@@ -210,5 +216,7 @@ export const LANDING_TREND: Pick<
     const positive = Math.round((counts.positive / total) * 100)
     return { label, negative, neutral: 100 - negative - positive, positive, counts }
   }),
+  // Steady turnout while shift-swap mentions climb: the rise isn't just more people answering.
+  responseCounts: [27, 26, 28, 26, 27, 27, 26, 27],
   timelineEvents: [{ id: 'shift-spike', date: '2026-10-13T00:00:00.000Z', topicId: 'shift', bucketIndex: 6, count: 8, usual: 4 }],
 }

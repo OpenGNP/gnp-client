@@ -343,6 +343,7 @@ function TrendDemo() {
         data={LANDING_TREND.volumeSeries}
         onPinnedTopicChange={setPinned}
         pinnedTopic={pinned}
+        responses={LANDING_TREND.responseCounts}
         sentimentByTopic={LANDING_TREND.topicSentimentSeries}
         sentimentSeries={LANDING_TREND.sentimentSeries}
         series={LANDING_TREND.topicVolumeSeries}
