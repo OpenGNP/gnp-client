@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Plus } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { formsQuery, sharedFormsQuery } from '../api/queries'
 import { HeroGraphic } from '../components/dashboard/HeroGraphic'
+import { FirstFormCard } from '../components/forms/FirstFormCard'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
 import { FormCardGridSkeleton } from '../components/skeletons/FormCardSkeleton'
@@ -119,32 +119,8 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem, onC
             </button>
           </div>
         ) : recent.length === 0 ? (
-          // A new account starts here: no example form, so the first step is either a form or the demo.
-          <div className="mt-6.5 flex flex-col items-start gap-4 rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-8 py-9 max-[560px]:px-5 max-[560px]:py-7">
-            <div className="flex flex-col gap-2">
-              <p className="m-0 text-[20px] font-semibold text-[#14181f]">Create your first form</p>
-              <p className="m-0 max-w-130 text-[14px] leading-6 text-[#3f4045]">
-                Ask open questions, share the link, and OpenGNP sorts every answer into topics. Not sure where to
-                start? Try the sample form first: edit it and explore its dashboard.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                className="inline-flex h-9.5 cursor-pointer items-center gap-1.5 rounded-[10px] bg-[#1e55c5] px-4 text-[14px] font-semibold text-white transition-colors hover:bg-[#1a49aa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
-                onClick={onCreateForm}
-                type="button"
-              >
-                <Plus size={16} />
-                Create form
-              </button>
-              <Link
-                className="inline-flex h-9.5 items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-4 text-[14px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
-                to="/demo"
-              >
-                See the demo
-                <ArrowRight size={16} />
-              </Link>
-            </div>
+          <div className="mt-6.5">
+            <FirstFormCard onCreateForm={onCreateForm} />
           </div>
         ) : (
           <div className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">

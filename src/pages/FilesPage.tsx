@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FolderCard, NewFolderCard } from '../components/files/FolderCard'
 import { SortControls } from '../components/files/SortControls'
 import { DEFAULT_SORT_DIR, type SortDir, type SortKey } from '../components/files/sortOptions'
+import { FirstFormCard } from '../components/forms/FirstFormCard'
 import { FormCard } from '../components/forms/FormCard'
 import { PageContainer } from '../components/layout/PageContainer'
 import { FolderCardGridSkeleton } from '../components/skeletons/FolderCardSkeleton'
@@ -44,6 +45,9 @@ export type FilesPageProps = {
 }
 
 const ROOT_CRUMB = '__root__'
+
+const hasAnyForm = (items: ProjectTreeItem[]): boolean =>
+  items.some((item) => item.type === 'document' || hasAnyForm(item.children ?? []))
 
 const compareByName = (a: ProjectTreeItem, b: ProjectTreeItem) =>
   a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' })
@@ -350,7 +354,24 @@ export function FilesPage({
                       ))}
                     </div>
                   ) : (
-                    <p className="m-0 text-[14px] text-[#8b8e98]">No file here</p>
+                    currentFolderId !== null ? (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                        <p className="m-0 text-[14px] text-[#726f6f]">No forms in this folder yet.</p>
+                        <button
+                          className="inline-flex h-8.5 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+                          onClick={() => onCreateForm(currentFolderId)}
+                          type="button"
+                        >
+                          <FilePlus size={15} />
+                          Create form here
+                        </button>
+                      </div>
+                    ) : hasAnyForm(projects) ? (
+                      // Their forms all live in folders: the folders above are the content here.
+                      <p className="m-0 text-[14px] text-[#726f6f]">No forms outside your folders.</p>
+                    ) : (
+                      <FirstFormCard onCreateForm={() => onCreateForm(null)} />
+                    )
                   )}
                 </section>
               </div>
