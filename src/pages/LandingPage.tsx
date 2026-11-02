@@ -40,6 +40,9 @@ import { DEMO_FORM_ID, DemoContext, demoSaveError } from '../lib/demo'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 import { cn } from '../lib/utils'
+import askMascot from '../assets/step3-mascot.png'
+import shareMascot from '../assets/step2-mascot.png'
+import readMascot from '../assets/step1-mascot.png'
 
 // Largest sample topic (42 points) rounded up to a step of 10, as the dashboard's axis does.
 const AXIS_MAX = 50
@@ -487,6 +490,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
   const num =
     'flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1e55c5] text-[12px] font-semibold text-white'
   const text = 'm-0 text-[14px] leading-5.5 text-[#3f4045]'
+  const art = 'h-30 w-auto self-start max-[900px]:h-24'
   const mock = 'rounded-[10px] border border-[#e8eaf1] bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)]'
   // Step 3 shows the sample's topic that's getting worse, with its real sentiment split.
   const worseId = sample.whatChanged.rows.find((row) => row.kind === 'worse')?.id
@@ -501,6 +505,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
       <ol className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
         <li>
           <Reveal className={step} delay={0}>
+          <img alt="" className={art} src={askMascot} />
           <h3 className={label}>
             <span className={num}>1</span>
             Ask
@@ -514,6 +519,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         </li>
         <li>
           <Reveal className={step} delay={110}>
+          <img alt="" className={art} src={shareMascot} />
           <h3 className={label}>
             <span className={num}>2</span>
             Share
@@ -532,6 +538,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         </li>
         <li>
           <Reveal className={step} delay={220}>
+          <img alt="" className={art} src={readMascot} />
           <h3 className={label}>
             <span className={num}>3</span>
             Read
