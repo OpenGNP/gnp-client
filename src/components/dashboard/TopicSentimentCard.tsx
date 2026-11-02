@@ -1,8 +1,9 @@
-import { ArrowUpDown, ChevronDown, MessageSquareText, Search, TriangleAlert, X } from 'lucide-react'
+import { ArrowUpDown, ChevronDown, MessageSquareText, Search, Sparkle, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { TopicSentiment } from '../../data/dashboardAnalytics'
 import { Button } from '../ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,38 @@ import { searchTopics, type TopicMatch } from './topicSearch'
 import { sortTopics, TOPIC_SORT_OPTIONS, topicSortLabel, type TopicSortOption } from './topicSort'
 import { ViolationTooltip } from './ViolationTooltip'
 
+/** What changed (from the Trend tab) for the topics that got worse or are new, and the periods compared. */
+export type TopicChanges = {
+  current: string
+  previous: string
+  kinds: Record<string, 'worse' | 'new'>
+}
+
+/** "Worse" / "New" next to a topic's name; the tooltip says which periods were compared. */
+function ChangeTag({ kind, changes }: { kind: 'worse' | 'new'; changes: TopicChanges }) {
+  const worse = kind === 'worse'
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>
+        <span
+          className={`inline-flex shrink-0 cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            worse ? 'bg-[#fdecea] text-[#c4280b]' : 'bg-[#edf2fd] text-[#1e55c5]'
+          }`}
+        >
+          {worse ? <TrendingUp size={12} /> : <Sparkle size={12} />}
+          {worse ? 'Worse' : 'New'}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-64 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
+        {worse
+          ? `Complaints rose in ${changes.current} compared with ${changes.previous}.`
+          : `First mentioned in ${changes.current}.`}{' '}
+        See the Trend tab for details.
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function TopicRow({
   axisMax,
   isSelected,
@@ -24,7 +57,9 @@ function TopicRow({
   topic,
   query,
   match,
+  changes,
 }: {
+  changes?: TopicChanges
   axisMax: number
   isSelected: boolean
   onSelect?: (topicId: string) => void
@@ -59,6 +94,7 @@ function TopicRow({
               />
             </ViolationTooltip>
           ) : null}
+          {changes?.kinds[topic.id] ? <ChangeTag changes={changes} kind={changes.kinds[topic.id]!} /> : null}
         </div>
         {/* Own line under the name, so the name keeps the full width. */}
         {match?.snippet ? (
@@ -117,6 +153,8 @@ export type TopicSentimentCardProps = {
   /** With `sortable`: the chosen order, held by the page so exports can follow it. Uncontrolled when omitted. */
   sort?: TopicSortOption
   onSortChange?: (sort: TopicSortOption) => void
+  /** Tags topics that got worse or are new (What changed, same range and filters). */
+  changes?: TopicChanges
   /** Given with `onQueryChange`: a search box filtering topics by name, keyword and feedback text. */
   query?: string
   onQueryChange?: (query: string) => void
@@ -135,6 +173,7 @@ export function TopicSentimentCard({
   onQueryChange,
   sort,
   onSortChange,
+  changes,
 }: TopicSentimentCardProps) {
   const [ownSort, setOwnSort] = useState<TopicSortOption>('priority')
   const sortOption = sort ?? ownSort
@@ -257,6 +296,7 @@ export function TopicSentimentCard({
         {visibleTopics.map((topic) => (
           <TopicRow
             axisMax={axisMax}
+            changes={changes}
             match={matches?.get(topic.id)}
             isSelected={selectedTopicId === topic.id}
             key={topic.id}

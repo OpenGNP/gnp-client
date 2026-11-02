@@ -46,7 +46,7 @@ import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
-import { TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
+import { type TopicChanges, TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
 import type { TopicSortOption } from '../components/dashboard/topicSort'
 import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
@@ -647,6 +647,17 @@ export function FormDashboardPage({
   }
 
     const topicAxisMax = themes ? computeAxisMax(themes.aiDiscoveredTopics) : undefined
+  // Trend's What changed, already fetched with the same range and demographic filter.
+  const changed = trend?.whatChanged
+  const topicChanges: TopicChanges | undefined = changed
+    ? {
+        current: changed.currentLabel,
+        previous: changed.previousLabel,
+        kinds: Object.fromEntries(
+          changed.rows.flatMap((row) => (row.kind === 'worse' || row.kind === 'new' ? [[row.id, row.kind]] : [])),
+        ),
+      }
+    : undefined
   const showViolationTopics = () => {
     document.getElementById(TOPIC_LIST_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -1048,6 +1059,7 @@ export function FormDashboardPage({
 
                     <TopicSentimentCard
                       axisMax={topicAxisMax}
+                      changes={topicChanges}
                       id={TOPIC_LIST_ID}
                       onQueryChange={setTopicQuery}
                       onSortChange={setTopicSort}
