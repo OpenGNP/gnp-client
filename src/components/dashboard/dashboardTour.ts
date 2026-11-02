@@ -33,7 +33,7 @@ export const DASHBOARD_TOUR: TourStep[] = [
   {
     target: '#topic-list',
     title: 'Topics the AI found',
-    text: 'Click a topic to read what people said about it. ⚠ marks feedback the AI flagged as a breach of law, ethics or morals.',
+    text: 'Click a topic to read what people said about it. The warning triangle marks feedback the AI flagged as a breach of law, ethics or morals.',
   },
   SHOW_NAMES_STEP,
   {
@@ -65,7 +65,7 @@ export const TREND_TOUR: TourStep[] = [
   {
     target: '[data-tour="trend-movement"]',
     title: 'What changed',
-    text: 'The latest full period against the one before: topics with more or fewer complaints, new topics, and possible violations first. Click one to see it on the chart.',
+    text: 'The latest full period against the one before: topics with more or fewer negative mentions, new topics, and possible violations first. Click one to see it on the chart.',
   },
   {
     target: '[data-tour="trend-emerging"]',

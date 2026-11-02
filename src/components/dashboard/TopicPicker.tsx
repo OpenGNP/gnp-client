@@ -77,7 +77,7 @@ export function TopicPicker({
   return (
     <div className={cn('flex flex-col gap-2', compact ? 'items-end' : 'items-start')}>
       {compact ? null : (
-        <span className="text-[9.5px] font-medium text-black">Topics on chart:</span>
+        <span className="text-[12px] font-medium text-[#3f4045]">Topics on chart:</span>
       )}
       <Popover onOpenChange={handleOpenChange} open={open}>
         <PopoverTrigger asChild>
@@ -191,7 +191,7 @@ export function TopicPicker({
                       {topic.label}
                     </span>
                     {topic.violations > 0 ? (
-                      <ViolationTooltip count={topic.violations} scope="topic">
+                      <ViolationTooltip count={topic.violations} focusable={false} scope="topic">
                         <span className="flex items-center gap-0.5 text-[11px] font-medium text-[#c0392b]">
                           <TriangleAlert size={11} />
                           {topic.violations}

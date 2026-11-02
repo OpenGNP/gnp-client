@@ -136,7 +136,7 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
         </span>
       </TooltipTrigger>
       <TooltipContent className="leading-4.5 text-[#3f4045]" side="top">
-        <p className="m-0 font-semibold text-[#14181f]">Complaints</p>
+        <p className="m-0 font-semibold text-[#14181f]">Negative mentions</p>
         {counts ? (
           <>
             <p className="m-0 flex items-center gap-1.5">
@@ -194,8 +194,8 @@ function WhatChangedItem({
               {row.label}
             </span>
             {row.violations > 0 ? (
-              <ViolationTooltip count={row.violations} scope="topic">
-                <span className="flex items-center gap-1 text-[12px] font-medium text-[#e0507a]">
+              <ViolationTooltip count={row.violations} focusable={false} scope="topic">
+                <span className="flex items-center gap-1 text-[12px] font-medium text-[#c2365f]">
                   <TriangleAlert className="shrink-0" size={14} />
                   {row.violations} possible violation
                   {row.violations === 1 ? '' : 's'}
@@ -312,7 +312,7 @@ export function WhatChangedCard({
         <div className="flex min-w-0 max-w-[858px] flex-1 items-center gap-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
             <div className="flex items-center gap-2">
-              <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+              <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-[#14181f]">
                 What changed
               </h2>
               <HoverTooltip>
@@ -326,7 +326,7 @@ export function WhatChangedCard({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-                  The latest full period against the one before. Topics are listed when their complaints
+                  The latest full period against the one before. Topics are listed when their negative mentions
                   clearly rise or fall, not just by chance, or when they&apos;re new. Click a topic to see it
                   on the chart.
                 </TooltipContent>
@@ -376,7 +376,7 @@ export function WhatChangedCard({
               <span className="min-w-0 flex-1">Topic</span>
               <span className="flex w-44 shrink-0 justify-between">
                 <span>0%</span>
-                <span>Complaints</span>
+                <span>Negative</span>
                 <span>100%</span>
               </span>
             </span>
@@ -435,7 +435,7 @@ function TimelineCard({
   }
   return (
     <section className="flex flex-col gap-3 rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-4">
-      <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+      <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-[#14181f]">
         Unusual spikes
       </h2>
       {events.length === 0 ? (

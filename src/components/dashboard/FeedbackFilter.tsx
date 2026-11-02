@@ -104,7 +104,7 @@ export function FeedbackFilter({
   const countBadge = isActive ? (
     <span
       aria-label={`${activeFilterCount} active`}
-      className="inline-flex min-w-4.5 items-center justify-center rounded-full bg-[#1e55c5] px-1 text-[10px] leading-4.5 font-bold text-white"
+      className="inline-flex min-w-4.5 items-center justify-center rounded-full bg-[#1e55c5] px-1 text-[11px] leading-4.5 font-bold text-white"
     >
       {activeFilterCount}
     </span>
@@ -235,7 +235,7 @@ export function FeedbackFilter({
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <span className="text-[9.5px] font-medium text-black">Filter by:</span>
+      <span className="text-[12px] font-medium text-[#3f4045]">Filter by:</span>
       {popover}
     </div>
   )

@@ -34,7 +34,7 @@ import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/t
 import { PeriodSentimentDetail, PeriodSentimentTooltip } from './PeriodSentimentTooltip'
 import { topicColorMap } from './trendColors'
 
-const AXIS_TICK = { fill: '#73777e', fontSize: 10 } as const
+const AXIS_TICK = { fill: '#726f6f', fontSize: 10 } as const
 
 // Both charts share this so the hover line runs through volume and sentiment together.
 const SYNC_ID = 'topic-trends'
@@ -182,7 +182,7 @@ export function TopicTrendsCard({
     <section className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex items-center gap-2">
-          <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
+          <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-[#14181f]">
             Mentions over time
           </h2>
           <HoverTooltip>
@@ -434,7 +434,7 @@ export function TopicTrendsCard({
               </span>
             ) : null}
           </p>
-          <div className={cn(ROW_GRID, 'px-2 pb-1 text-[10px] font-medium text-[#726f6f]')}>
+          <div className={cn(ROW_GRID, 'px-2 pb-1 text-[11px] font-medium text-[#726f6f]')}>
             <span>Topic</span>
             <span className="text-right">Mentions</span>
             {/* Only a hovered period has a previous one to compare with; the column keeps its width. */}
@@ -520,7 +520,7 @@ export function TopicTrendsCard({
                             {entry.label}
                           </span>
                           {spike ? (
-                            <span className="shrink-0 rounded-full bg-[#fee6e8] px-1.5 text-[10px] font-semibold text-[#f63b56]">
+                            <span className="shrink-0 rounded-full bg-[#fee6e8] px-1.5 text-[11px] font-semibold text-[#c2365f]">
                               Spike (usually ~{spike.usual})
                             </span>
                           ) : null}

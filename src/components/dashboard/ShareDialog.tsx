@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils'
 import { UserAvatar } from '../UserAvatar'
 import { SpecificPeopleField } from '../forms/SpecificPeopleField'
 import { MESSAGE_ACTION, MESSAGE_ACTION_STYLES, MESSAGE_DESCRIPTION, MESSAGE_TITLE } from '../messageStyles'
+import { Checkbox } from '../ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
@@ -119,8 +120,12 @@ function ShareButton({ formId }: { formId: number }) {
 function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
   const saved = useQuery(collaboratorsQuery(formId))
+  const savedShowNames = useQuery(formQuery(formId)).data?.showNamesToViewers ?? false
   // null until edited: the list shows what's saved until the owner changes it.
   const [draft, setDraft] = useState<string[] | null>(null)
+  const [showNamesDraft, setShowNamesDraft] = useState<boolean | null>(null)
+  const showNames = showNamesDraft ?? savedShowNames
+  const changed = draft !== null || (showNamesDraft !== null && showNamesDraft !== savedShowNames)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const emails = draft ?? saved.data?.map((viewer) => viewer.email) ?? []
@@ -129,8 +134,9 @@ function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void 
     setSaving(true)
     setError('')
     try {
-      const next = await replaceCollaborators(formId, emails)
+      const next = await replaceCollaborators(formId, emails, showNamesDraft ?? undefined)
       queryClient.setQueryData(queryKeys.collaborators(formId), next)
+      if (showNamesDraft !== null) void queryClient.invalidateQueries({ queryKey: queryKeys.form(formId) })
       onClose()
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : 'Could not update sharing. Please try again.')
@@ -157,6 +163,19 @@ function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void 
         ) : (
           <div className={cn(saving && 'opacity-60')} inert={saving}>
             <SpecificPeopleField emails={emails} onChange={setDraft} />
+            <label className="mt-4 flex cursor-pointer items-start gap-2.5">
+              <Checkbox
+                checked={showNames}
+                className="mt-0.5"
+                onCheckedChange={(checked) => setShowNamesDraft(checked === true)}
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[13px] font-medium text-[#14181f]">Show respondents’ names to viewers</span>
+                <span className="text-[12px] text-[#726f6f]">
+                  When off, viewers can’t see who wrote each response, in the dashboard or in exports.
+                </span>
+              </span>
+            </label>
           </div>
         )}
 
@@ -173,7 +192,7 @@ function ShareDialog({ formId, onClose }: { formId: number; onClose: () => void 
           </button>
           <button
             className={cn(MESSAGE_ACTION, MESSAGE_ACTION_STYLES.primary, 'gap-1.5 disabled:opacity-60')}
-            disabled={saving || !saved.isSuccess || draft === null}
+            disabled={saving || !saved.isSuccess || !changed}
             onClick={() => void save()}
             type="button"
           >

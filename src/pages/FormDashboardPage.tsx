@@ -1,6 +1,5 @@
 import {
   ArrowUp,
-  BarChart3,
   CircleHelp,
   Eye,
   EyeOff,
@@ -10,14 +9,12 @@ import {
   Printer,
   RefreshCw,
   Sparkles,
-  Tag,
-  TrendingUp,
   TriangleAlert,
-  UserRound,
   Users,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import {
   downloadFormResponses,
@@ -48,7 +45,7 @@ import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { type TopicChanges, TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
-import type { TopicSortOption } from '../components/dashboard/topicSort'
+import { sortTopics, type TopicSortOption } from '../components/dashboard/topicSort'
 import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
 import { TREND_SERIES_MAX } from '../components/dashboard/trendColors'
@@ -58,11 +55,11 @@ import { useRouteForm } from '../hooks/useRouteForm'
 import { useAuth } from '../lib/auth'
 import { SamplePreviewContext } from '../lib/samplePreview'
 import { SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
-import { hasSeenTour, markTourSeen, startTour } from '../lib/productTour'
+import { startTour } from '../lib/productTour'
 import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
 import type { DashboardView } from '../components/navigation/DashboardViewTabs'
-import { DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
+import { DASHBOARD_VIEW_PANEL_ID, DashboardViewTabs } from '../components/navigation/DashboardViewTabs'
 import { FolderBreadcrumbBar } from '../components/navigation/FolderBreadcrumb'
 import { FormActionButton } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
@@ -94,7 +91,35 @@ const BUCKETS: { value: BucketChoice; label: string }[] = [
   { value: 'year', label: 'Yearly' },
 ]
 
-/** `form === null` while it loads: the labels render, the values are placeholders. */
+const VIEW_TITLES: Record<DashboardView, string> = {
+  themes: 'Themes',
+  trend: 'Trend',
+  response: 'Response',
+  individual: 'Individual responses',
+}
+const VIEWS = Object.keys(VIEW_TITLES) as DashboardView[]
+const parseView = (value: string | null): DashboardView =>
+  VIEWS.includes(value as DashboardView) ? (value as DashboardView) : 'themes'
+const parseBucket = (value: string | null): BucketChoice =>
+  BUCKETS.some((option) => option.value === value) ? (value as BucketChoice) : 'auto'
+const parseRange = (from: string | null, to: string | null) => (from && to ? { from, to } : null)
+// A hand-edited or stale link falls back to no filter rather than breaking the page.
+function parseDemo(value: string | null): Record<string, string[]> {
+  if (!value) return {}
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string[]] =>
+          Array.isArray(entry[1]) && entry[1].every((item) => typeof item === 'string'),
+      ),
+    )
+  } catch {
+    return {}
+  }
+}
+
 /** How fresh the tab's data is: the newest response, or the last AI run. null while loading. */
 type Freshness = { kind: 'response' | 'ai'; at: string | null | undefined; pending?: number } | null
 
@@ -152,7 +177,6 @@ function StatCard({
   deltaLabel,
   deltaClassName,
   onClick,
-  actionLabel,
   note,
   noteTooltip,
   footer,
@@ -166,8 +190,6 @@ function StatCard({
   deltaClassName: string
   /** Makes the whole card a button (e.g. jump to the list behind the number). */
   onClick?: () => void
-  /** Accessible name for the button, when `onClick` is set. */
-  actionLabel?: string
   /** A grey aside beside the big number. */
   note?: string
   /** Explains `note` on hover. */
@@ -178,9 +200,9 @@ function StatCard({
   const Root = onClick ? 'button' : 'div'
   return (
     <Root
-      aria-label={onClick && actionLabel ? `${actionLabel} (${value})` : undefined}
       className={cn(
         'flex h-29.5 min-w-0 flex-col gap-2 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-4 text-left',
+        onClick && 'focus-visible:outline-2 focus-visible:outline-offset-2',
         onClick && 'cursor-pointer transition-colors hover:border-[#d2d8e5] hover:bg-[#fbfcfe]',
       )}
       onClick={onClick}
@@ -195,6 +217,7 @@ function StatCard({
       </p>
       <div className="flex min-w-0 items-center gap-4.5 @min-[34rem]:@max-[50rem]:gap-2.5">
         <div
+          aria-hidden="true"
           // Moved next to the label (above) while three cards share a narrow row.
           className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:hidden ${iconBgClassName}`}
         >
@@ -207,7 +230,11 @@ function StatCard({
             {note && noteTooltip ? (
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
-                  <span className="cursor-help truncate text-[12px] font-medium text-[#726f6f] underline decoration-dotted underline-offset-2">
+                  <span
+                    className="cursor-help truncate rounded-[4px] text-[12px] font-medium text-[#726f6f] underline decoration-dotted underline-offset-2"
+                    // Focusable (when the card isn't itself a button) so keyboard users get the explanation too.
+                    tabIndex={onClick ? undefined : 0}
+                  >
                     {note}
                   </span>
                 </TooltipTrigger>
@@ -281,13 +308,31 @@ export function FormDashboardPage({
   // New responses, finished AI runs and form edits show up without a refresh.
   useFormEvents(routeForm.formId)
 
-  const [activeView, setActiveView] = useState<DashboardView>('themes')
+  // The view and filters live in the URL, so a reload keeps them and a link opens the same view.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const updateParams = (patch: Record<string, string | null>) =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === null) next.delete(key)
+          else next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  const activeView = parseView(searchParams.get('view'))
+  const setActiveView = (view: DashboardView) => updateParams({ view: view === 'themes' ? null : view })
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+  // Opened from "N to review": the panel walks the owner through the flagged mentions.
+  const [reviewing, setReviewing] = useState(false)
   // Set when the panel is opened from Trend's What changed: its feedback starts on that period.
   const [topicDateRange, setTopicDateRange] = useState<FeedbackDateRange | null>(null)
   const selectTopic = (topicId: string | null) => {
     setSelectedTopicId(topicId)
     setTopicDateRange(null)
+    setReviewing(false)
   }
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null)
   const [responseQuery, setResponseQuery] = useState('')
@@ -304,16 +349,20 @@ export function FormDashboardPage({
   // so changing it doesn't reload the whole dashboard. `range === null` means "auto" —
   // the server defaults to the span of this form's analysed feedback (earliest →
   // latest submission), so both tabs open on all feedback. Trend also has a `bucket`.
-  const [bucket, setBucket] = useState<BucketChoice>('auto')
+  const bucket = parseBucket(searchParams.get('bucket'))
   const [rank, setRank] = useState<TrendRank>('mentioned')
   // `null` = "let the server auto-pick the top lines for the current rank".
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
-  const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  const range = parseRange(searchParams.get('from'), searchParams.get('to'))
   const { hideNames, toggleHideNames } = useHideNames()
   // Pinned line on the Trend tab's Mentions over time card (see TrendView).
   const [trendPinned, setTrendPinned] = useState<string | null>(null)
   // Themes-tab demographic filter: question label → chosen answers (server-side).
-  const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
+  const demoSel = useMemo(() => parseDemo(searchParams.get('demo')), [searchParams])
+  const setDemoSel = (next: Record<string, string[]>) => {
+    const kept = Object.entries(next).filter(([, values]) => values.length > 0)
+    updateParams({ demo: kept.length > 0 ? JSON.stringify(Object.fromEntries(kept)) : null })
+  }
 
   // Which kind of control last changed the trend query — so "Updating…" shows where
   // the change applies: on the Mentions over time card for the topic picker (it only
@@ -322,7 +371,7 @@ export function FormDashboardPage({
 
   const changeBucket = (next: BucketChoice) => {
     setTrendChangeScope('page')
-    setBucket(next)
+    updateParams({ bucket: next === 'auto' ? null : next })
   }
   const changeRank = (next: TrendRank) => {
     setTrendChangeScope('topic-chart')
@@ -339,16 +388,14 @@ export function FormDashboardPage({
   }
   const changeRange = (next: { from: string; to: string }) => {
     setTrendChangeScope('page')
-    setRange(next)
+    updateParams({ from: next.from, to: next.to })
   }
   const toggleDemo = (label: string, value: string) => {
     setTrendChangeScope('page')
-    setDemoSel((prev) => {
-      const current = prev[label] ?? []
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value]
-      return { ...prev, [label]: next }
+    const current = demoSel[label] ?? []
+    setDemoSel({
+      ...demoSel,
+      [label]: current.includes(value) ? current.filter((v) => v !== value) : [...current, value],
     })
   }
   const clearDemo = () => {
@@ -357,7 +404,7 @@ export function FormDashboardPage({
   }
   const resetRange = () => {
     setTrendChangeScope('page')
-    setRange(null)
+    updateParams({ from: null, to: null })
   }
 
   // Each data source is its own cached query. Changing a filter changes the
@@ -519,17 +566,6 @@ export function FormDashboardPage({
     else setPreviewing(false)
   }
 
-  // First visit to a tab, once its data has loaded: run that tab's tour, once.
-  const autoTourKey =
-    tabTour.loaded && !('manual' in tabTour) && user && !hasSeenTour(tabTour.id, user.id) ? tabTour.id : null
-  const startAutoTour = useEffectEvent((key: string) => {
-    if (tabTour.id === key && user) runTabTour(tabTour, () => markTourSeen(key, user.id))
-  })
-  useEffect(() => {
-    if (!autoTourKey) return
-    const timer = setTimeout(() => startAutoTour(autoTourKey), 500)
-    return () => clearTimeout(timer)
-  }, [autoTourKey])
 
   const loadFailure =
     routeForm.status === 'error'
@@ -678,6 +714,15 @@ export function FormDashboardPage({
   const showViolationTopics = () => {
     document.getElementById(TOPIC_LIST_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+  // Topics with flags still to review, in Priority order (the list's default).
+  const reviewTopics = themes
+    ? sortTopics(themes.aiDiscoveredTopics, 'priority').filter((topic) => topic.feedbackSegment.some(needsReview))
+    : []
+  const openReview = (topicId: string) => {
+    setSelectedTopicId(topicId)
+    setTopicDateRange(null)
+    setReviewing(true)
+  }
 
   const sentimentTotal = themes
     ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
@@ -728,19 +773,19 @@ export function FormDashboardPage({
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
                 <span className="text-[#726f6f]">
-                  Negative: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
+                  Negative: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
                 <span className="text-[#726f6f]">
-                  Neutral: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
+                  Neutral: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
                 <span className="text-[#726f6f]">
-                  Positive: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
+                  Positive: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
                 </span>
               </span>
             </div>
@@ -749,7 +794,6 @@ export function FormDashboardPage({
 
         {/* Everyone sees the same total; the owner also gets what's left to review. */}
         <StatCard
-          actionLabel="Show violation topics"
           deltaClassName="text-[#881921]"
           footer={
             isOwner && violationMentions > 0 ? (
@@ -768,7 +812,13 @@ export function FormDashboardPage({
               ? `in ${themes.violationTopics.length} ${themes.violationTopics.length === 1 ? 'topic' : 'topics'}`
               : undefined
           }
-          onClick={themes.violationTopics.length > 0 ? showViolationTopics : undefined}
+          onClick={
+            isOwner && reviewTopics[0]
+              ? () => openReview(reviewTopics[0]!.id)
+              : themes.violationTopics.length > 0
+                ? showViolationTopics
+                : undefined
+          }
           value={violationMentions}
         />
       </div>
@@ -833,8 +883,8 @@ export function FormDashboardPage({
       // Pulled up under the filter row it belongs to (the column's gap is 20px).
       className="-mt-2"
       onClearAll={() => {
-        resetRange()
-        clearDemo()
+        setTrendChangeScope('page')
+        updateParams({ from: null, to: null, demo: null })
       }}
     />
   )
@@ -1010,6 +1060,9 @@ export function FormDashboardPage({
             style={isPanelDocked ? { paddingRight: detailPanelLayout.width } : undefined}
           >
             <div
+              aria-label={VIEW_TITLES[activeView]}
+              id={DASHBOARD_VIEW_PANEL_ID}
+              role="tabpanel"
               className={cn(
                 'mx-auto flex w-full flex-col gap-5',
                 // Every tab is the same width, so switching doesn't shift the page. A docked
@@ -1019,30 +1072,8 @@ export function FormDashboardPage({
                 isPanelDocked && 'min-w-150',
               )}
             >
-              <div className="-mb-2 flex flex-col gap-1.25">
-                <div className="flex min-h-11.25 items-center justify-between gap-2.5 pt-2.5">
-                  <div className="flex items-center gap-2.5">
-                    {activeView === 'themes' ? (
-                      <Tag className="shrink-0 text-[#1e55c5]" size={24} />
-                    ) : activeView === 'individual' ? (
-                      <UserRound className="shrink-0 text-[#1e55c5]" size={24} />
-                    ) : activeView === 'trend' ? (
-                      <TrendingUp className="shrink-0 text-[#1e55c5]" size={24} />
-                    ) : (
-                      <BarChart3 className="shrink-0 text-[#1e55c5]" size={24} />
-                    )}
-                    <h2 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
-                      {activeView === 'themes'
-                        ? 'Themes overview'
-                        : activeView === 'trend'
-                          ? 'Trend overview'
-                          : activeView === 'individual'
-                            ? 'Individual responses'
-                            : 'Response overview'}
-                    </h2>
-                  </div>
-                </div>
-              </div>
+              {/* The tab already names the view; the heading stays for screen readers' outline. */}
+              <h2 className="sr-only">{VIEW_TITLES[activeView]}</h2>
 
               {activeView === 'themes' ? (
                 !themes ? (
@@ -1056,7 +1087,11 @@ export function FormDashboardPage({
                     {themesStatCards}
                     <EmptyNote>
                       {themes.totalMentions === 0
-                        ? 'No themes yet. The AI pipeline hasn’t analysed this form’s feedback into topics.'
+                        ? responses?.totalResponses === 0
+                          ? 'No responses yet. Share the form’s link to start collecting feedback.'
+                          : themes.awaitingAnalysis
+                            ? `Analysis is in progress for ${themes.awaitingAnalysis} ${themes.awaitingAnalysis === 1 ? 'response' : 'responses'}. Topics will appear here when it finishes, without a refresh.`
+                            : 'No themes yet. None of the written answers so far have been grouped into topics.'
                         : `This form has analysed feedback, but none falls in ${themes.rangeLabel}${activeDemoCount > 0 ? ' for the selected demographics' : ''}. Try “All feedback”, a wider date range${activeDemoCount > 0 ? ' or fewer demographic filters' : ''}.`}
                     </EmptyNote>
                   </>
@@ -1105,7 +1140,7 @@ export function FormDashboardPage({
                     {responses.totalResponses === 0 ? (
                       <div className="flex min-h-40 items-center justify-center rounded-[15px] border border-dashed border-[#d2d8e5] bg-white px-6 py-10 text-center">
                         <p className="m-0 text-[14px] text-[#726f6f]">
-                          No responses have been submitted yet.
+                          No responses yet. Share the form’s link to start collecting feedback.
                         </p>
                       </div>
                     ) : (
@@ -1177,16 +1212,21 @@ export function FormDashboardPage({
                   />
                   {demoFilterControl}
                   <div className="flex flex-col items-start gap-2" data-tour="trend-bucket">
-                    <span className="text-[9.5px] font-medium text-black">Summarise by:</span>
-                    <div className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]">
+                    <span className="text-[12px] font-medium text-[#3f4045]" id="trend-bucket-label">Summarise by:</span>
+                    <div
+                      aria-labelledby="trend-bucket-label"
+                      className="inline-flex overflow-hidden rounded-[10px] border border-[#1e55c5]"
+                      role="group"
+                    >
                       {BUCKETS.map((option) => (
                         <button
                           className={cn(
-                            'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors',
+                            'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[#14181f] focus-visible:outline-none focus-visible:ring-inset',
                             option.value === bucket
                               ? 'bg-[#1e55c5] text-white'
                               : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
                           )}
+                          aria-pressed={option.value === bucket}
                           key={option.value}
                           onClick={() => changeBucket(option.value)}
                           type="button"
@@ -1239,8 +1279,8 @@ export function FormDashboardPage({
                   />
                 ) : trend.totalMentions === 0 ? (
                   <EmptyNote>
-                    No feedback has been analysed for this form yet. The AI pipeline runs once
-                    responses start coming in.
+                    No feedback has been analysed yet. Analysis starts by itself once responses
+                    come in.
                   </EmptyNote>
                 ) : themes.aiDiscoveredTopics.length > 0 ? (
                   // Feedback is in range, but none of it has a topic yet (only uncategorised).
@@ -1267,9 +1307,17 @@ export function FormDashboardPage({
             hidden={activeView !== 'themes'}
             initialQuery={topicQuery}
             initialDateRange={topicDateRange}
-            key={`${openTopic.id}-${topicDateRange?.from ?? ''}`}
+            key={`${openTopic.id}-${topicDateRange?.from ?? ''}-${reviewing}`}
             mainDemoSelection={demoSel}
-            onClose={() => setSelectedTopicId(null)}
+            onClose={() => selectTopic(null)}
+            reviewing={
+              reviewing && isOwner
+                ? (() => {
+                    const others = reviewTopics.filter((topic) => topic.id !== openTopic.id)
+                    return { topicsLeft: others.length, onNext: others[0] ? () => openReview(others[0]!.id) : undefined }
+                  })()
+                : undefined
+            }
             hideNames={hideNames}
             onCompareInTrend={() => compareInTrend(openTopic.id)}
             onReviewViolation={routeForm.role === 'owner' ? reviewPointViolation : undefined}
