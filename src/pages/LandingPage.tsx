@@ -9,7 +9,7 @@ import {
   UserCheck,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import type { ViolationReview } from '../api/analytics'
 import { FeedbackPointCard } from '../components/dashboard/FeedbackSegmentSection'
@@ -28,6 +28,11 @@ import {
   type LandingTopic,
 } from '../data/landingSample'
 import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
+import { HeadroomBar } from '../components/navigation/HeadroomBar'
+import { SAMPLE_FORM_MODEL } from '../data/sampleDashboard'
+import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
+import { useFormEditorModel } from '../hooks/useFormEditorModel'
+import { CreateFormPage } from './CreateFormPage'
 import { FormDashboardPage } from './FormDashboardPage'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
@@ -696,11 +701,85 @@ export function LandingPage() {
   )
 }
 
-/** /demo: the real dashboard on sample data, with its own tour; nothing reaches the server. */
+const DEMO_TAB =
+  'flex h-full items-center justify-center border-0 border-b-2 px-5 text-[16px] tracking-[0.16px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1e55c5] max-[560px]:px-3 max-[560px]:text-[14px]'
+
+/** The demo's top bar: the app's Edit form | Dashboard tabs, a sample label and the sign-in. */
+function DemoBar({ editing }: { editing: boolean }) {
+  const tab = (active: boolean) =>
+    cn(DEMO_TAB, active ? 'border-[#1e55c5] bg-[#edf2fd] font-medium text-[#1e55c5]' : 'border-transparent text-[#726f6f] hover:text-[#14181f]')
+  return (
+    <div className="flex h-12.5 items-center justify-between gap-3 border-b border-[#e8eaf1] pr-6 pl-4 max-[560px]:pr-3 max-[560px]:pl-2">
+      <div className="flex h-full min-w-0 items-center gap-3">
+        <Link
+          aria-label={`${brand.name} overview`}
+          className="shrink-0 rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
+          to="/about"
+        >
+          <img alt={brand.name} className="h-7 w-13.5 object-cover object-center" src={brand.logo} />
+        </Link>
+        <nav aria-label="Sample form" className="flex h-full">
+          <Link aria-current={editing ? 'page' : undefined} className={tab(editing)} to="/demo?mode=edit">
+            Edit form
+          </Link>
+          <Link aria-current={editing ? undefined : 'page'} className={tab(!editing)} to="/demo">
+            Dashboard
+          </Link>
+        </nav>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Link
+          className="inline-flex h-8 items-center rounded-[10px] bg-[#1e55c5] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a49aa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+          to="/login"
+        >
+          Sign in
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * /demo: a sample form to explore before signing up, in place of a starter form in every
+ * new account. "Edit form" is the real editor and "Dashboard" the real dashboard (with its
+ * tour), both on sample data; edits live in this page only and are never saved.
+ */
 export function DemoPage() {
+  const [params] = useSearchParams()
+  const editing = params.get('mode') === 'edit'
+  // Held here, so switching tabs keeps what the visitor changed.
+  const { model, update } = useFormEditorModel(SAMPLE_FORM_MODEL)
+  const { settings, updateSettings } = useFormAccessSettings()
   return (
     <div className="min-h-screen bg-[#f5f9ff]">
-      <FormDashboardPage demo />
+      <HeadroomBar>
+        <DemoBar editing={editing} />
+      </HeadroomBar>
+      {/* On both tabs: what to try here, that it's a sample, and the way to your own form. */}
+      <p className="m-0 border-b border-[#f3d27a] bg-[#fff6d6] px-6 py-2.5 text-center text-[13px] text-[#7a5a00] max-[560px]:px-4">
+        {editing
+          ? 'Try it: rename questions, add options or new questions.'
+          : 'Try it: open a topic, filter the results or review a flag.'}{' '}
+        Nothing here is saved.{' '}
+        <Link className="font-semibold text-[#7a5a00] underline underline-offset-2" to="/login">
+          Sign in
+        </Link>{' '}
+        to build your own form.
+      </p>
+      {editing ? (
+        <>
+          <CreateFormPage
+            formAccessSettings={settings}
+            formModel={model}
+            onCloseSettings={() => {}}
+            onUpdateFormAccessSettings={updateSettings}
+            onUpdateFormModel={update}
+            showSettings={false}
+          />
+        </>
+      ) : (
+        <FormDashboardPage demo />
+      )}
     </div>
   )
 }

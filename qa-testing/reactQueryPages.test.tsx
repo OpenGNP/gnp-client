@@ -163,6 +163,7 @@ describe('pages on React Query', () => {
       '/',
       '/',
       <HomePage
+        onCreateForm={() => {}}
         onDeleteItem={() => {}}
         onMoveItem={() => {}}
         onRenameItem={() => {}}
@@ -178,13 +179,14 @@ describe('pages on React Query', () => {
       '/',
       '/',
       <HomePage
+        onCreateForm={() => {}}
         onDeleteItem={() => {}}
         onMoveItem={() => {}}
         onRenameItem={() => {}}
         projects={[{ id: 'form-99', label: 'Another', type: 'document', formId: '99' }]}
       />,
     )
-    expect(await screen.findByText('No forms yet. Create your first form to get started.')).toBeInTheDocument()
+    expect(await screen.findByText('Create your first form')).toBeInTheDocument()
   })
 
   it('Home and the sidebar tree share one /forms request', async () => {
@@ -193,7 +195,7 @@ describe('pages on React Query', () => {
       '/',
       <>
         <TreeProbe />
-        <HomePage onDeleteItem={() => {}} onMoveItem={() => {}} onRenameItem={() => {}} projects={[]} />
+        <HomePage onCreateForm={() => {}} onDeleteItem={() => {}} onMoveItem={() => {}} onRenameItem={() => {}} projects={[]} />
       </>,
     )
     expect(await screen.findByText('tree ready 1')).toBeInTheDocument()

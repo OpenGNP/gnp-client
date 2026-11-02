@@ -648,6 +648,7 @@ function App() {
             path="/"
             element={
               <HomePage
+                onCreateForm={handleCreateForm}
                 onDeleteItem={handleDeleteProject}
                 onMoveItem={handleOpenMove}
                 onRenameItem={handleRenameProject}

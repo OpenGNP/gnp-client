@@ -39,6 +39,14 @@ export function settleAlert(confirmed: boolean) {
   current.resolve(confirmed)
 }
 
+/** Closes every open or waiting dialog as cancelled, e.g. when the account behind them is gone. */
+export function clearAlerts() {
+  const pending = queue
+  queue = []
+  emit()
+  pending.forEach((request) => request.resolve(false))
+}
+
 function enqueue(request: Omit<AlertRequest, 'id' | 'resolve'>): Promise<boolean> {
   return new Promise((resolve) => {
     queue = [...queue, { ...request, id: nextId++, resolve }]

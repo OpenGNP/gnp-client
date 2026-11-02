@@ -1,5 +1,6 @@
 import type { FormIndividualResponses, FormResponseAnalytics, FormThemeAnalytics } from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
+import type { FormEditorModel } from '../hooks/useFormEditorModel'
 import type { FeedbackPoint, FeedbackSentiment, FormTrendAnalytics, TopicSentiment } from './dashboardAnalytics'
 
 /**
@@ -338,4 +339,28 @@ export const SAMPLE_FORM: ApiFormDetail = {
   urlId: 'sample',
   formFields: [],
   formAllowedUsers: [],
+}
+
+/** The /demo's "Edit form" tab: the same four questions the sample dashboard reports on. Never saved. */
+export const SAMPLE_FORM_MODEL: FormEditorModel = {
+  title: SAMPLE_FORM.formTitle ?? '',
+  description: 'Tell us how this term went. Your answers help the faculty decide what to fix first.',
+  coverImageUrl: null,
+  coverImageFile: null,
+  demographic: [
+    { id: 'sample-year', type: 'choice', question: 'Year of study', options: [...YEARS], allowMultiple: false, hasOther: false, required: true },
+    { id: 'sample-program', type: 'choice', question: 'Program of study', options: [...PROGRAMS], allowMultiple: false, hasOther: false, required: true },
+  ],
+  feedback: [
+    {
+      id: 'sample-facilities',
+      type: 'choice',
+      question: 'Which facilities did you use this term?',
+      options: ['Library', 'Computer labs', 'Canteen', 'Co-working space'],
+      allowMultiple: true,
+      hasOther: false,
+      required: false,
+    },
+    { id: 'sample-feedback', type: 'text', question: 'Any other feedback?', answerLength: 'long', required: false },
+  ],
 }

@@ -7,7 +7,7 @@ import { meQuery, sharedFormsQuery } from '../api/queries'
 import { deleteMyAccount, getDeletionSummary } from '../api/users'
 import { PageContainer } from '../components/layout/PageContainer'
 import { UserAvatar } from '../components/UserAvatar'
-import { showAlert, showConfirm } from '../lib/alertDialog'
+import { clearAlerts, showAlert, showConfirm } from '../lib/alertDialog'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
@@ -56,6 +56,8 @@ function Stat({
 
 export function ProfilePage() {
   const { user, logout } = useAuth()
+  // busy: from the first click until it's settled; deleting: only once confirmed.
+  const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
   // Fresh from /users/me: the session copy (from sign-in) lacks the organization name and join date.
   const me = useQuery(meQuery())
@@ -67,7 +69,9 @@ export function ProfilePage() {
   const organizationName = me.data?.organizationName ?? null
 
   async function handleDelete() {
-    if (!user) return
+    if (!user || busy) return
+    // Busy from the first click: the summary takes a moment, and a second click would queue a second confirm.
+    setBusy(true)
     try {
       const { forms, responses } = await getDeletionSummary()
       const confirmed = await showConfirm({
@@ -82,10 +86,13 @@ export function ProfilePage() {
       if (!confirmed) return
       setDeleting(true)
       await deleteMyAccount()
+      // Nothing may outlive the account on screen (the sign-in page comes next).
+      clearAlerts()
       await logout()
     } catch (error) {
       void showAlert(error instanceof ApiError ? error.message : 'Could not delete your account. Please try again.')
     } finally {
+      setBusy(false)
       setDeleting(false)
     }
   }
@@ -162,7 +169,7 @@ export function ProfilePage() {
               </p>
               <button
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#e0507a] bg-white px-3 py-1.5 text-[13px] font-medium text-[#c2365f] transition-colors hover:bg-[#fcf3f6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5] disabled:cursor-default disabled:opacity-60"
-                disabled={deleting}
+                disabled={busy}
                 onClick={() => void handleDelete()}
                 type="button"
               >
