@@ -119,7 +119,7 @@ export type TopicDetailPanelProps = {
   hideNames?: boolean
   /** Opens a feedback point's whole response in the Individual tab. */
   onOpenResponse?: (submissionId: number) => void
-  /** The Themes Overview search, carried into the panel's feedback search. */
+  /** The Themes overview search, carried into the panel's feedback search. */
   initialQuery?: string
   /** Kept mounted but out of sight while another dashboard tab is showing. */
   hidden?: boolean

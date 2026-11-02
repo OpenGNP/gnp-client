@@ -301,7 +301,7 @@ export type FeedbackSegmentSectionProps = {
   hideNames?: boolean
   /** Opens a point's whole response in the Individual tab. */
   onOpenResponse?: (submissionId: number) => void
-  /** Pre-fills the search — the Themes Overview search the topic was opened from. */
+  /** Pre-fills the search — the Themes overview search the topic was opened from. */
   initialQuery?: string
   /** Confirm / dismiss a flagged point (form owner only). */
   onReviewViolation?: (pointId: string, status: ViolationReview) => Promise<void>

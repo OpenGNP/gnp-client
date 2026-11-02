@@ -188,7 +188,8 @@ function StatCard({
       <p className="m-0 w-full truncate text-[12px] font-medium text-[#726f6f]">{label}</p>
       <div className="flex min-w-0 items-center gap-4.5 @min-[34rem]:@max-[50rem]:gap-2.5">
         <div
-          className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:size-10 @min-[34rem]:@max-[50rem]:[&_svg]:size-5 ${iconBgClassName}`}
+          // Hidden while three cards share a narrow row: the number and its notes need the room.
+          className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:hidden ${iconBgClassName}`}
         >
           {icon}
         </div>
@@ -656,25 +657,23 @@ export function FormDashboardPage({
 
   // Shown whether or not the feedback has been analysed yet, so the responder count
   // is always visible. One row of three whenever the space allows: equal when there's
-  // room, else Sentiment widest (its gauge) and Violation narrowest (just a number) —
+  // room, else Sentiment widest (its gauge), with the stat cards' icons hidden —
   // sized by the column, which the topic panel narrows, not the screen.
   // Flags the owner hasn't confirmed or dismissed yet, same rule as the panel's "Needs review".
-  const topicsToReview = (themes?.aiDiscoveredTopics ?? []).filter((topic) =>
-    topic.feedbackSegment.some(needsReview),
+  const reviewCount = (themes?.aiDiscoveredTopics ?? []).reduce(
+    (sum, topic) => sum + topic.feedbackSegment.filter(needsReview).length,
+    0,
   )
-  const reviewCount = topicsToReview.reduce((sum, topic) => sum + topic.feedbackSegment.filter(needsReview).length, 0)
   // Still-standing flags (confirmed or not; dismissed ones are no longer `violation`).
   const violationMentions = (themes?.aiDiscoveredTopics ?? []).reduce(
     (sum, topic) => sum + topic.feedbackSegment.filter((point) => point.violation).length,
     0,
   )
   const isOwner = routeForm.role === 'owner'
-  // The list's first topic with flags left to review: the card opens it.
-  const reviewTopic = topicsToReview[0]
 
   const themesStatCards = themes ? (
     <div className="@container">
-      <div className="grid grid-cols-1 gap-4 @min-[34rem]:grid-cols-[1.2fr_1.3fr_0.8fr] @min-[50rem]:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @min-[34rem]:grid-cols-[1fr_1.25fr_1fr] @min-[50rem]:grid-cols-3">
         <StatCard
           deltaClassName="text-[#0b842d]"
           deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
@@ -720,17 +719,16 @@ export function FormDashboardPage({
           </div>
         </div>
 
-        {/* Everyone sees the same total; the owner also gets what's left to review, and the
-            card opens the first topic with flags to review (else it scrolls to the list). */}
+        {/* Everyone sees the same total; the owner also gets what's left to review. */}
         <StatCard
-          actionLabel={isOwner && reviewTopic ? `Review flagged mentions in ${reviewTopic.label}` : 'Show violation topics'}
+          actionLabel="Show violation topics"
           deltaClassName="text-[#881921]"
           footer={
             isOwner && violationMentions > 0 ? (
               reviewCount > 0 ? (
-                <span className="font-semibold text-[#c2365f]">{reviewCount} to review</span>
+                <span className="font-semibold whitespace-nowrap text-[#c2365f]">{reviewCount} to review</span>
               ) : (
-                <span className="text-[#726f6f]">All reviewed</span>
+                <span className="whitespace-nowrap text-[#726f6f]">All reviewed</span>
               )
             ) : null
           }
@@ -742,13 +740,7 @@ export function FormDashboardPage({
               ? `in ${themes.violationTopics.length} ${themes.violationTopics.length === 1 ? 'topic' : 'topics'}`
               : undefined
           }
-          onClick={
-            isOwner && reviewTopic
-              ? () => selectTopic(reviewTopic.id)
-              : themes.violationTopics.length > 0
-                ? showViolationTopics
-                : undefined
-          }
+          onClick={themes.violationTopics.length > 0 ? showViolationTopics : undefined}
           value={violationMentions}
         />
       </div>
@@ -997,12 +989,12 @@ export function FormDashboardPage({
                     )}
                     <h2 className="m-0 text-[20px] font-semibold tracking-[0.2px] text-black">
                       {activeView === 'themes'
-                        ? 'Themes Overview'
+                        ? 'Themes overview'
                         : activeView === 'trend'
-                          ? 'Trend Overview'
+                          ? 'Trend overview'
                           : activeView === 'individual'
-                            ? 'Individual Responses'
-                            : 'Response Overview'}
+                            ? 'Individual responses'
+                            : 'Response overview'}
                     </h2>
                   </div>
                 </div>
@@ -1100,13 +1092,13 @@ export function FormDashboardPage({
                         <ResponseOverviewSection
                           breakdowns={responses.demographic}
                           hideNames={hideNames}
-                          title="Demographic Overview"
+                          title="Demographic overview"
                           tourId="response-demographic"
                         />
                         <ResponseOverviewSection
                           breakdowns={responses.feedback}
                           hideNames={hideNames}
-                          title="Feedback Overview"
+                          title="Feedback overview"
                           tourId="response-feedback"
                         />
                       </>
