@@ -2,6 +2,7 @@ import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/
 import { Asterisk, Circle, MessageSquareText, Plus, Square, X } from 'lucide-react'
 
 import {
+  AiAnalyzeLabel,
   LabeledToggle,
   MoveHandle,
   QuestionCardFooter,
@@ -16,6 +17,8 @@ export type ChoiceQuestionCardProps = {
   onDelete: () => void
   dragHandleAttributes?: DraggableAttributes
   dragHandleListeners?: DraggableSyntheticListeners
+  /** In Feedback: say this one isn't sent to the AI. */
+  showAiAnalyze?: boolean
 }
 
 export function ChoiceQuestionCard({
@@ -24,6 +27,7 @@ export function ChoiceQuestionCard({
   onDelete,
   dragHandleAttributes,
   dragHandleListeners,
+  showAiAnalyze = false,
 }: ChoiceQuestionCardProps) {
   const OptionIcon = question.allowMultiple ? Square : Circle
 
@@ -143,7 +147,19 @@ export function ChoiceQuestionCard({
         />
       </QuestionCardFooter>
 
-      <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
+      {showAiAnalyze ? (
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+          <span aria-hidden="true" />
+          <MoveHandle
+            attributes={dragHandleAttributes}
+            className="justify-self-center"
+            listeners={dragHandleListeners}
+          />
+          <AiAnalyzeLabel className="justify-self-end" off />
+        </div>
+      ) : (
+        <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
+      )}
     </QuestionCardShell>
   )
 }

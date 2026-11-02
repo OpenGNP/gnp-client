@@ -71,7 +71,7 @@ function AutoGrowTextarea(props: ComponentProps<"textarea">) {
   return <textarea ref={ref} {...props} />;
 }
 
-const demographicQuestionTypes: QuestionTypeOption[] = [
+const questionTypes: QuestionTypeOption[] = [
   {
     value: "choice",
     label: "Choice",
@@ -86,18 +86,6 @@ const demographicQuestionTypes: QuestionTypeOption[] = [
     label: "Text",
     icon: (
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-transparent text-[#1e55c5]">
-        <Type size={14} strokeWidth={3} />
-      </span>
-    ),
-  },
-];
-
-const feedbackQuestionTypes: QuestionTypeOption[] = [
-  {
-    value: "text",
-    label: "Text",
-    icon: (
-      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-xs border border-[#1e55c5] bg-white text-[#1e55c5]">
         <Type size={14} strokeWidth={3} />
       </span>
     ),
@@ -302,7 +290,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           }
           questions={value.demographic}
           description="Who's answering, e.g. year or program. Used to filter and compare results."
-          questionTypes={demographicQuestionTypes}
+          questionTypes={questionTypes}
           title="Demographic"
         />
 
@@ -313,8 +301,8 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           onActivateQuestion={setActiveQuestionId}
           onQuestionsChange={(questions) => onChange({ feedback: questions })}
           questions={value.feedback}
-          questionTypes={feedbackQuestionTypes}
-          description="What you want to learn. Written answers here are grouped into topics by AI."
+          questionTypes={questionTypes}
+          description="What you want to learn. AI groups written answers into topics; choice answers are only counted."
           showAiAnalyze
           title="Feedback"
         />
