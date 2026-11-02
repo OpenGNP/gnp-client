@@ -69,7 +69,7 @@ export const TREND_TOUR: TourStep[] = [
   },
   {
     target: '[data-tour="trend-emerging"]',
-    title: 'Spikes',
+    title: 'Unusual spikes',
     text: 'The moments a topic was mentioned far more than usual. Topics on the chart get a dot there. Click a row to show that topic on the chart.',
   },
 ]

@@ -83,7 +83,7 @@ function DeltaCell({ value }: { value: number | null }) {
 }
 
 /**
- * Topic Trends (by volume): full-width line chart with a linked side panel instead
+ * Mentions over time: full-width line chart with a linked side panel instead
  * of a floating tooltip, so nothing covers the lines.
  *
  * - The panel lists every charted topic: mentions, change vs the previous period
@@ -117,7 +117,7 @@ export function TopicTrendsCard({
   /** The pinned topic — owned by TrendView, since Sentiment Trend follows it too. */
   pinnedTopic: string | null
   onPinnedTopicChange: (id: string | null) => void
-  /** Timeline of Key Events — each gets a dot on its line. */
+  /** Unusual spikes — each gets a dot on its line. */
   spikes?: TrendTimelineEvent[]
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
@@ -175,12 +175,12 @@ export function TopicTrendsCard({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex items-center gap-2">
           <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-            Topic Trends (by volume)
+            Mentions over time
           </h2>
           <HoverTooltip>
             <TooltipTrigger asChild>
               <button
-                aria-label="How to read Topic Trends"
+                aria-label="How to read Mentions over time"
                 className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
                 type="button"
               >
@@ -391,8 +391,9 @@ export function TopicTrendsCard({
           <div className={cn(ROW_GRID, 'px-2 pb-1 text-[10px] font-medium text-[#929292]')}>
             <span>Topic</span>
             <span className="text-right">Mentions</span>
+            {/* Only a hovered period has a previous one to compare with; the column keeps its width. */}
             <span className="text-right" title="Change vs the previous period">
-              Δ
+              {point ? 'Change' : ''}
             </span>
             <span className="text-right">Negative</span>
           </div>

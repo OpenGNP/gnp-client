@@ -295,13 +295,13 @@ export function FormDashboardPage({
   const [topicSel, setTopicSel] = useState<string[] | null>(null)
   const [range, setRange] = useState<{ from: string; to: string } | null>(null)
   const { hideNames, toggleHideNames } = useHideNames()
-  // Pinned line on the Trend tab's Topic Trends card (see TrendView).
+  // Pinned line on the Trend tab's Mentions over time card (see TrendView).
   const [trendPinned, setTrendPinned] = useState<string | null>(null)
   // Themes-tab demographic filter: question label → chosen answers (server-side).
   const [demoSel, setDemoSel] = useState<Record<string, string[]>>({})
 
   // Which kind of control last changed the trend query — so "Updating…" shows where
-  // the change applies: on the Topic Trends card for the topic picker (it only
+  // the change applies: on the Mentions over time card for the topic picker (it only
   // changes that chart's lines), in the filter row for page-wide filters.
   const [trendChangeScope, setTrendChangeScope] = useState<'page' | 'topic-chart'>('page')
 

@@ -1,5 +1,5 @@
 /**
- * Line colours for the Trend "Topic Trends (by volume)" chart, indexed by the
+ * Line colours for the Trend "Mentions over time" chart, indexed by the
  * topic's position in the charted set. First five are the Figma palette; the last
  * three cover the extra slots the topic picker allows (cap 8).
  */

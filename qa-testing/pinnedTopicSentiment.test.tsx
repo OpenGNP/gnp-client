@@ -45,7 +45,7 @@ const trend: FormTrendAnalytics = {
   timelineEvents: [],
 }
 
-describe('the sentiment strip in Topic Trends follows the focused topic', () => {
+describe('the sentiment strip in Mentions over time follows the focused topic', () => {
   const strip = (name: string) => screen.getByRole('img', { name: `Sentiment for ${name}` })
 
   it('shows all topics until a topic is pinned, then that topic, then back', async () => {
