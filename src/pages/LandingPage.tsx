@@ -27,6 +27,7 @@ import {
   type LandingSampleId,
   type LandingTopic,
 } from '../data/landingSample'
+import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
 import { FormDashboardPage } from './FormDashboardPage'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
@@ -127,9 +128,9 @@ function dashboardRows(sample: LandingSample): DashboardRow[] {
       change: 'new',
     })
   }
-  return rows.sort(
-    (a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || b.percentOfTotal - a.percentOfTotal,
-  )
+  // The dashboard's default Priority order: flagged first, then most negative (topicSort.ts).
+  const priority = TOPIC_SORT_OPTIONS.find((option) => option.value === 'priority')!.compare
+  return rows.sort((a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || priority(a, b))
 }
 
 /** The app's window, as every demo on this page shows it: chrome, the form's name, its view tabs. */
@@ -197,11 +198,10 @@ function TopicRows({ rows }: { rows: DashboardRow[] }) {
   return (
   <ul className="m-0 list-none p-0">
     {rows.map((row) => {
-      const worse = row.change === 'worse'
       return (
         <li
           className={`grid grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.75rem] items-center gap-4 border-l-[3px] px-4 py-2.5 [grid-template-areas:'name_bar_pct'] max-[700px]:grid-cols-[minmax(0,1fr)_2.75rem] max-[700px]:gap-y-1.5 max-[700px]:[grid-template-areas:'name_pct'_'bar_bar'] ${
-            worse ? 'border-[#1e55c5] bg-[#f7f8fb]' : row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
+            row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
           }`}
           key={row.id}
         >
