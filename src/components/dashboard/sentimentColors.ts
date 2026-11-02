@@ -1,3 +1,5 @@
+import type { FeedbackSentiment } from '../../data/dashboardAnalytics'
+
 export const SENTIMENT_COLORS = {
   negative: 'rgba(236,102,131,0.8)',
   neutral: 'rgba(253,210,118,0.8)',
@@ -10,3 +12,10 @@ export const SENTIMENT_DOT_COLORS = {
   neutral: '#FEB535',
   positive: '#51C66D',
 } as const
+
+/** Sentiment chips ("Negative", …) on feedback and response cards. */
+export const SENTIMENT_BADGE_CLASSES: Record<FeedbackSentiment, string> = {
+  negative: 'bg-[#f9eaea] text-[#e12b0c]',
+  neutral: 'bg-[#fdf3e0] text-[#b7791f]',
+  positive: 'bg-[#eaf9ec] text-[#08882c]',
+}

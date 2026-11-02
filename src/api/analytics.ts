@@ -51,6 +51,18 @@ export type IndividualResponse = {
   respondentName: string | null
   /** fieldId → answers; several for multi-select, "Other: …" for an Other answer. */
   answers: Record<string, string[]>
+  /** What the AI made of this response. Missing from older API responses. */
+  points?: IndividualPoint[]
+}
+
+/** One analysed point of a response: its topic, sentiment and (standing) violation flag. */
+export type IndividualPoint = {
+  /** null: analysed but not filed under a topic yet. */
+  topicId: string | null
+  topic: string | null
+  sentiment: 'negative' | 'neutral' | 'positive' | null
+  violation: boolean
+  text: string
 }
 
 export type FormIndividualResponses = { fields: IndividualField[]; responses: IndividualResponse[] }
