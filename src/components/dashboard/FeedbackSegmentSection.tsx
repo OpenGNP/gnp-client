@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, ChevronDown, MessageSquareText, Search, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ChevronDown, MessageSquareText, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { ViolationReview } from '../../api/analytics'
@@ -16,6 +16,7 @@ import {
 } from '../ui/dropdown-menu'
 import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
 import { Highlight } from './Highlight'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { ViolationTooltip } from './ViolationTooltip'
 
 type SortOption = 'newest' | 'oldest'
@@ -51,8 +52,35 @@ function toggleInSet<T>(set: Set<T>, value: T) {
 
 const needsReview = (point: FeedbackPoint) => Boolean(point.violation) && point.violationStatus !== 'confirmed'
 
+/** gnp-ai's violation_type → the adjective in the tag. */
+const VIOLATION_KIND: Record<string, string> = { legal: 'legal', moral: 'moral', ethics: 'ethical' }
+
 const REVIEW_BUTTON =
-  'cursor-pointer rounded-[6px] border-0 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-[#5f6368] hover:bg-[#f2f4f7] hover:text-[#14181f] disabled:cursor-default disabled:opacity-50'
+  'inline-flex cursor-pointer items-center gap-1 rounded-[6px] border-0 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-[#5f6368] hover:bg-[#f2f4f7] hover:text-[#14181f] disabled:cursor-default disabled:opacity-50'
+
+/** A review action, with what it does on hover. */
+function ReviewButton({
+  children,
+  hint,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode
+  hint: string
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <button className={REVIEW_BUTTON} disabled={disabled} onClick={onClick} type="button">
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{hint}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 /** The violation tag (two levels + the AI's category) and, for the owner, the review actions. */
 function ViolationReviewRow({
@@ -61,7 +89,7 @@ function ViolationReviewRow({
   onReview,
 }: {
   point: FeedbackPoint
-  /** Dismissed in this session: the tag is gone, but Undo stays until the panel closes. */
+  /** Marked not a violation in this session: the tag is gone, but Undo stays until the panel closes. */
   dismissed: boolean
   onReview?: (status: ViolationReview) => Promise<void>
 }) {
@@ -79,17 +107,19 @@ function ViolationReviewRow({
   if (dismissed) {
     return (
       <span className="flex items-center gap-1 text-[11px] text-[#929292]">
-        Dismissed
-        <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review(null)} type="button">
+        Marked not a violation
+        <ReviewButton disabled={busy} hint="Put the tag back" onClick={() => review(null)}>
           Undo
-        </button>
+        </ReviewButton>
       </span>
     )
   }
   if (!point.violation) return null
 
   const possible = point.violationStatus === 'possible'
-  const type = point.violationType && point.violationType !== 'none' ? point.violationType : null
+  const kind = VIOLATION_KIND[point.violationType ?? ''] ?? null
+  // "Possible moral violation", "Legal violation", or plain "Violation" when the AI gave no category.
+  const label = [possible ? 'Possible' : null, kind, 'violation'].filter(Boolean).join(' ')
   return (
     <>
       <ViolationTooltip scope="point">
@@ -102,27 +132,36 @@ function ViolationReviewRow({
           )}
         >
           <AlertTriangle size={11} />
-          {possible ? 'Possible violation' : 'Violation'}
-          {type ? <span className="font-medium capitalize">· {type}</span> : null}
+          {label[0]!.toUpperCase() + label.slice(1)}
         </span>
       </ViolationTooltip>
       {point.violationStatus === 'confirmed' ? (
         <span className="flex items-center gap-1 text-[11px] text-[#929292]">
           Confirmed by {point.reviewedBy ?? 'a reviewer'}
           {onReview ? (
-            <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review(null)} type="button">
+            <ReviewButton disabled={busy} hint="Back to the AI's tag, unreviewed" onClick={() => review(null)}>
               Undo
-            </button>
+            </ReviewButton>
           ) : null}
         </span>
       ) : onReview ? (
         <span className="flex items-center gap-0.5">
-          <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review('confirmed')} type="button">
-            Confirm
-          </button>
-          <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review('dismissed')} type="button">
-            Dismiss
-          </button>
+          <ReviewButton
+            disabled={busy}
+            hint="Keeps the tag and records that you checked it"
+            onClick={() => review('confirmed')}
+          >
+            <Check size={12} />
+            Confirm violation
+          </ReviewButton>
+          <ReviewButton
+            disabled={busy}
+            hint="Removes the tag and stops counting it as a violation"
+            onClick={() => review('dismissed')}
+          >
+            <X size={12} />
+            Not a violation
+          </ReviewButton>
         </span>
       ) : null}
     </>

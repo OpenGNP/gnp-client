@@ -189,7 +189,7 @@ export function getFormTrendAnalytics(
   return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
 }
 
-/** A reviewer's call on a flagged point; null undoes it (back to needs review). */
+/** A reviewer's call on a flagged point; null undoes it (the AI's own level shows again). */
 export type ViolationReview = 'confirmed' | 'dismissed' | null
 
 /** Form owner only. */
