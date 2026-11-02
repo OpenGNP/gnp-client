@@ -1,9 +1,8 @@
 import { AlertTriangle, ArrowRight, Check, ChevronDown, Loader2, MessageSquareText, Search, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { ViolationReview } from '../../api/analytics'
 import type { FeedbackPoint } from '../../data/dashboardAnalytics'
-import { showAlert } from '../../lib/alertDialog'
 import { ApiError } from '../../lib/api'
 import { includesNeedle, toNeedle } from '../../lib/textSearch'
 import { cn } from '../../lib/utils'
@@ -69,7 +68,7 @@ function ReviewButton({
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <button className={REVIEW_BUTTON} disabled={disabled} onClick={onClick} type="button">
+        <button className={REVIEW_BUTTON} data-review-action disabled={disabled} onClick={onClick} type="button">
           {children}
         </button>
       </TooltipTrigger>
@@ -89,13 +88,29 @@ function ViolationReviewRow({
   // The action being saved (undefined = none); null is Undo.
   const [saving, setSaving] = useState<ViolationReview | undefined>(undefined)
   const busy = saving !== undefined
+  const [error, setError] = useState<string | null>(null)
+  // Read out after a save, and focus kept on this row (the button pressed is replaced).
+  const [announcement, setAnnouncement] = useState('')
+  const rowRef = useRef<HTMLSpanElement>(null)
+  const [refocus, setRefocus] = useState(0)
+  useEffect(() => {
+    if (refocus) rowRef.current?.querySelector<HTMLElement>('[data-review-action]')?.focus()
+  }, [refocus])
   const review = (status: ViolationReview) => {
     if (!onReview) return
     setSaving(status)
+    setError(null)
     onReview(status)
-      .catch((error: unknown) =>
-        showAlert(error instanceof ApiError ? error.message : 'Could not save your review. Please try again.'),
-      )
+      .then(() => {
+        setAnnouncement(
+          status === 'confirmed' ? 'Confirmed as a violation' : status === 'dismissed' ? 'Marked not a violation' : 'Review undone',
+        )
+        setRefocus((n) => n + 1)
+      })
+      .catch((caught: unknown) => {
+        setError(caught instanceof ApiError ? caught.message : 'Could not save your review. Try again.')
+        setRefocus((n) => n + 1)
+      })
       .finally(() => setSaving(undefined))
   }
   const savingLabel = (
@@ -105,31 +120,27 @@ function ViolationReviewRow({
     </>
   )
 
-  // Owner only: the tag is gone, but the call can still be undone.
-  if (point.dismissed) {
-    return onReview ? (
-      <span className="flex items-center gap-1 text-[11px] text-[#726f6f]">
-        Marked not a violation{point.reviewedBy ? ` by ${point.reviewedBy}` : ''}
-        <ReviewButton disabled={busy} hint="Put the tag back" onClick={() => review(null)}>
-          {saving === null ? savingLabel : 'Undo'}
-        </ReviewButton>
-      </span>
-    ) : null
-  }
-  if (!point.violation) return null
-
   const possible = point.violationStatus === 'possible'
   const kind = VIOLATION_KIND[point.violationType ?? ''] ?? null
   // "Possible moral violation", "Legal violation", or plain "Violation" when the AI gave no category.
   const label = [possible ? 'Possible' : null, kind, 'violation'].filter(Boolean).join(' ')
-  return (
+
+  // Owner only: the tag is gone, but the call can still be undone.
+  const body = point.dismissed ? (
+    <span className="flex items-center gap-1 text-[11px] text-[#726f6f]">
+      Marked not a violation{point.reviewedBy ? ` by ${point.reviewedBy}` : ''}
+      <ReviewButton disabled={busy} hint="Put the tag back" onClick={() => review(null)}>
+        {saving === null ? savingLabel : 'Undo'}
+      </ReviewButton>
+    </span>
+  ) : point.violation ? (
     <>
       <ViolationTooltip scope="point">
         <span
           className={cn(
             // The app's violation pink. Filled = sure (AI or a reviewer); dashed outline = possible,
             // like What changed's hollow / dashed marks for a tentative change.
-            'flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#e0507a]',
+            'flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#c2365f]',
             possible ? 'border border-dashed border-[#e0507a] bg-white px-2.25 py-0.75' : 'bg-[#fcf3f6]',
           )}
         >
@@ -179,6 +190,22 @@ function ViolationReviewRow({
         </span>
       ) : null}
     </>
+  ) : null
+  if (!onReview) return body
+
+  // One wrapper whichever state it's in, so the live region stays put and is read out.
+  return (
+    <span className="contents" ref={rowRef}>
+      {body}
+      <span className="sr-only" role="status">
+        {announcement}
+      </span>
+      {error ? (
+        <span className="text-[11px] font-medium text-[#c1121f]" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </span>
   )
 }
 
@@ -301,6 +328,8 @@ export type FeedbackSegmentSectionProps = {
   initialQuery?: string
   /** Confirm / dismiss a flagged point (form owner only). */
   onReviewViolation?: (pointId: string, status: ViolationReview) => Promise<void>
+  /** Opened from "N to review": starts on the owner's Needs review filter. */
+  startOnNeedsReview?: boolean
 }
 
 export function FeedbackSegmentSection({
@@ -313,6 +342,7 @@ export function FeedbackSegmentSection({
   onOpenResponse,
   initialQuery = '',
   onReviewViolation,
+  startOnNeedsReview = false,
 }: FeedbackSegmentSectionProps) {
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [query, setQuery] = useState(initialQuery)
@@ -360,9 +390,14 @@ export function FeedbackSegmentSection({
   // Ignored once nothing in view is flagged (the option is hidden then).
   const violationsOnly = violationsOnlyChoice && violationCount > 0
   // Only the owner reviews, so only they get the filter.
-  const [needsReviewChoice, setNeedsReviewOnly] = useState(false)
+  const [needsReviewChoice, setNeedsReviewOnly] = useState(startOnNeedsReview)
   const needsReviewCount = onReviewViolation ? feedbackSegment.filter(needsReview).length : 0
-  const needsReviewOnly = needsReviewChoice && needsReviewCount > 0
+  // Points flagged, or still to review, when the panel opened: a review doesn't move or
+  // hide the card you just acted on (it settles next time the panel opens).
+  const [flaggedAtOpen] = useState(() => new Set(feedbackSegment.filter((point) => point.violation).map((point) => point.id)))
+  const [unreviewedAtOpen] = useState(() => new Set(feedbackSegment.filter(needsReview).map((point) => point.id)))
+  const canFilterNeedsReview = Boolean(onReviewViolation) && unreviewedAtOpen.size > 0
+  const needsReviewOnly = needsReviewChoice && canFilterNeedsReview
 
   const activeFilterCount =
     Number(violationsOnly) +
@@ -394,7 +429,7 @@ export function FeedbackSegmentSection({
         if (t < Date.parse(period.from) || t >= Date.parse(period.to)) return false
       }
       if (violationsOnly && !point.violation) return false
-      if (needsReviewOnly && !needsReview(point)) return false
+      if (needsReviewOnly && !needsReview(point) && !unreviewedAtOpen.has(point.id)) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false
       }
@@ -409,7 +444,8 @@ export function FeedbackSegmentSection({
     // reported breach should not be buried by date. Within each group the
     // chosen newest/oldest order still applies.
     return [...filtered].sort((a, b) => {
-      const flagged = Number(Boolean(b.violation)) - Number(Boolean(a.violation))
+      const isFlagged = (point: FeedbackPoint) => Boolean(point.violation) || flaggedAtOpen.has(point.id)
+      const flagged = Number(isFlagged(b)) - Number(isFlagged(a))
       if (flagged !== 0) return flagged
       return sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)
@@ -425,6 +461,8 @@ export function FeedbackSegmentSection({
     sortOption,
     query,
     showNames,
+    flaggedAtOpen,
+    unreviewedAtOpen,
   ])
 
   return (
@@ -432,7 +470,7 @@ export function FeedbackSegmentSection({
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <p className="m-0 text-[12px] font-medium text-[#726f6f]">
-            Feedback ({visiblePoints.length})
+            Mentions ({visiblePoints.length})
           </p>
           {period ? (
             <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[#eef3fd] py-0.5 pr-1 pl-2.5 text-[11px] font-semibold text-[#1e55c5]">
@@ -491,8 +529,8 @@ export function FeedbackSegmentSection({
             }
             violationCount={violationCount}
             violationsOnly={violationCount > 0 ? violationsOnly : undefined}
-            needsReviewOnly={needsReviewCount > 0 ? needsReviewOnly : undefined}
-            onToggleNeedsReviewOnly={needsReviewCount > 0 ? () => setNeedsReviewOnly((value) => !value) : undefined}
+            needsReviewOnly={canFilterNeedsReview ? needsReviewOnly : undefined}
+            onToggleNeedsReviewOnly={canFilterNeedsReview ? () => setNeedsReviewOnly((value) => !value) : undefined}
             needsReviewCount={needsReviewCount}
             onToggleSentiment={(value) => setSelectedSentiments((prev) => toggleInSet(prev, value))}
             selectedDemos={selectedDemos}
@@ -522,6 +560,12 @@ export function FeedbackSegmentSection({
           </button>
         ) : null}
       </div>
+
+      {violationCount > 0 ? (
+        <p className="m-0 text-[12px] text-[#726f6f]">
+          Violation tags are flagged automatically and the AI can be wrong. Check the original feedback before acting.
+        </p>
+      ) : null}
 
       {visiblePoints.length > 0 ? (
         <div className="flex flex-col gap-3">

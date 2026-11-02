@@ -15,17 +15,22 @@ function headline(scope: 'point' | 'topic', count?: number) {
 export function ViolationTooltip({
   scope,
   count,
+  focusable = true,
   children,
 }: {
   scope: 'point' | 'topic'
   /** Number of flagged mentions, when the tag shows one. */
   count?: number
+  /** False inside a button (e.g. a topic row), where a second tab stop isn't allowed. */
+  focusable?: boolean
   children: ReactNode
 }) {
   return (
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0 cursor-help">{children}</span>
+        <span className="inline-flex shrink-0 cursor-help rounded-full" tabIndex={focusable ? 0 : undefined}>
+          {children}
+        </span>
       </TooltipTrigger>
       <TooltipContent className="w-max max-w-[min(22.5rem,calc(100vw-2rem))] whitespace-normal leading-4.5" side="top">
         <span className="flex items-start gap-1.5 font-medium text-[#14181f]">

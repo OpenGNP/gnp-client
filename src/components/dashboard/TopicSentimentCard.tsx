@@ -32,6 +32,9 @@ function ChangeTag({ kind, changes }: { kind: 'worse' | 'new'; changes: TopicCha
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         <span
+          // Inside the row's button: the tooltip's wording is read out with the row instead.
+          aria-label={worse ? `Worse: rose in ${changes.current} compared with ${changes.previous}` : `New in ${changes.current}`}
+          role="img"
           className={`inline-flex shrink-0 cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
             worse ? 'bg-[#fdecea] text-[#c4280b]' : 'bg-[#edf2fd] text-[#1e55c5]'
           }`}
@@ -42,7 +45,7 @@ function ChangeTag({ kind, changes }: { kind: 'worse' | 'new'; changes: TopicCha
       </TooltipTrigger>
       <TooltipContent className="max-w-64 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
         {worse
-          ? `Complaints rose in ${changes.current} compared with ${changes.previous}.`
+          ? `Negative mentions rose in ${changes.current} compared with ${changes.previous}.`
           : `First mentioned in ${changes.current}.`}{' '}
         See the Trend tab for details.
       </TooltipContent>
@@ -77,6 +80,7 @@ function TopicRow({
             ? 'border-transparent bg-[#fff7f8] hover:bg-[#fdeff1]'
             : 'border-transparent hover:bg-[#f7f8fb]'
       }`}
+      aria-expanded={isSelected}
       onClick={() => onSelect?.(topic.id)}
       type="button"
     >
@@ -86,10 +90,11 @@ function TopicRow({
             <Highlight query={query} text={topic.label} />
           </span>
           {topic.hasViolation ? (
-            <ViolationTooltip scope="topic">
+            <ViolationTooltip focusable={false} scope="topic">
               <TriangleAlert
                 className="shrink-0 text-[#e0507a]"
                 aria-label="Contains violations"
+                role="img"
                 size={16}
               />
             </ViolationTooltip>
@@ -132,8 +137,8 @@ function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
         <span>0</span>
         <span>{axisMax}</span>
       </div>
-      {/* The row's % is its share of all feedback, not of negative. */}
-      <span className="text-right text-[12px] font-medium text-[#726f6f]" title="Share of all feedback">
+      {/* The row's % is its share of all mentions, not of negative. */}
+      <span className="text-right text-[12px] font-medium text-[#726f6f]" title="Share of all mentions">
         Share
       </span>
     </div>
@@ -215,8 +220,8 @@ export function TopicSentimentCard({
       id={id}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-7.5">
-        <h3 className="m-0 flex items-center gap-1.5 text-[14px] font-medium text-black">
-          <Sparkles aria-hidden className="shrink-0 text-[#1e55c5]" size={15} />
+        <h3 className="m-0 flex items-center gap-1.5 text-[16px] font-semibold tracking-[0.16px] text-[#14181f]">
+          <Sparkles aria-hidden className="shrink-0 text-[#1e55c5]" size={16} />
           {title}
         </h3>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">

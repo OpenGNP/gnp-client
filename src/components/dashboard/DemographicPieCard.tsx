@@ -22,7 +22,7 @@ export function DemographicPieCard({ breakdown }: DemographicPieCardProps) {
   return (
     <div className="@container flex w-full flex-col gap-3.25 py-10">
       <div className="flex flex-col gap-2 px-7.5">
-        <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
+        <h3 className="m-0 text-[16px] font-semibold tracking-[0.16px] text-[#14181f]">{breakdown.title}</h3>
         <p className="m-0 text-[12px] font-medium text-[#726f6f]">
           {totalResponses} {totalResponses === 1 ? 'response' : 'responses'}
         </p>

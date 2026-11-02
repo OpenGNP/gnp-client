@@ -201,7 +201,7 @@ export function DateRangeFilter({
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <span className="text-[9.5px] font-medium text-black">Show reports for:</span>
+      <span className="text-[12px] font-medium text-[#3f4045]">Show reports for:</span>
       <Popover onOpenChange={handleOpenChange} open={open}>
         <div className="relative">
           <PopoverTrigger asChild>

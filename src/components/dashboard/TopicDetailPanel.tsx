@@ -7,12 +7,14 @@ import type { ViolationReview } from '../../api/analytics'
 import type { FeedbackDateRange, TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SENTIMENT_KEYS, sharesOf } from '../../lib/sentimentTrendSummary'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
+import { Button } from '../ui/button'
 import { Switch } from '../ui/switch'
 import { DetailPanel } from './DetailPanel'
 import type { DemographicFilterGroup } from './FeedbackFilter'
 import { FeedbackSegmentSection } from './FeedbackSegmentSection'
 import { PeriodSentimentTooltip } from './PeriodSentimentTooltip'
 import { SentimentGauge } from './SentimentGauge'
+import { needsReview } from './violationReview'
 import { percentOf, SENTIMENT_SCORE_OUT_OF, sentimentScore } from './sentimentScore'
 import { SENTIMENT_COLORS } from './sentimentColors'
 
@@ -100,8 +102,8 @@ function VolumeTooltip({
 }
 
 const KEYWORD_SIZE_CLASSES: Record<TopicKeyword['weight'], string> = {
-  1: 'text-[12px] font-medium text-[#7c93d6]',
-  2: 'text-[15px] font-semibold text-[#3f6bd1]',
+  1: 'text-[12px] font-medium text-[#3f6bd1]',
+  2: 'text-[16px] font-semibold text-[#3f6bd1]',
   3: 'text-[20px] font-bold text-[#1e55c5]',
 }
 
@@ -127,6 +129,8 @@ export type TopicDetailPanelProps = {
   layout: DetailPanelLayout
   /** Opened from What changed: the feedback list starts narrowed to that period. */
   initialDateRange?: FeedbackDateRange | null
+  /** Opened from "N to review": the list starts on Needs review, with a way on to the next topic. */
+  reviewing?: { onNext?: () => void; topicsLeft: number }
 }
 
 export function TopicDetailPanel({
@@ -142,7 +146,9 @@ export function TopicDetailPanel({
   initialDateRange = null,
   demographicFilters,
   mainDemoSelection,
+  reviewing,
 }: TopicDetailPanelProps) {
+  const leftHere = topic.feedbackSegment.filter(needsReview).length
   const feedbackPoints = topic.negative + topic.neutral + topic.positive
   const score = sentimentScore(topic)
 
@@ -175,10 +181,10 @@ export function TopicDetailPanel({
   }
 
   return (
-    <DetailPanel hidden={hidden} layout={layout} onClose={onClose}>
+    <DetailPanel hidden={hidden} label={topic.label} layout={layout} onClose={onClose}>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="m-0 text-[18px] font-bold text-black">{topic.label}</h2>
+          <h2 className="m-0 text-[20px] font-bold text-black">{topic.label}</h2>
           <button
             aria-label="Close topic details"
             className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-black transition-colors hover:bg-[#f7f8fb]"
@@ -190,7 +196,7 @@ export function TopicDetailPanel({
         </div>
         <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#726f6f]">
           <MessageCircle size={14} />
-          {feedbackPoints} {feedbackPoints === 1 ? 'mention' : 'mentions'} ({topic.percentOfTotal}% of all feedback)
+          {feedbackPoints} {feedbackPoints === 1 ? 'mention' : 'mentions'} ({topic.percentOfTotal}% of all mentions)
         </div>
       </div>
 
@@ -328,8 +334,8 @@ export function TopicDetailPanel({
               {[...SENTIMENT_KEYS, 'unsplit' as const].map((key) => (
                 <Bar
                   dataKey={key}
-                  // Off: every segment the same blue, so the stack reads as one bar.
-                  fill={key === 'unsplit' || !showSentiment ? '#1e55c5' : SENTIMENT_COLORS[key]}
+                  // Off: every segment the same neutral, so the stack reads as one bar.
+                  fill={key === 'unsplit' || !showSentiment ? '#8b8e98' : SENTIMENT_COLORS[key]}
                   isAnimationActive={false}
                   key={key}
                   stackId="volume"
@@ -348,7 +354,30 @@ export function TopicDetailPanel({
         </div>
       </div>
 
+      {reviewing ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#f3c6d4] bg-[#fcf3f6] px-4 py-3">
+          <p aria-live="polite" className="m-0 text-[13px] font-medium text-[#14181f]">
+            {leftHere > 0
+              ? `${leftHere} ${leftHere === 1 ? 'mention' : 'mentions'} to review in this topic`
+              : 'All reviewed in this topic'}
+            {reviewing.topicsLeft > 0 ? (
+              <span className="font-normal text-[#726f6f]">
+                {' '}
+                ({reviewing.topicsLeft} more {reviewing.topicsLeft === 1 ? 'topic' : 'topics'} to review)
+              </span>
+            ) : null}
+          </p>
+          {reviewing.onNext ? (
+            <Button className="h-8 gap-1 text-[13px]" onClick={reviewing.onNext} variant={leftHere > 0 ? 'outline' : 'default'}>
+              Next topic
+              <ArrowRight size={14} />
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       <FeedbackSegmentSection
+        startOnNeedsReview={Boolean(reviewing)}
         demographicFilters={demographicFilters}
         feedbackSegment={topic.feedbackSegment}
         hideNames={hideNames}

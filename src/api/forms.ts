@@ -86,6 +86,8 @@ export type ApiFormDetail = {
   accessType: string | null;
   acceptingResponses: boolean;
   recordName: boolean | null;
+  /** Viewers see respondents' names only when this is on (the server hides them otherwise). */
+  showNamesToViewers?: boolean;
   oneResponsePerPerson: boolean | null;
   startDate: string | null;
   endDate: string | null;
@@ -285,8 +287,12 @@ export function getCollaborators(formId: number): Promise<ApiCollaborator[]> {
 }
 
 /** Replaces who the form is shared with (view-only); returns the saved list. */
-export function replaceCollaborators(formId: number, emails: string[]): Promise<ApiCollaborator[]> {
-  return apiPut<ApiCollaborator[]>(`/forms/${formId}/collaborators`, { emails });
+export function replaceCollaborators(
+  formId: number,
+  emails: string[],
+  showNamesToViewers?: boolean,
+): Promise<ApiCollaborator[]> {
+  return apiPut<ApiCollaborator[]>(`/forms/${formId}/collaborators`, { emails, showNamesToViewers });
 }
 
 export function updateForm(

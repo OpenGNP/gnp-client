@@ -93,7 +93,7 @@ function AiAnalysis({
   return (
     <Collapsible className="flex flex-col gap-3" onOpenChange={toggle} open={open}>
       <h3 className="m-0">
-        <CollapsibleTrigger className="group flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[15px] font-bold tracking-[0.2px] text-[#1e55c5]">
+        <CollapsibleTrigger className="group flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[16px] font-bold tracking-[0.2px] text-[#14181f]">
           <Sparkles className="text-[#1e55c5]" size={15} />
           AI analysis
           {points.length > 0 ? <span className="font-medium text-[#726f6f]">({points.length})</span> : null}
@@ -126,7 +126,7 @@ function AiAnalysis({
                     ) : null}
                     {point.violation ? (
                       <ViolationTooltip scope="point">
-                        <span className="flex items-center gap-1 rounded-full bg-[#fcf3f6] px-2.5 py-1 text-[11px] font-semibold text-[#e0507a]">
+                        <span className="flex items-center gap-1 rounded-full bg-[#fcf3f6] px-2.5 py-1 text-[11px] font-semibold text-[#c2365f]">
                           <TriangleAlert size={11} />
                           Flagged
                         </span>
@@ -211,10 +211,10 @@ export function ResponseDetailPanel({
   const displayed = sections.flatMap((section) => section.fields)
 
   return (
-    <DetailPanel layout={layout} onClose={onClose}>
+    <DetailPanel label={label || 'Response'} layout={layout} onClose={onClose}>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="m-0 text-[18px] font-bold text-black">{label}</h2>
+          <h2 className="m-0 text-[20px] font-bold text-black">{label}</h2>
           <button
             aria-label="Close response"
             className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-black transition-colors hover:bg-[#f7f8fb]"
@@ -262,7 +262,7 @@ export function ResponseDetailPanel({
 
       {sections.map((section) => (
         <section className="flex flex-col gap-3" key={section.title}>
-          <h3 className="m-0 text-[15px] font-bold tracking-[0.2px] text-[#1e55c5]">{section.title}</h3>
+          <h3 className="m-0 text-[16px] font-bold tracking-[0.2px] text-[#14181f]">{section.title}</h3>
           <div className="flex flex-col divide-y divide-[#eef0f4] rounded-[10px] border border-[#e9eaed] p-4">
             {section.fields.map((field) => (
               <FieldAnswer
