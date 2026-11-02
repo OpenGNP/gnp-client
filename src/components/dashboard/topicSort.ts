@@ -22,7 +22,7 @@ export const TOPIC_SORT_OPTIONS: {
   {
     value: 'priority',
     label: 'Priority',
-    hint: 'Violations, then most negative feedback',
+    hint: 'Most violations, then most negative feedback',
     compare: (a, b) => b.negative - a.negative || total(b) - total(a),
   },
   {
@@ -51,8 +51,8 @@ export const pinsViolations = (sort: TopicSortOption) => sort === 'priority'
 
 /**
  * Topics in the order the Themes tab lists them: the chosen order, uncategorised last,
- * and — for Priority — violation topics first. `pinViolations: false` drops that even for
- * Priority — for a "top N" pick, which violations would otherwise fill.
+ * and — for Priority — violation topics first, most violations first. `pinViolations: false`
+ * drops that even for Priority — for a "top N" pick, which violations would otherwise fill.
  */
 export function sortTopics(
   topics: TopicSentiment[],
@@ -62,5 +62,11 @@ export function sortTopics(
   const compare = TOPIC_SORT_OPTIONS.find((option) => option.value === sort)!.compare
   const pinRank = (topic: TopicSentiment) =>
     topic.id === UNCATEGORISED_ID ? 2 : pinViolations && topic.hasViolation ? 0 : 1
-  return [...topics].sort((a, b) => pinRank(a) - pinRank(b) || compare(a, b))
+  const violationsIn = new Map(
+    topics.map((topic) => [topic.id, topic.feedbackSegment.filter((point) => point.violation).length]),
+  )
+  // Among the pinned violation topics, the one with more violations first.
+  const byViolations = (a: TopicSentiment, b: TopicSentiment) =>
+    pinRank(a) === 0 ? violationsIn.get(b.id)! - violationsIn.get(a.id)! : 0
+  return [...topics].sort((a, b) => pinRank(a) - pinRank(b) || byViolations(a, b) || compare(a, b))
 }
