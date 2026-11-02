@@ -28,4 +28,12 @@ describe.each(Object.entries(LANDING_SAMPLES))('landing sample: %s', (_, sample)
   it('starts the chart pinned on a charted topic', () => {
     expect(sample.trend.topicVolumeSeries.map((s) => s.id)).toContain(sample.pinnedTopic)
   })
+
+  it('has a summary for every topic the hero lists, new ones included', () => {
+    const ids = [
+      ...sample.topics.map((topic) => topic.id),
+      ...sample.whatChanged.rows.filter((row) => row.kind === 'new').map((row) => row.id),
+    ]
+    for (const id of ids) expect(sample.topicSummaries[id], id).toBeTruthy()
+  })
 })

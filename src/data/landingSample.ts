@@ -439,6 +439,8 @@ export type LandingSample = {
   >
   /** Pinned on the trend chart to start with: the topic that's getting worse. */
   pinnedTopic: string
+  /** The AI's one-line summary per topic (What changed's new topics included), shown when a topic is opened. */
+  topicSummaries: Record<string, string>
 }
 
 /** Made-up results for the signed-out landing page, shown under a "Sample data" label. */
@@ -454,6 +456,14 @@ export const LANDING_SAMPLES: Record<LandingSampleId, LandingSample> = {
     flaggedPoint: WORKPLACE_FLAGGED_POINT,
     trend: WORKPLACE_TREND,
     pinnedTopic: 'shift',
+    topicSummaries: {
+      shift: WORKPLACE_DRILL.summary,
+      pay: "Overtime on payslips often doesn't match the hours worked, and nobody has explained how it is calculated.",
+      managers: 'Many feel their line manager listens and acts quickly when they raise a problem.',
+      onboarding: 'New starters like the buddy system but say training on the HR system was rushed.',
+      remarks: 'Reports that a team lead mocks older colleagues in front of others. Flagged as a possible ethics violation.',
+      parking: 'New this month: not enough parking at the new site for the morning shift.',
+    },
   },
   event: {
     formTitle: 'Open house visitor feedback',
@@ -466,6 +476,14 @@ export const LANDING_SAMPLES: Record<LandingSampleId, LandingSample> = {
     flaggedPoint: EVENT_FLAGGED_POINT,
     trend: EVENT_TREND,
     pinnedTopic: 'registration',
+    topicSummaries: {
+      registration: EVENT_DRILL.summary,
+      labs: 'Visitors loved the hands-on lab demos and want to try the equipment themselves.',
+      parking: 'Parking near the main building is hard to find, and the shuttle from the BTS runs rarely.',
+      programmes: "Student guides helped, but visitors couldn't always get answers on entry requirements and fees.",
+      remarks: 'A report that info-desk staff discouraged a girl from engineering. Flagged as a possible ethics violation.',
+      signage: 'New this month: visitors got lost following the signs to the lab building.',
+    },
   },
 }
 

@@ -1,14 +1,17 @@
 import {
   ArrowRight,
+  ChevronDown,
   EyeOff,
   Link as LinkIcon,
+  MessageSquareText,
   Server,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
   TriangleAlert,
   UserCheck,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import type { ViolationReview } from '../api/analytics'
@@ -198,53 +201,92 @@ function SectionIntro({ id, title, children }: { id: string; title: string; chil
 
 const SECTION = 'mx-auto flex max-w-300 flex-col gap-12 px-6 py-24 max-[560px]:px-4 max-[560px]:py-16'
 
-/** The Themes tab's topic rows: share, sentiment, and the Worse / New / flag marks. */
-function TopicRows({ rows }: { rows: DashboardRow[] }) {
+/** The Themes tab's topic rows; one can be opened in place to read what people said. */
+function TopicRows({ rows, sample }: { rows: DashboardRow[]; sample: LandingSample }) {
+  const [openId, setOpenId] = useState<string | null>(null)
   return (
-  <ul className="m-0 list-none p-0">
-    {rows.map((row) => {
-      return (
-        <li
-          className={`grid grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.75rem] items-center gap-4 border-l-[3px] px-4 py-2.5 [grid-template-areas:'name_bar_pct'] max-[700px]:grid-cols-[minmax(0,1fr)_2.75rem] max-[700px]:gap-y-1.5 max-[700px]:[grid-template-areas:'name_pct'_'bar_bar'] ${
-            row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
-          }`}
-          key={row.id}
-        >
-          <span className="flex min-w-0 items-center gap-2 text-[14px] text-[#14181f] [grid-area:name]">
-            <span className="truncate">{row.label}</span>
-            {row.hasViolation ? (
-              <span className="flex shrink-0 items-center gap-1.5">
-                <TriangleAlert aria-label="Contains possible violations" className="text-[#e0507a]" role="img" size={15} />
+    <ul className="m-0 list-none p-0">
+      {rows.map((row) => {
+        const open = openId === row.id
+        const panelId = `topic-${row.id}-details`
+        // The answers filed under this topic; a new topic only has What changed's quote.
+        const quotes = sample.comments.filter((comment) => comment.topicId === row.id).map((comment) => comment.text)
+        const fallback = sample.whatChanged.rows.find((changed) => changed.id === row.id)?.quote
+        const shown = (quotes.length > 0 ? quotes : fallback ? [fallback] : []).slice(0, 3)
+        return (
+          <li
+            className={`border-l-[3px] transition-colors ${
+              open ? 'border-[#1e55c5] bg-[#f7f8fb]' : row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
+            }`}
+            key={row.id}
+          >
+            <button
+              aria-controls={panelId}
+              aria-expanded={open}
+              className="grid w-full cursor-pointer grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.75rem_1rem] items-center gap-4 border-0 bg-transparent px-4 py-2.5 text-left transition-colors [grid-template-areas:'name_bar_pct_chev'] hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1e55c5] max-[700px]:grid-cols-[minmax(0,1fr)_2.75rem_1rem] max-[700px]:gap-y-1.5 max-[700px]:[grid-template-areas:'name_pct_chev'_'bar_bar_bar']"
+              onClick={() => setOpenId(open ? null : row.id)}
+              type="button"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-[14px] text-[#14181f] [grid-area:name]">
+                <span className={`truncate ${open ? 'font-medium' : ''}`}>{row.label}</span>
+                {row.hasViolation ? (
+                  <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" role="img" size={15} />
+                ) : null}
+                {row.change === 'worse' ? (
+                  <span className="shrink-0 rounded-full bg-[#fdecea] px-2 py-0.5 text-[11px] font-semibold text-[#c4280b]">
+                    Worse
+                  </span>
+                ) : row.change === 'new' ? (
+                  <span className="shrink-0 rounded-full bg-[#edf2fd] px-2 py-0.5 text-[11px] font-semibold text-[#1e55c5]">
+                    New
+                  </span>
+                ) : null}
               </span>
+              <SentimentBar
+                className="min-w-0 [grid-area:bar]"
+                maxValue={AXIS_MAX}
+                negative={row.negative}
+                neutral={row.neutral}
+                positive={row.positive}
+                title={row.label}
+              />
+              <span className="text-right text-[14px] text-[#14181f] tabular-nums [grid-area:pct]">
+                {row.percentOfTotal}%
+              </span>
+              <ChevronDown
+                aria-hidden
+                className={`text-[#726f6f] transition-transform duration-200 [grid-area:chev] motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+                size={16}
+              />
+            </button>
+            {open ? (
+              <div className="flex flex-col gap-3 px-4 pt-1 pb-4" id={panelId}>
+                <p className="m-0 flex gap-2.5 rounded-[10px] bg-[#edf2fd] p-3.5 text-[13px] leading-5 text-[#1f3d7a] animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none">
+                  <Sparkles aria-hidden className="mt-0.5 shrink-0 text-[#1e55c5]" fill="currentColor" size={15} />
+                  <span>
+                    <span className="font-semibold">AI summary: </span>
+                    {sample.topicSummaries[row.id]}
+                  </span>
+                </p>
+                {shown.length > 0 ? (
+                  <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                    {shown.map((quote) => (
+                      <li
+                        className="flex items-start gap-2 rounded-[10px] border border-[#e9eaed] bg-white px-3.5 py-2.5 text-[13px] leading-5 text-[#14181f]"
+                        key={quote}
+                      >
+                        <MessageSquareText aria-hidden className="mt-0.5 shrink-0 text-[#726f6f]" size={14} />
+                        “{quote}”
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             ) : null}
-            {row.change === 'worse' ? (
-              <span
-                className="shrink-0 rounded-full bg-[#fdecea] px-2 py-0.5 text-[11px] font-semibold text-[#c4280b]"
-               
-              >
-                Worse
-              </span>
-            ) : row.change === 'new' ? (
-              <span className="shrink-0 rounded-full bg-[#edf2fd] px-2 py-0.5 text-[11px] font-semibold text-[#1e55c5]">
-                New
-              </span>
-            ) : null}
-          </span>
-          <SentimentBar
-            className="min-w-0 [grid-area:bar]"
-            maxValue={AXIS_MAX}
-            negative={row.negative}
-            neutral={row.neutral}
-            positive={row.positive}
-            title={row.label}
-          />
-          <span className="text-right text-[14px] text-[#14181f] tabular-nums [grid-area:pct]">
-            {row.percentOfTotal}%
-          </span>
-        </li>
-      )
-    })}
-  </ul>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -287,14 +329,61 @@ function DashboardPicture({ sample }: { sample: LandingSample }) {
           </div>
           <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
             <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-baseline gap-x-2">
                 Topics found by AI ({rows.length})
+                <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to read it</span>
               </span>
-              <span className="font-medium text-[#726f6f]">Share</span>
+              {/* Over the share column: the chevron column and its gap sit to its right. */}
+              <span className="mr-8 font-medium text-[#726f6f]">Share</span>
             </div>
-            <TopicRows rows={rows} />
+            {/* Keyed: switching sample closes any open topic. */}
+            <TopicRows key={sample.formTitle} rows={rows} sample={sample} />
           </div>
     </AppFrame>
+  )
+}
+
+// Where each loose answer floats around the hero dashboard: side, height, depth (scroll speed), tilt.
+// Heights in px from the top, not %: opening a topic makes the dashboard taller, and the answers must not move with it.
+const FLOATING_SPOTS = [
+  { side: 'left', top: '30px', inset: '1%', depth: 1.1, tilt: '-3deg' },
+  { side: 'left', top: '230px', inset: '0%', depth: 0.45, tilt: '2deg' },
+  { side: 'left', top: '430px', inset: '1.5%', depth: 0.8, tilt: '-1.5deg' },
+  { side: 'right', top: '70px', inset: '0.5%', depth: 0.6, tilt: '2.5deg' },
+  { side: 'right', top: '270px', inset: '1.5%', depth: 1.2, tilt: '-2deg' },
+  { side: 'right', top: '470px', inset: '0%', depth: 0.5, tilt: '1.5deg' },
+] as const
+
+/**
+ * Parallax: loose sample answers in the gutters beside the dashboard, each drifting up at its
+ * own depth as the page scrolls (index.css). Decorative repeats of the sample, so hidden from
+ * assistive tech, and only drawn from 1440px wide (room beside the frame) with motion welcome.
+ */
+function FloatingAnswers({ sample }: { sample: LandingSample }) {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      {FLOATING_SPOTS.map((spot, i) => {
+        const comment = sample.comments[i]
+        if (!comment) return null
+        return (
+          <p
+            className="parallax-answer absolute m-0 w-48 items-start gap-2 rounded-[10px] border border-[#e8eaf1] bg-white px-3 py-2.5 text-[12px] leading-4.5 text-[#3f4045] shadow-[0_8px_24px_rgba(20,40,90,0.08)]"
+            key={comment.text}
+            style={
+              {
+                top: spot.top,
+                [spot.side]: spot.inset,
+                rotate: spot.tilt,
+                '--depth': spot.depth,
+                '--tilt': spot.tilt,
+              } as React.CSSProperties
+            }
+          >
+            <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={13} />“{comment.text}”
+          </p>
+        )
+      })}
+    </div>
   )
 }
 
@@ -333,11 +422,15 @@ function Hero({
           you allow it.
         </p>
       </div>
-      <div className="flex flex-col gap-5">
+      <div className="relative flex flex-col gap-5">
+        <FloatingAnswers sample={sample} />
         <div className="flex justify-center">
           <SampleSwitch onChange={onSampleChange} value={sampleId} />
         </div>
-        <DashboardPicture sample={sample} />
+        {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
+        <div className="hero-rise relative z-10">
+          <DashboardPicture sample={sample} />
+        </div>
       </div>
     </section>
   )
@@ -362,7 +455,8 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         From one form to a short list of what to act on, in three steps.
       </SectionIntro>
       <ol className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
-        <li className={step}>
+        <li>
+          <Reveal className={step} delay={0}>
           <h3 className={label}>
             <span className={num}>1</span>
             Ask
@@ -372,8 +466,10 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             <p className="m-0 text-[13px] font-medium text-[#14181f]">What's one thing we should change?</p>
             <div className="mt-2.5 h-8 rounded-[8px] border border-[#d2d8e5] bg-[#fafbfe]" />
           </div>
+          </Reveal>
         </li>
-        <li className={step}>
+        <li>
+          <Reveal className={step} delay={110}>
           <h3 className={label}>
             <span className={num}>2</span>
             Share
@@ -388,8 +484,10 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
               {sample.responseCount} <span className="font-normal text-[#726f6f]">responses</span>
             </span>
           </div>
+          </Reveal>
         </li>
-        <li className={step}>
+        <li>
+          <Reveal className={step} delay={220}>
           <h3 className={label}>
             <span className={num}>3</span>
             Read
@@ -409,6 +507,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
               <span style={{ width: share(worse.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
             </span>
           </div>
+          </Reveal>
         </li>
       </ol>
     </section>
@@ -530,25 +629,83 @@ const HERO_INTRO = (
   </>
 )
 
+/**
+ * Eases its content in the first time it scrolls into view, from below or from a side.
+ * Only with motion allowed: under reduced motion (or without IntersectionObserver) it's simply there.
+ */
+function Reveal({
+  children,
+  from = 'below',
+  delay = 0,
+  className = '',
+}: {
+  children: React.ReactNode
+  from?: 'below' | 'left' | 'right'
+  delay?: number
+  className?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [shown, setShown] = useState(() => typeof IntersectionObserver === 'undefined')
+  useEffect(() => {
+    const el = ref.current
+    if (!el || shown) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShown(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [shown])
+  const hidden =
+    from === 'left' ? 'motion-safe:-translate-x-8' : from === 'right' ? 'motion-safe:translate-x-8' : 'motion-safe:translate-y-6'
+  return (
+    <div
+      className={cn(
+        'motion-safe:transition-[opacity,translate] motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]',
+        shown ? 'translate-0 opacity-100' : cn('motion-safe:opacity-0', hidden),
+        className,
+      )}
+      ref={ref}
+      style={{ transitionDelay: shown ? `${delay}ms` : undefined }}
+    >
+      {children}
+    </div>
+  )
+}
+
 /** One selling point: what the visitor gains, beside the slice of the app that delivers it. */
 function SellingPoint({
   title,
   children,
   visual,
   flip = false,
+  stillVisual = false,
 }: {
   title: string
   children: React.ReactNode
   visual: React.ReactNode
   flip?: boolean
+  /** The visual has its own scroll-driven motion, so it doesn't slide in too. */
+  stillVisual?: boolean
 }) {
   return (
     <div className="grid grid-cols-2 items-center gap-14 max-[900px]:grid-cols-1 max-[900px]:gap-8">
-      <div className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`}>
+      <Reveal className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`} from={flip ? 'right' : 'left'}>
         <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">{title}</h2>
         <p className="m-0 text-[16px] leading-7 text-[#3f4045]">{children}</p>
-      </div>
-      <div className="min-w-0">{visual}</div>
+      </Reveal>
+      {stillVisual ? (
+        <div className="min-w-0">{visual}</div>
+      ) : (
+        <Reveal className="min-w-0" delay={120} from={flip ? 'left' : 'right'}>
+          {visual}
+        </Reveal>
+      )}
     </div>
   )
 }
@@ -568,8 +725,9 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
     )
   const card = 'rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.10)]'
   return (
-    <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
+    <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 overflow-x-clip px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
       <SellingPoint
+        stillVisual
         title="Stop reading every answer one by one."
         visual={
           <div className={`${card} flex flex-col gap-2.5 p-5`}>
@@ -583,7 +741,7 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
               {sample.comments.slice(0, 4).map((comment) => (
                 <li className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3" key={comment.text}>
                   <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
-                  <span className="flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
+                  <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
                     <ArrowRight aria-hidden size={12} />
                     Filed under {rows.find((row) => row.id === comment.topicId)?.label}
                   </span>
@@ -649,11 +807,13 @@ function TrustSection() {
         Grievances and honest feedback need care. This is how {brand.name} handles them.
       </SectionIntro>
       <ul className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-10 p-0 max-[900px]:grid-cols-1 max-[900px]:gap-8">
-        {TRUST.map(({ icon: Icon, title, text }) => (
-          <li className="flex flex-col gap-2.5 border-t border-[#d2d8e5] pt-5" key={title}>
-            <Icon aria-hidden className="text-[#1e55c5]" size={22} />
-            <p className="m-0 text-[16px] font-semibold text-[#14181f]">{title}</p>
-            <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{text}</p>
+        {TRUST.map(({ icon: Icon, title, text }, i) => (
+          <li className="border-t border-[#d2d8e5] pt-5" key={title}>
+            <Reveal className="flex flex-col gap-2.5" delay={i * 110}>
+              <Icon aria-hidden className="text-[#1e55c5]" size={22} />
+              <p className="m-0 text-[16px] font-semibold text-[#14181f]">{title}</p>
+              <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{text}</p>
+            </Reveal>
           </li>
         ))}
       </ul>

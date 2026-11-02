@@ -240,3 +240,70 @@ button {
     transform: translateX(250%);
   }
 }
+
+/* Landing page scroll-driven moments (LandingPage). Only where the browser ties animations
+   to scroll and motion is welcome; elsewhere everything simply shows in its final state. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The hero's dashboard leans back and straightens as it scrolls up into view. */
+    /* Timed by page scroll, not the frame's own view: opening a topic makes the frame
+       taller, and that must not change its tilt. */
+    .hero-rise {
+      transform-origin: 50% 0;
+      animation: hero-rise linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 55vh;
+    }
+
+    /* Each answer's "Filed under" lands as that answer reaches the middle of the screen. */
+    .file-step {
+      animation: file-step linear both;
+      animation-timeline: view();
+      animation-range: cover 30% cover 45%;
+    }
+  }
+}
+
+@keyframes hero-rise {
+  from {
+    transform: perspective(1800px) rotateX(16deg) scale(0.9);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes file-step {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Landing hero parallax (LandingPage FloatingAnswers): loose answers drift up at their own
+   depth as the page scrolls. Only with scroll timelines and motion welcome; otherwise not drawn. */
+.parallax-answer {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 1440px) {
+    .parallax-answer {
+      display: flex;
+      animation: parallax-drift linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 120vh;
+    }
+  }
+}
+
+@keyframes parallax-drift {
+  to {
+    transform: translateY(calc(var(--depth) * -320px)) rotate(var(--tilt));
+    opacity: 0;
+  }
+}
