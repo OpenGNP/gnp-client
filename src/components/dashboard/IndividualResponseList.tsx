@@ -20,6 +20,8 @@ export type IndividualResponseListProps = {
   onSelect: (id: number) => void
   /** From `responseLabels`. */
   labels: Map<number, string>
+  /** The page's date range or demographic filter is narrowing `results`. */
+  filtered?: boolean
 }
 
 export function IndividualResponseList({
@@ -30,6 +32,7 @@ export function IndividualResponseList({
   selectedId,
   onSelect,
   labels,
+  filtered = false,
 }: IndividualResponseListProps) {
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE))
   const pageOf = (id: number | null) => {
@@ -85,15 +88,17 @@ export function IndividualResponseList({
             </button>
           ) : null}
         </div>
-        {isSearching ? (
-          <span aria-live="polite" className="text-[12px] font-medium text-[#726f6f]">
-            {results.length} of {total} responses
-          </span>
-        ) : null}
+        <span aria-live="polite" className="text-[12px] font-medium text-[#726f6f]">
+          {isSearching || filtered ? `${results.length} of ${total}` : total} {total === 1 ? 'response' : 'responses'}
+        </span>
       </div>
 
       {results.length === 0 ? (
-        <p className="m-0 py-6 text-center text-[13px] text-[#726f6f]">No responses match “{query.trim()}”.</p>
+        <p className="m-0 py-6 text-center text-[13px] text-[#726f6f]">
+          {isSearching
+            ? `No responses match “${query.trim()}”${filtered ? ' with the current filters' : ''}.`
+            : 'No responses in this date range or for the selected demographics.'}
+        </p>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0" data-tour="individual-list">
           {visible.map(({ response, snippet }) => {

@@ -29,7 +29,7 @@ function FieldAnswer({
         <h4 className="m-0 text-[14px] leading-5.5 font-semibold text-[#14181f]">{field.title}</h4>
       </div>
       {values.length === 0 ? (
-        <p className="m-0 text-[13px] text-[#b5b7bd] italic">No answer</p>
+        <p className="m-0 text-[13px] text-[#726f6f] italic">No answer</p>
       ) : field.type === 'checkbox' ? (
         <div className="flex flex-wrap gap-1.5">
           {values.map((value) => (
@@ -113,7 +113,7 @@ export function ResponseDetailPanel({
           Previous
         </button>
         <span className="text-[12px] font-medium text-[#726f6f]">
-          {index >= 0 ? `${index + 1} of ${total}` : 'Not in search results'}
+          {index >= 0 ? `${index + 1} of ${total}` : 'Not in the current results'}
         </span>
         <button className={navButtonClass} disabled={index < 0 || index === total - 1} onClick={onNext} type="button">
           Next
@@ -123,7 +123,7 @@ export function ResponseDetailPanel({
 
       {sections.map((section) => (
         <section className="flex flex-col gap-3" key={section.title}>
-          <h3 className="m-0 text-[11px] font-bold tracking-[0.6px] text-[#726f6f] uppercase">{section.title}</h3>
+          <h3 className="m-0 text-[13px] font-semibold text-[#3f4045]">{section.title}</h3>
           <div className="flex flex-col divide-y divide-[#eef0f4] rounded-[10px] border border-[#e9eaed] p-4">
             {section.fields.map((field) => (
               <FieldAnswer
