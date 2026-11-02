@@ -341,7 +341,7 @@ function SidebarRail({
               <DropdownMenuItem asChild>
                 <Link to="/about">
                   <Info size={14} />
-                  About GNP
+                  About OpenGNP
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onLogout}>
@@ -951,7 +951,7 @@ function UserProfile({
           <DropdownMenuItem asChild>
             <Link to="/about">
               <Info size={14} />
-              About GNP
+              About OpenGNP
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onLogout}>
