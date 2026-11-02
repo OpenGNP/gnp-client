@@ -175,45 +175,49 @@ function StatCard({
     <Root
       aria-label={onClick && actionLabel ? `${actionLabel} (${value})` : undefined}
       className={cn(
-        'flex h-29.5 min-w-0 items-center gap-4.5 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-5.5 pb-6.25 text-left',
+        'flex h-29.5 min-w-0 flex-col gap-2 rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-4 text-left',
         onClick && 'cursor-pointer transition-colors hover:border-[#d2d8e5] hover:bg-[#fbfcfe]',
       )}
       onClick={onClick}
       type={onClick ? 'button' : undefined}
     >
-      <div
-        className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] ${iconBgClassName}`}
-      >
-        {icon}
-      </div>
-      <div className="flex min-w-0 flex-col gap-2.5">
-        <p className="m-0 truncate text-[12px] font-medium text-[#929292]">{label}</p>
-        <p className="m-0 flex min-w-0 items-baseline gap-2">
-          <span className="text-[20px] font-bold text-[#14181f]">{value}</span>
-          {note ? (
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <span className="cursor-help truncate text-[12px] font-medium text-[#929292] underline decoration-dotted underline-offset-2">
-                  {note}
+      <p className="m-0 w-full truncate text-[12px] font-medium text-[#929292]">{label}</p>
+      <div className="flex min-w-0 items-center gap-4.5 @min-[34rem]:@max-[50rem]:gap-2.5">
+        <div
+          className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:size-10 @min-[34rem]:@max-[50rem]:[&_svg]:size-5 ${iconBgClassName}`}
+        >
+          {icon}
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <p className="m-0 flex min-w-0 items-baseline gap-2">
+            <span className="text-[20px] font-bold text-[#14181f]">{value}</span>
+            {note ? (
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help truncate text-[12px] font-medium text-[#929292] underline decoration-dotted underline-offset-2">
+                    {note}
+                  </span>
+                </TooltipTrigger>
+                {noteTooltip ? (
+                  <TooltipContent className="max-w-64 whitespace-normal leading-4.5" side="top">
+                    {noteTooltip}
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
+            ) : null}
+          </p>
+          {/* Always one line tall, even when empty or wrapping: a second line spills into
+              the card's bottom padding, so the big number never moves (and lines up across cards). */}
+          <div className={`flex h-4 min-w-0 items-start gap-0.5 text-[12px] leading-4 font-medium ${deltaClassName}`}>
+            {deltaLabel ? (
+              <>
+                <ArrowUp className="shrink-0" size={15} />
+                <span className="truncate" title={deltaLabel}>
+                  {deltaLabel}
                 </span>
-              </TooltipTrigger>
-              {noteTooltip ? (
-                <TooltipContent className="max-w-64 whitespace-normal leading-4.5" side="top">
-                  {noteTooltip}
-                </TooltipContent>
-              ) : null}
-            </Tooltip>
-          ) : null}
-        </p>
-        {/* Always one line tall, even when empty or wrapping: a second line spills into
-            the card's bottom padding, so the big number never moves (and lines up across cards). */}
-        <div className={`flex h-4 min-w-0 items-start gap-0.5 text-[12px] leading-4 font-medium ${deltaClassName}`}>
-          {deltaLabel ? (
-            <>
-              <ArrowUp className="shrink-0" size={15} />
-              <span className="whitespace-nowrap">{deltaLabel}</span>
-            </>
-          ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </Root>
@@ -644,64 +648,68 @@ export function FormDashboardPage({
     : 0
 
   // Shown whether or not the feedback has been analysed yet, so the responder count
-  // is always visible. Three equal columns; wraps once one would drop under 14rem.
+  // is always visible. One row of three whenever the space allows: equal when there's
+  // room, else Sentiment widest (its gauge) and Violation narrowest (just a number) —
+  // sized by the column, which the topic panel narrows, not the screen.
   const themesStatCards = themes ? (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-4">
-      <StatCard
-        deltaClassName="text-[#0b842d]"
-        deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
-        icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
-        iconBgClassName="bg-[#edf2fd]"
-        label="Total Responses"
-        note={themes.awaitingAnalysis ? `${themes.awaitingAnalysis} pending analysis` : undefined}
-        noteTooltip="AI analysis runs automatically. These responses are counted here, but their feedback won't appear in topics or sentiment until they're analysed."
-        value={themes.totalResponders}
-      />
+    <div className="@container">
+      <div className="grid grid-cols-1 gap-4 @min-[34rem]:grid-cols-[1.2fr_1.3fr_0.8fr] @min-[50rem]:grid-cols-3">
+        <StatCard
+          deltaClassName="text-[#0b842d]"
+          deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
+          icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
+          iconBgClassName="bg-[#edf2fd]"
+          label="Total Responses"
+          note={themes.awaitingAnalysis ? `${themes.awaitingAnalysis} pending analysis` : undefined}
+          noteTooltip="AI analysis runs automatically. These responses are counted here, but their feedback won't appear in topics or sentiment until they're analysed."
+          value={themes.totalResponders}
+        />
 
-      <div className="flex h-29.5 min-w-0 flex-col justify-center rounded-[10px] border border-[#e9eaed] bg-white px-3.75">
-        <p className="m-0 text-[12px] font-medium text-[#929292]">Overall Sentiment</p>
-        <div className="flex items-center gap-3">
-          <SentimentGauge
-            negative={themes.sentiment.negative}
-            neutral={themes.sentiment.neutral}
-            outOf={themes.sentiment.outOf}
-            positive={themes.sentiment.positive}
-            score={themes.sentiment.score}
-            width={80}
-          />
-          <div className="flex flex-col gap-2 text-[12px]">
-            <span className="flex items-center gap-2">
-              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
-              <span className="text-[#929292]">
-                Negative: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
+        <div className="flex h-29.5 min-w-0 flex-col rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-4">
+          <p className="m-0 text-[12px] font-medium text-[#929292]">Overall Sentiment</p>
+          <div className="flex items-center gap-3">
+            <SentimentGauge
+              negative={themes.sentiment.negative}
+              neutral={themes.sentiment.neutral}
+              outOf={themes.sentiment.outOf}
+              positive={themes.sentiment.positive}
+              score={themes.sentiment.score}
+              width={80}
+            />
+            <div className="flex flex-col gap-2 text-[12px]">
+              <span className="flex items-center gap-2">
+                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
+                <span className="text-[#929292]">
+                  Negative: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-2">
-              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
-              <span className="text-[#929292]">
-                Neutral: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
+              <span className="flex items-center gap-2">
+                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
+                <span className="text-[#929292]">
+                  Neutral: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-2">
-              <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
-              <span className="text-[#929292]">
-                Positive: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
+              <span className="flex items-center gap-2">
+                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
+                <span className="text-[#929292]">
+                  Positive: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
+                </span>
               </span>
-            </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <StatCard
-        deltaClassName="text-[#881921]"
-        icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
-        iconBgClassName="bg-[#ffeaeb]"
-        label="Violation Topics"
-        value={themes.violationTopics.length}
-        {...(themes.violationTopics.length > 0
-          ? { onClick: showViolationTopics, actionLabel: 'Show violation topics' }
-          : {})}
-      />
+        <StatCard
+          deltaClassName="text-[#881921]"
+          icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
+          iconBgClassName="bg-[#ffeaeb]"
+          label="Violation Topics"
+          value={themes.violationTopics.length}
+          {...(themes.violationTopics.length > 0
+            ? { onClick: showViolationTopics, actionLabel: 'Show violation topics' }
+            : {})}
+        />
+      </div>
     </div>
   ) : null
 
