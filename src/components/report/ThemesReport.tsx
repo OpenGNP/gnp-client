@@ -78,11 +78,12 @@ export function ThemesReport({
         <p className="m-0 text-[11px] font-semibold tracking-[0.6px] text-[#929292] uppercase">AI analysis report</p>
         <h1 className="m-0 mt-1 text-[22px] font-bold">{formTitle}</h1>
         <p className="m-0 mt-1 text-[#726f6f]">
-          {scope.length > 0 ? scope.join(' · ') : `All feedback · ${themes.rangeLabel}`}
+          {/* Semicolons: a scope item can hold commas ("Department = A, B"). */}
+          {scope.length > 0 ? scope.join('; ') : `All feedback, ${themes.rangeLabel}`}
         </p>
         <p className="m-0 mt-0.5 text-[11px] text-[#929292]">
           Topics sorted by {topicSortLabel(sort)}
-          {pinsViolations(sort) ? ' (violations first)' : ''} · Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          {pinsViolations(sort) ? ' (violations first)' : ''}. Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
       </header>
 
@@ -156,7 +157,7 @@ export function ThemesReport({
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="m-0 text-[13px] font-bold">{topic.label}</h3>
                 <span className="shrink-0 text-[11px] text-[#726f6f]">
-                  {total(topic)} mentions · {percent(topic.negative, total(topic))}% negative
+                  {total(topic)} mentions, {percent(topic.negative, total(topic))}% negative
                 </span>
               </div>
               <p className="m-0 mt-1 text-[#3f4045]">{topic.aiSummary}</p>

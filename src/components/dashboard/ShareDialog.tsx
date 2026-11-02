@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 /**
  * The form's sharing, top right of its Edit / Dashboard bar: the owner's "Share results"
- * button (with how many can see them), or a viewer's "View only · shared by …".
+ * button (with how many can see them), or a viewer's "View only" chip (who shared it on hover).
  * Reads the route's form from the cache both pages already fill.
  */
 export function ShareControl() {

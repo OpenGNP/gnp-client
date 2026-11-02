@@ -93,7 +93,7 @@ export function describeResponseState(
         state,
         label: 'Open',
         detail: inputs.endDate
-          ? `Accepting responses · closes ${formatDateTime(inputs.endDate)} (${formatRelativeTime(inputs.endDate)})`
+          ? `Accepting responses until ${formatDateTime(inputs.endDate)} (${formatRelativeTime(inputs.endDate)})`
           : 'Accepting responses',
         tone: 'positive',
       }

@@ -58,15 +58,19 @@ export function PeriodSentimentDetail({
   return (
     <div className="flex flex-col gap-1">
       <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#929292]">
-        <span className="font-semibold text-[#14181f]">{label}</span>
+        {/* "13 Oct: Shift swaps, 8 mentions" */}
+        <span className="font-semibold text-[#14181f]">
+          {label}
+          {scope || showCount ? ':' : ''}
+        </span>
         {scope ? (
-          <>
-            ·<span className="max-w-72 truncate">{scope}</span>
-          </>
+          <span className="flex min-w-0">
+            <span className="max-w-72 truncate">{scope}</span>
+            {showCount ? ',' : ''}
+          </span>
         ) : null}
         {showCount ? (
           <>
-            ·
             <span className={smallSample ? 'font-medium text-[#9a6700]' : undefined}>
               {smallSample ? 'only ' : ''}
               {total} mention{total === 1 ? '' : 's'}

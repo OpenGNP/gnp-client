@@ -129,7 +129,7 @@ function StatusRow({ form, now, freshness }: { form: ApiFormDetail | null; now: 
               ? formatDateTime(freshness.at)
               : '—'}
             {freshness.pending ? (
-              <span className="font-medium text-[#929292]"> · {freshness.pending} pending</span>
+              <span className="font-medium text-[#929292]"> ({freshness.pending} pending)</span>
             ) : null}
           </span>
         ) : (
