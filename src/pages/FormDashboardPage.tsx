@@ -41,6 +41,7 @@ import { IndividualResponseList } from '../components/dashboard/IndividualRespon
 import { ResponseDetailPanel } from '../components/dashboard/ResponseDetailPanel'
 import { ResponseOverviewSection } from '../components/dashboard/ResponseOverviewSection'
 import { responseLabels } from '../components/dashboard/responseLabel'
+import { filterResponses } from '../components/dashboard/responseFilter'
 import { searchResponses } from '../components/dashboard/responseSearch'
 import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
@@ -645,7 +646,12 @@ export function FormDashboardPage({
   const isPanelDocked = Boolean(selectedTopic || selectedResponse) && detailPanelLayout.mode === 'docked'
   const individualLabels = individual ? responseLabels(individual.responses, hideNames) : new Map<number, string>()
   // The panel's Previous / Next step through the search results, not every response.
-  const responseResults = individual ? searchResponses(individual.responses, individualLabels, responseQuery) : []
+  // The same date range and demographics as Themes, applied before the search.
+  const isFilteringResponses = range !== null || Object.values(demoSel).some((values) => values.length > 0)
+  const filteredResponses = individual
+    ? filterResponses(individual.responses, individual.fields, range, demoSel)
+    : []
+  const responseResults = searchResponses(filteredResponses, individualLabels, responseQuery)
   const selectedResultIndex = responseResults.findIndex((result) => result.response.id === selectedResponseId)
   const stepResponse = (offset: number) => {
     const next = responseResults[selectedResultIndex + offset]
@@ -800,6 +806,22 @@ export function FormDashboardPage({
         onRemove: () => toggleDemo(label, value),
       })),
   )
+  // Date range + demographics, shared by Themes and Individual (Trend has its own row).
+  const filterRow = (pending: boolean) =>
+    themes ? (
+      <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
+        <DateRangeFilter
+          isDefault={range === null}
+          label={range === null ? themes.rangeLabel : undefined}
+          onChange={changeRange}
+          onReset={resetRange}
+          value={range ?? { from: themes.from, to: themes.to }}
+        />
+        {demoFilterControl}
+        {pending ? <UpdatingIndicator /> : null}
+      </div>
+    ) : null
+
   const activeFilterBar = (
     <ActiveFilterBar
       chips={activeFilterChips}
@@ -1023,19 +1045,7 @@ export function FormDashboardPage({
                 ) : themes.aiDiscoveredTopics.length === 0 ? (
                   <>
                     {themes.totalMentions > 0 ? (
-                      <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
-                        <DateRangeFilter
-                          isDefault={range === null}
-                          label={range === null ? themes.rangeLabel : undefined}
-                          onChange={changeRange}
-                          onReset={resetRange}
-                          value={range ?? { from: themes.from, to: themes.to }}
-                        />
-                        {demoFilterControl}
-                        {themesPending ? (
-                          <UpdatingIndicator />
-                        ) : null}
-                      </div>
+                      filterRow(themesPending)
                     ) : null}
                     {themes.totalMentions > 0 ? activeFilterBar : null}
                     {themesStatCards}
@@ -1047,19 +1057,7 @@ export function FormDashboardPage({
                   </>
                 ) : (
                   <>
-                    <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
-                      <DateRangeFilter
-                        isDefault={range === null}
-                        label={range === null ? themes.rangeLabel : undefined}
-                        onChange={changeRange}
-                        onReset={resetRange}
-                        value={range ?? { from: themes.from, to: themes.to }}
-                      />
-                      {demoFilterControl}
-                      {themesPending ? (
-                        <UpdatingIndicator />
-                      ) : null}
-                    </div>
+                    {filterRow(themesPending)}
                     {activeFilterBar}
                     {themesStatCards}
 
@@ -1137,7 +1135,11 @@ export function FormDashboardPage({
                 ) : individual.responses.length === 0 ? (
                   <EmptyNote>No responses have been submitted yet.</EmptyNote>
                 ) : (
+                  <>
+                  {filterRow(false)}
+                  {activeFilterBar}
                   <IndividualResponseList
+                    filtered={isFilteringResponses}
                     labels={individualLabels}
                     onQueryChange={setResponseQuery}
                     onSelect={setSelectedResponseId}
@@ -1146,6 +1148,7 @@ export function FormDashboardPage({
                     selectedId={selectedResponse?.id ?? null}
                     total={individual.responses.length}
                   />
+                  </>
                 )
               ) : null}
 
