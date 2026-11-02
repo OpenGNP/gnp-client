@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { TooltipContentProps } from 'recharts'
 
+import type { ViolationReview } from '../../api/analytics'
 import type { FeedbackDateRange, TopicKeyword, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SENTIMENT_KEYS, sharesOf } from '../../lib/sentimentTrendSummary'
 import type { DetailPanelLayout } from '../../hooks/useDetailPanelLayout'
@@ -112,6 +113,8 @@ export type TopicDetailPanelProps = {
   onClose: () => void
   /** Opens the Trend tab with this topic charted and pinned, to compare it with others. */
   onCompareInTrend?: () => void
+  /** Confirm / dismiss a flagged point. Owner only; omit to show the badges read-only. */
+  onReviewViolation?: (pointId: string, status: ViolationReview) => Promise<void>
   /** The dashboard's "Hide names" toggle. */
   hideNames?: boolean
   /** Opens a feedback point's whole response in the Individual tab. */
@@ -130,6 +133,7 @@ export function TopicDetailPanel({
   topic,
   onClose,
   onCompareInTrend,
+  onReviewViolation,
   hideNames,
   hidden,
   onOpenResponse,
@@ -372,6 +376,7 @@ export function TopicDetailPanel({
         }}
         initialQuery={initialQuery}
         onOpenResponse={onOpenResponse}
+        onReviewViolation={onReviewViolation}
         period={period ?? dateRange}
       />
     </DetailPanel>

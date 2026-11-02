@@ -14,8 +14,15 @@ export type FeedbackDemographic = {
 export type FeedbackPoint = {
   id: string
   sentiment: FeedbackSentiment
-  /** Flagged as a violation by the AI pipeline. */
+  /** Flagged as a violation by the AI pipeline, and not dismissed by a reviewer. */
   violation?: boolean
+  /** For a violation: the AI's possible / violation, or a reviewer's confirmed. Absent from older servers. */
+  violationStatus?: 'possible' | 'violation' | 'confirmed' | null
+  /** The AI's category: legal / moral / ethics. */
+  violationType?: string | null
+  /** Who confirmed it, and when. */
+  reviewedBy?: string | null
+  reviewedAt?: string | null
   quote: string
   originalFeedback: string
   /** The response this came from (opens it in the Individual tab). Absent from older servers. */

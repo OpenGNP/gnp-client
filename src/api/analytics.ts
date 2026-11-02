@@ -5,7 +5,7 @@ import type {
   TrendBucket,
   TrendRank,
 } from '../data/dashboardAnalytics'
-import { apiGet, httpClient } from '../lib/api'
+import { apiGet, apiPatch, httpClient } from '../lib/api'
 
 /**
  * The viewer's IANA time zone (e.g. "Asia/Bangkok"). Sent with the themes/trend
@@ -187,4 +187,12 @@ export function getFormTrendAnalytics(
   if (tz) params.set('tz', tz)
   const qs = params.toString()
   return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
+}
+
+/** A reviewer's call on a flagged point; null undoes it (back to needs review). */
+export type ViolationReview = 'confirmed' | 'dismissed' | null
+
+/** Form owner only. */
+export function reviewViolation(pointId: string, status: ViolationReview) {
+  return apiPatch<null>(`/analytics/points/${pointId}/violation`, { status })
 }

@@ -73,6 +73,10 @@ export type FeedbackFilterProps = {
   onToggleViolationsOnly?: () => void
   /** How many points in view are flagged, shown next to the option. */
   violationCount?: number
+  /** Flagged points nobody has confirmed or dismissed yet. Omit to hide (non-owners). */
+  needsReviewOnly?: boolean
+  onToggleNeedsReviewOnly?: () => void
+  needsReviewCount?: number
   onClear: () => void
   /** `compact` (default) is the small outline button; `labeled` matches DateRangeFilter. */
   variant?: 'compact' | 'labeled'
@@ -88,6 +92,9 @@ export function FeedbackFilter({
   violationsOnly,
   onToggleViolationsOnly,
   violationCount,
+  needsReviewOnly,
+  onToggleNeedsReviewOnly,
+  needsReviewCount,
   onClear,
   variant = 'compact',
 }: FeedbackFilterProps) {
@@ -176,6 +183,16 @@ export function FeedbackFilter({
               ) : null}
             </span>
             <Switch checked={violationsOnly} onCheckedChange={onToggleViolationsOnly} />
+          </label>
+        ) : null}
+        {needsReviewOnly !== undefined && onToggleNeedsReviewOnly ? (
+          <label className="flex cursor-pointer items-center justify-between gap-3 border-b border-[#eef0f4] py-2.5 text-[13px] text-[#14181f]">
+            <span className="flex items-center gap-1.5">
+              <TriangleAlert className="shrink-0 text-[#b7791f]" size={14} />
+              Needs review
+              {needsReviewCount !== undefined ? <span className="text-[#929292]">({needsReviewCount})</span> : null}
+            </span>
+            <Switch checked={needsReviewOnly} onCheckedChange={onToggleNeedsReviewOnly} />
           </label>
         ) : null}
 

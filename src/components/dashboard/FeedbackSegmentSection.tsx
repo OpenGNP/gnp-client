@@ -1,7 +1,10 @@
 import { AlertTriangle, ArrowRight, ChevronDown, MessageSquareText, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import type { ViolationReview } from '../../api/analytics'
 import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
+import { showAlert } from '../../lib/alertDialog'
+import { ApiError } from '../../lib/api'
 import { includesNeedle, toNeedle } from '../../lib/textSearch'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
@@ -46,14 +49,98 @@ function toggleInSet<T>(set: Set<T>, value: T) {
   return next
 }
 
+const needsReview = (point: FeedbackPoint) => Boolean(point.violation) && point.violationStatus !== 'confirmed'
+
+const REVIEW_BUTTON =
+  'cursor-pointer rounded-[6px] border-0 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-[#5f6368] hover:bg-[#f2f4f7] hover:text-[#14181f] disabled:cursor-default disabled:opacity-50'
+
+/** The violation tag (two levels + the AI's category) and, for the owner, the review actions. */
+function ViolationReviewRow({
+  point,
+  dismissed,
+  onReview,
+}: {
+  point: FeedbackPoint
+  /** Dismissed in this session: the tag is gone, but Undo stays until the panel closes. */
+  dismissed: boolean
+  onReview?: (status: ViolationReview) => Promise<void>
+}) {
+  const [busy, setBusy] = useState(false)
+  const review = (status: ViolationReview) => {
+    if (!onReview) return
+    setBusy(true)
+    onReview(status)
+      .catch((error: unknown) =>
+        showAlert(error instanceof ApiError ? error.message : 'Could not save your review. Please try again.'),
+      )
+      .finally(() => setBusy(false))
+  }
+
+  if (dismissed) {
+    return (
+      <span className="flex items-center gap-1 text-[11px] text-[#929292]">
+        Dismissed
+        <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review(null)} type="button">
+          Undo
+        </button>
+      </span>
+    )
+  }
+  if (!point.violation) return null
+
+  const possible = point.violationStatus === 'possible'
+  const type = point.violationType && point.violationType !== 'none' ? point.violationType : null
+  return (
+    <>
+      <ViolationTooltip scope="point">
+        <span
+          className={cn(
+            'flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset',
+            possible
+              ? 'bg-[#fff6e5] text-[#b7791f] ring-[#f5dfb0]'
+              : 'bg-[#fdeaea] text-[#c1121f] ring-[#f3c9c9]',
+          )}
+        >
+          <AlertTriangle size={11} />
+          {possible ? 'Possible violation' : 'Violation'}
+          {type ? <span className="font-medium capitalize">· {type}</span> : null}
+        </span>
+      </ViolationTooltip>
+      {point.violationStatus === 'confirmed' ? (
+        <span className="flex items-center gap-1 text-[11px] text-[#929292]">
+          Confirmed by {point.reviewedBy ?? 'a reviewer'}
+          {onReview ? (
+            <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review(null)} type="button">
+              Undo
+            </button>
+          ) : null}
+        </span>
+      ) : onReview ? (
+        <span className="flex items-center gap-0.5">
+          <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review('confirmed')} type="button">
+            Confirm
+          </button>
+          <button className={REVIEW_BUTTON} disabled={busy} onClick={() => review('dismissed')} type="button">
+            Dismiss
+          </button>
+        </span>
+      ) : null}
+    </>
+  )
+}
+
 function FeedbackPointCard({
   point,
   showName,
   onOpenResponse,
   query,
+  dismissed,
+  onReview,
 }: {
   point: FeedbackPoint
   showName: boolean
+  dismissed: boolean
+  onReview?: (status: ViolationReview) => Promise<void>
   onOpenResponse?: (submissionId: number) => void
   /** The section's search, highlighted. */
   query: string
@@ -77,14 +164,7 @@ function FeedbackPointCard({
           {point.sentiment}
         </span>
 
-        {point.violation ? (
-          <ViolationTooltip scope="point">
-            <span className="flex w-fit items-center gap-1 rounded-full bg-[#fdeaea] px-2.5 py-1 text-[11px] font-semibold text-[#c1121f] ring-1 ring-[#f3c9c9] ring-inset">
-              <AlertTriangle size={11} />
-              Violation
-            </span>
-          </ViolationTooltip>
-        ) : null}
+        <ViolationReviewRow dismissed={dismissed} onReview={onReview} point={point} />
       </div>
 
       <p className="m-0 text-[13px] leading-[1.6] text-[#14181f]">
@@ -168,6 +248,8 @@ export type FeedbackSegmentSectionProps = {
   onOpenResponse?: (submissionId: number) => void
   /** Pre-fills the search — the Themes Overview search the topic was opened from. */
   initialQuery?: string
+  /** Confirm / dismiss a flagged point (form owner only). */
+  onReviewViolation?: (pointId: string, status: ViolationReview) => Promise<void>
 }
 
 export function FeedbackSegmentSection({
@@ -179,7 +261,22 @@ export function FeedbackSegmentSection({
   hideNames = false,
   onOpenResponse,
   initialQuery = '',
+  onReviewViolation,
 }: FeedbackSegmentSectionProps) {
+  // Dismissed while this panel is open: kept in the list (with Undo) after the refetch drops the flag.
+  const [dismissedHere, setDismissedHere] = useState<Set<string>>(new Set())
+  const reviewPoint = (point: FeedbackPoint) =>
+    onReviewViolation
+      ? async (status: ViolationReview) => {
+          await onReviewViolation(point.id, status)
+          setDismissedHere((prev) => {
+            const next = new Set(prev)
+            if (status === 'dismissed') next.add(point.id)
+            else next.delete(point.id)
+            return next
+          })
+        }
+      : undefined
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [query, setQuery] = useState(initialQuery)
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
@@ -225,9 +322,14 @@ export function FeedbackSegmentSection({
   const violationCount = feedbackSegment.filter((point) => point.violation).length
   // Ignored once nothing in view is flagged (the option is hidden then).
   const violationsOnly = violationsOnlyChoice && violationCount > 0
+  // Only the owner reviews, so only they get the filter.
+  const [needsReviewChoice, setNeedsReviewOnly] = useState(false)
+  const needsReviewCount = onReviewViolation ? feedbackSegment.filter(needsReview).length : 0
+  const needsReviewOnly = needsReviewChoice && needsReviewCount > 0
 
   const activeFilterCount =
     Number(violationsOnly) +
+    Number(needsReviewOnly) +
     selectedSentiments.size +
     Object.values(selectedDemos).reduce((sum, set) => sum + set.size, 0)
 
@@ -254,7 +356,9 @@ export function FeedbackSegmentSection({
         const t = Date.parse(point.submittedAt)
         if (t < Date.parse(period.from) || t >= Date.parse(period.to)) return false
       }
-      if (violationsOnly && !point.violation) return false
+      // A point dismissed here stays put until the panel closes, so its Undo doesn't vanish.
+      if (violationsOnly && !point.violation && !dismissedHere.has(point.id)) return false
+      if (needsReviewOnly && !needsReview(point) && !dismissedHere.has(point.id)) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false
       }
@@ -269,13 +373,25 @@ export function FeedbackSegmentSection({
     // reported breach should not be buried by date. Within each group the
     // chosen newest/oldest order still applies.
     return [...filtered].sort((a, b) => {
-      const flagged = Number(Boolean(b.violation)) - Number(Boolean(a.violation))
+      const isFlagged = (point: FeedbackPoint) => Boolean(point.violation) || dismissedHere.has(point.id)
+      const flagged = Number(isFlagged(b)) - Number(isFlagged(a))
       if (flagged !== 0) return flagged
       return sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)
         : a.submittedAt.localeCompare(b.submittedAt)
     })
-  }, [feedbackSegment, period, violationsOnly, selectedSentiments, selectedDemos, sortOption, query, showNames])
+  }, [
+    feedbackSegment,
+    period,
+    violationsOnly,
+    needsReviewOnly,
+    dismissedHere,
+    selectedSentiments,
+    selectedDemos,
+    sortOption,
+    query,
+    showNames,
+  ])
 
   return (
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
@@ -330,6 +446,7 @@ export function FeedbackSegmentSection({
             demographicFilters={demographicFilters}
             onClear={() => {
               setViolationsOnly(false)
+              setNeedsReviewOnly(false)
               setSelectedSentiments(new Set())
               setSelectedDemos({})
             }}
@@ -340,6 +457,9 @@ export function FeedbackSegmentSection({
             }
             violationCount={violationCount}
             violationsOnly={violationCount > 0 ? violationsOnly : undefined}
+            needsReviewOnly={needsReviewCount > 0 ? needsReviewOnly : undefined}
+            onToggleNeedsReviewOnly={needsReviewCount > 0 ? () => setNeedsReviewOnly((value) => !value) : undefined}
+            needsReviewCount={needsReviewCount}
             onToggleSentiment={(value) => setSelectedSentiments((prev) => toggleInSet(prev, value))}
             selectedDemos={selectedDemos}
             selectedSentiments={selectedSentiments}
@@ -373,7 +493,9 @@ export function FeedbackSegmentSection({
         <div className="flex flex-col gap-3">
           {visiblePoints.map((point) => (
             <FeedbackPointCard
+              dismissed={dismissedHere.has(point.id)}
               key={point.id}
+              onReview={reviewPoint(point)}
               onOpenResponse={onOpenResponse}
               point={point}
               query={query}

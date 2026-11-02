@@ -16,12 +16,18 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
-import { downloadFormResponses, downloadFormThemes, type FormThemeAnalytics } from '../api/analytics'
+import {
+  downloadFormResponses,
+  downloadFormThemes,
+  reviewViolation,
+  type FormThemeAnalytics,
+  type ViolationReview,
+} from '../api/analytics'
 import type { ApiFormDetail } from '../api/forms'
-import { formQuery, individualQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
+import { formQuery, individualQuery, queryKeys, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { FormLoadError } from '../components/FormLoadError'
 import { PrintPortal } from '../components/report/PrintPortal'
 import { ThemesReport } from '../components/report/ThemesReport'
@@ -243,6 +249,12 @@ export function FormDashboardPage({
   // The URL carries the form's urlId; the API calls use its numeric id.
   const routeForm = useRouteForm()
   const formId = routeForm.formId ?? 0
+  const queryClient = useQueryClient()
+  // Then refetch: counts on Themes and Trend drop dismissed points too.
+  const reviewPointViolation = async (pointId: string, status: ViolationReview) => {
+    await reviewViolation(pointId, status)
+    await queryClient.invalidateQueries({ queryKey: queryKeys.analytics(formId) })
+  }
   const hasValidId = routeForm.formId !== null
   useRecordFormOpen(routeForm.formId)
   // New responses, finished AI runs and form edits show up without a refresh.
@@ -1163,6 +1175,7 @@ export function FormDashboardPage({
             onClose={() => setSelectedTopicId(null)}
             hideNames={hideNames}
             onCompareInTrend={() => compareInTrend(openTopic.id)}
+            onReviewViolation={routeForm.role === 'owner' ? reviewPointViolation : undefined}
             onOpenResponse={openResponse}
             topic={openTopic}
             layout={detailPanelLayout}
