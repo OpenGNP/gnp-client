@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import {
   downloadFormResponses,
@@ -54,7 +54,8 @@ import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { useAuth } from '../lib/auth'
 import { SamplePreviewContext } from '../lib/samplePreview'
-import { SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
+import { brand } from '../data/dashboard'
+import { SAMPLE_FORM, SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
 import { startTour } from '../lib/productTour'
 import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
@@ -287,7 +288,55 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
   )
 }
 
+const DEMO_ROUTE = {
+  formId: SAMPLE_FORM.id,
+  role: 'owner' as const,
+  status: 'ready' as const,
+  error: null,
+  retry: () => {},
+}
+
+/** The demo's top bar, in the Edit form | Dashboard bar's place and height. */
+function DemoBar({ onTour }: { onTour: () => void }) {
+  return (
+    <div className="flex h-12.5 items-center justify-between gap-3 border-b border-[#e8eaf1] px-6 max-[560px]:px-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <Link
+          aria-label={`${brand.name} overview`}
+          className="shrink-0 rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
+          to="/about"
+        >
+          <img alt={brand.name} className="h-7 w-13.5 object-cover object-center" src={brand.logo} />
+        </Link>
+        <span className="truncate rounded-full bg-[#fff4d9] px-2.5 py-1 text-[12px] font-semibold text-[#7a5a00]">
+          Sample dashboard
+        </span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          className="h-8 cursor-pointer rounded-[10px] border border-[#d2d8e5] bg-white px-3 text-[13px] font-semibold text-[#3f4045] transition-colors hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+          onClick={onTour}
+          type="button"
+        >
+          Take the tour
+        </button>
+        <Link
+          className="inline-flex h-8 items-center rounded-[10px] bg-[#1e55c5] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a49aa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+          to="/login"
+        >
+          Sign in
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export type FormDashboardPageProps = {
+  /**
+   * The public /demo: this same page on sample data, with no server calls. Reviews stay on
+   * the page, filters are off, and a demo bar replaces the Edit form | Dashboard bar.
+   */
+  demo?: boolean
   /** Folders containing this form, outermost first (empty: at the root of My forms). */
   folderPath?: { id: string; label: string }[]
   showSidebarToggle?: boolean
@@ -295,18 +344,22 @@ export type FormDashboardPageProps = {
 }
 
 export function FormDashboardPage({
+  demo = false,
   folderPath = [],
   showSidebarToggle = false,
   onToggleSidebar,
 }: FormDashboardPageProps) {
   // The URL carries the form's urlId; the API calls use its numeric id.
-  const routeForm = useRouteForm()
+  const urlForm = useRouteForm()
+  const routeForm = demo ? DEMO_ROUTE : urlForm
   const formId = routeForm.formId ?? 0
   const queryClient = useQueryClient()
   const hasValidId = routeForm.formId !== null
-  useRecordFormOpen(routeForm.formId)
+  // The demo never touches the server.
+  const canFetch = hasValidId && !demo
+  useRecordFormOpen(demo ? null : routeForm.formId)
   // New responses, finished AI runs and form edits show up without a refresh.
-  useFormEvents(routeForm.formId)
+  useFormEvents(demo ? null : routeForm.formId)
 
   // The view and filters live in the URL, so a reload keeps them and a link opens the same view.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -410,16 +463,16 @@ export function FormDashboardPage({
   // Each data source is its own cached query. Changing a filter changes the
   // themes/trend query key; `keepPreviousData` (see api/queries.ts) keeps the old
   // result on screen meanwhile, which `isPlaceholderData` reports as "Updating…".
-  const formResult = useQuery({ ...formQuery(formId), enabled: hasValidId })
-  const responsesResult = useQuery({ ...responsesQuery(formId), enabled: hasValidId })
+  const formResult = useQuery({ ...formQuery(formId), enabled: canFetch })
+  const responsesResult = useQuery({ ...responsesQuery(formId), enabled: canFetch })
   // Every answer of every response — only fetched once the Individual tab is opened.
   const individualResult = useQuery({
     ...individualQuery(formId),
-    enabled: hasValidId && activeView === 'individual',
+    enabled: canFetch && activeView === 'individual',
   })
   const themesResult = useQuery({
     ...themesQuery(formId, { from: range?.from, to: range?.to, demo: demoSel }),
-    enabled: hasValidId,
+    enabled: canFetch,
   })
   const trendResult = useQuery({
     ...trendQuery(formId, {
@@ -430,13 +483,16 @@ export function FormDashboardPage({
       topics: topicSel ?? undefined,
       demo: demoSel,
     }),
-    enabled: hasValidId,
+    enabled: canFetch,
   })
 
-  const form = formResult.data ?? null
+  const form = demo ? SAMPLE_FORM : (formResult.data ?? null)
   // While an empty form's tour runs, every tab shows sample data instead (see the tour
   // below); `real*` is what the server sent.
-  const [previewing, setPreviewing] = useState(false)
+  const [tourPreviewing, setPreviewing] = useState(false)
+  const previewing = demo || tourPreviewing
+  // The demo's own copy of the sample themes, so a flag review shows on the page.
+  const [demoThemes, setDemoThemes] = useState(SAMPLE_THEMES)
   const realResponses = responsesResult.data ?? null
   const realIndividual = individualResult.data ?? null
   const responses = previewing ? SAMPLE_RESPONSES : realResponses
@@ -466,7 +522,7 @@ export function FormDashboardPage({
   const sameFormLastGood = lastGood.formId === formId ? lastGood : null
   const realThemes = themesResult.data ?? sameFormLastGood?.themes ?? null
   const realTrend = trendResult.data ?? sameFormLastGood?.trend ?? null
-  const themes = previewing ? SAMPLE_THEMES : realThemes
+  const themes = demo ? demoThemes : previewing ? SAMPLE_THEMES : realThemes
   const trend = previewing ? SAMPLE_TREND : realTrend
   const themesPending = themesResult.isPlaceholderData
   const trendPending = trendResult.isPlaceholderData
@@ -491,6 +547,28 @@ export function FormDashboardPage({
   // Applies the server's answer to the cached point (and its topic's flag) right away,
   // then refreshes Themes + Trend in the background for the counts.
   const reviewPointViolation = async (pointId: string, status: ViolationReview) => {
+    if (demo) {
+      // Answered on the page only: nothing is saved.
+      const original = SAMPLE_THEMES.aiDiscoveredTopics
+        .flatMap((topic) => topic.feedbackSegment)
+        .find((point) => point.id === pointId)
+      const local: Partial<FeedbackPoint> =
+        status === 'confirmed'
+          ? { violation: original?.violation ?? true, violationStatus: 'confirmed', dismissed: false, reviewedBy: 'you' }
+          : status === 'dismissed'
+            ? { violation: false, dismissed: true, reviewedBy: 'you' }
+            : { violation: original?.violation, violationStatus: original?.violationStatus, dismissed: false, reviewedBy: null }
+      const patchLocal = (topic: TopicSentiment): TopicSentiment => {
+        const feedbackSegment = topic.feedbackSegment.map((point) => (point.id === pointId ? { ...point, ...local } : point))
+        return { ...topic, feedbackSegment, hasViolation: feedbackSegment.some((point) => point.violation) }
+      }
+      setDemoThemes((data) => ({
+        ...data,
+        violationTopics: data.violationTopics.map(patchLocal),
+        aiDiscoveredTopics: data.aiDiscoveredTopics.map(patchLocal),
+      }))
+      return
+    }
     const result = await reviewViolation(pointId, status)
     const patch: Partial<FeedbackPoint> = {
       ...result,
@@ -513,7 +591,7 @@ export function FormDashboardPage({
     void queryClient.invalidateQueries({ queryKey: queryKeys.allThemes(formId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.allTrends(formId) })
   }
-  const tabTour =
+  const pageTour =
     activeView === 'themes'
       ? {
           id: 'dashboard',
@@ -542,6 +620,8 @@ export function FormDashboardPage({
               empty: (realResponses?.totalResponses ?? 0) === 0,
               manual: true,
             }
+  // The demo's sample data is the real data here: the tour runs as on a full form.
+  const tabTour = demo ? { ...pageTour, loaded: true, empty: false } : pageTour
 
   // The running tour, so "Exit preview" on the banner can end it too.
   const activeTour = useRef<{ stop: () => void } | null>(null)
@@ -567,8 +647,9 @@ export function FormDashboardPage({
   }
 
 
-  const loadFailure =
-    routeForm.status === 'error'
+  const loadFailure = demo
+    ? null
+    : routeForm.status === 'error'
       ? (routeForm.error ?? "This form hasn't been saved yet, so there's no dashboard.")
       : !hasValidId
         ? null // still resolving the URL — the page shows its loading placeholders
@@ -861,9 +942,21 @@ export function FormDashboardPage({
         onRemove: () => toggleDemo(label, value),
       })),
   )
+  // The demo's filters would need the server: shown, but off.
+  const lockForDemo = (node: React.ReactNode) =>
+    demo ? (
+      <div className="flex flex-col gap-1.5">
+        <fieldset className="m-0 min-w-0 border-0 p-0 opacity-60" disabled>
+          {node}
+        </fieldset>
+        <p className="m-0 text-[12px] text-[#726f6f]">Filters work on your own forms.</p>
+      </div>
+    ) : (
+      node
+    )
   // Date range + demographics, shared by Themes and Individual (Trend has its own row).
   const filterRow = (pending: boolean) =>
-    themes ? (
+    themes ? lockForDemo(
       <div className="flex flex-wrap items-end gap-3" data-tour="dashboard-filters">
         <DateRangeFilter
           isDefault={range === null}
@@ -874,7 +967,7 @@ export function FormDashboardPage({
         />
         {demoFilterControl}
         {pending ? <UpdatingIndicator /> : null}
-      </div>
+      </div>,
     ) : null
 
   const activeFilterBar = (
@@ -893,14 +986,18 @@ export function FormDashboardPage({
     <SamplePreviewContext.Provider value={previewing}>
       <div>
         <HeadroomBar>
-          <FormDetailTabs
-            canEdit={routeForm.role === 'owner'}
-            hasDashboardData
-            onToggleSidebar={onToggleSidebar}
-            showSidebarToggle={showSidebarToggle}
-          />
+          {demo ? (
+            <DemoBar onTour={() => runTabTour(tabTour)} />
+          ) : (
+            <FormDetailTabs
+              canEdit={routeForm.role === 'owner'}
+              hasDashboardData
+              onToggleSidebar={onToggleSidebar}
+              showSidebarToggle={showSidebarToggle}
+            />
+          )}
         </HeadroomBar>
-        {previewing ? (
+        {previewing && !demo ? (
           // Top centre, in the empty middle of the Edit form | Dashboard bar (tabs left, Share
           // right); under 900px that middle is too narrow, so it sits at the bottom instead.
           // Above the tour's dimmed overlay (driver.js: z-index 10000) on every step.
@@ -1202,6 +1299,7 @@ export function FormDashboardPage({
                   all (`totalMentions` is all-time) — there's nothing to filter. They stay when
                   data exists but the current range/filters exclude it, so you can widen them. */}
               {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? (
+                lockForDemo(
                 <div className="flex flex-wrap items-end gap-3">
                   <DateRangeFilter
                     isDefault={range === null}
@@ -1221,7 +1319,7 @@ export function FormDashboardPage({
                       {BUCKETS.map((option) => (
                         <button
                           className={cn(
-                            'h-11.25 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[#14181f] focus-visible:outline-none focus-visible:ring-inset',
+                            'h-10.75 cursor-pointer px-3 text-[12px] font-semibold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[#14181f] focus-visible:outline-none focus-visible:ring-inset',
                             option.value === bucket
                               ? 'bg-[#1e55c5] text-white'
                               : 'bg-white text-[#1e55c5] hover:bg-[#f7f8fb]',
@@ -1237,7 +1335,8 @@ export function FormDashboardPage({
                     </div>
                   </div>
                   {trendPagePending ? <UpdatingIndicator /> : null}
-                </div>
+                </div>,
+                )
               ) : null}
               {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? activeFilterBar : null}
 
@@ -1245,7 +1344,8 @@ export function FormDashboardPage({
                 trend.topicVolumeSeries.length > 0 ? (
                   <TrendView
                     topicControl={
-                      trend.availableTopics.length > 0 ? (
+                      // The picker re-asks the server, so the demo leaves it out.
+                      trend.availableTopics.length > 0 && !demo ? (
                         <>
                           {topicChartPending ? (
                             <span

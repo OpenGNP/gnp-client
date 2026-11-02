@@ -1,4 +1,5 @@
 import type { FormIndividualResponses, FormResponseAnalytics, FormThemeAnalytics } from '../api/analytics'
+import type { ApiFormDetail } from '../api/forms'
 import type { FeedbackPoint, FeedbackSentiment, FormTrendAnalytics, TopicSentiment } from './dashboardAnalytics'
 
 /**
@@ -124,7 +125,13 @@ const topics: TopicSentiment[] = (() => {
       aiSummary: seed.summary,
       keywords: seed.keywords.map((text, k) => ({ text, weight: (k === 0 ? 3 : k === 1 ? 2 : 1) as 1 | 2 | 3 })),
       feedbackSegment,
-      volumeSeries: WEEKS.map((label, w) => ({ label, value: seed.weekly[w]! })),
+      // Split by sentiment like the server's, so the panel's Sentiment switch has something to show.
+      volumeSeries: WEEKS.map((label, w) => {
+        const n = seed.weekly[w]!
+        const weekNegative = sentimentOf(seed.quotes, 'negative', n)
+        const weekPositive = sentimentOf(seed.quotes, 'positive', n)
+        return { label, value: n, negative: weekNegative, positive: weekPositive, neutral: n - weekNegative - weekPositive }
+      }),
     }
   })
 })()
@@ -304,4 +311,31 @@ export const SAMPLE_INDIVIDUAL: FormIndividualResponses = {
         })),
     ),
   })),
+}
+
+/** The form behind the public /demo dashboard, which never calls the server. */
+export const SAMPLE_FORM: ApiFormDetail = {
+  id: -1,
+  role: 'owner',
+  ownerName: null,
+  ownerEmail: null,
+  adminId: -1,
+  folderId: null,
+  organizationId: null,
+  formTitle: 'Student feedback survey',
+  formDescription: null,
+  coverImageUrl: null,
+  status: 'active',
+  accessType: 'anyone',
+  acceptingResponses: true,
+  recordName: false,
+  oneResponsePerPerson: false,
+  startDate: null,
+  endDate: null,
+  createdAt: null,
+  updatedAt: null,
+  publicToken: 'sample',
+  urlId: 'sample',
+  formFields: [],
+  formAllowedUsers: [],
 }

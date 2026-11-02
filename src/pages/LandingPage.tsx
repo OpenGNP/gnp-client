@@ -1,37 +1,36 @@
 import {
   ArrowRight,
+  EyeOff,
   Link as LinkIcon,
-  MessageSquareText,
+  Server,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   TriangleAlert,
+  UserCheck,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ViolationReview } from '../api/analytics'
 import { FeedbackPointCard } from '../components/dashboard/FeedbackSegmentSection'
 import { SentimentBar } from '../components/dashboard/SentimentBar'
 import { SENTIMENT_COLORS } from '../components/dashboard/sentimentColors'
-import { TopicTrendsCard } from '../components/dashboard/TopicTrendsCard'
 import { WhatChangedCard } from '../components/dashboard/TrendView'
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
 import {
-  DRILL_TOPIC,
-  FLAGGED_POINT,
-  FLAGGED_TOPIC,
-  LANDING_TOPICS,
-  LANDING_TREND,
-  LANDING_WHAT_CHANGED,
-  RAW_COMMENTS,
-  SAMPLE_RESPONSE_COUNT,
+  LANDING_SAMPLE_OPTIONS,
+  LANDING_SAMPLES,
+  type LandingSample,
+  type LandingSampleId,
+  type LandingTopic,
 } from '../data/landingSample'
+import { FormDashboardPage } from './FormDashboardPage'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
+import { cn } from '../lib/utils'
 
 // Largest sample topic (42 points) rounded up to a step of 10, as the dashboard's axis does.
 const AXIS_MAX = 50
@@ -41,7 +40,7 @@ const linkClass =
 
 function SampleTag() {
   return (
-    <span className="rounded-full bg-[#fff4d9] px-2 py-0.5 text-[11px] font-semibold text-[#7a5a00]">Sample data</span>
+    <span className="shrink-0 rounded-full bg-[#fff4d9] px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[#7a5a00]">Sample data</span>
   )
 }
 
@@ -54,11 +53,11 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
       <Button
         asChild
         className={`h-10.5 w-full max-w-80 justify-center rounded-[10px] text-[14px] font-semibold ${
-          tone === 'blue' ? 'bg-white text-[#1e55c5] hover:bg-[#e8eefc]' : ''
+          tone === 'blue' ? 'bg-white text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white' : ''
         }`}
       >
         <Link to="/">
-          Go to Home
+          Go to home
           <ArrowRight size={16} />
         </Link>
       </Button>
@@ -67,12 +66,19 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
   return (
     <div className="flex w-full max-w-80 flex-col gap-3">
       {msalInstance ? (
-        <MicrosoftSignInButton onBusyChange={() => {}} onError={setError} />
+        <MicrosoftSignInButton
+          onBusyChange={() => {}}
+          onError={setError}
+          // On the blue band the white button already stands out; on the light hero it takes the blue.
+          variant={tone === 'blue' ? 'default' : 'primary'}
+          // The usual blue focus ring would vanish on the blue band.
+          className={tone === 'blue' ? 'focus-visible:outline-white' : undefined}
+        />
       ) : (
         <Button
           asChild
           className={`h-10.5 w-full justify-center rounded-[10px] text-[14px] font-semibold ${
-            tone === 'blue' ? 'bg-white text-[#1e55c5] hover:bg-[#e8eefc]' : ''
+            tone === 'blue' ? 'bg-white text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white' : ''
           }`}
         >
           <Link to="/login">Sign in</Link>
@@ -85,11 +91,11 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
       ) : null}
       <p className={`m-0 text-[12px] leading-4.5 ${tone === 'blue' ? 'text-[#dbe6ff]' : 'text-[#726f6f]'}`}>
         By signing in, you agree to the{' '}
-        <Link className={tone === 'blue' ? `${linkClass} text-white underline` : linkClass} to="/terms">
+        <Link className={tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass} to="/terms">
           Terms of Use
         </Link>{' '}
         and acknowledge the{' '}
-        <Link className={tone === 'blue' ? `${linkClass} text-white underline` : linkClass} to="/privacy">
+        <Link className={tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass} to="/privacy">
           Privacy Notice
         </Link>
         .
@@ -98,136 +104,259 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
   )
 }
 
-/** Raw answers on the left, ranked topics on the right; the highlight shows where each answer was filed. */
-function RawToRead() {
-  const [active, setActive] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const activeTopic = RAW_COMMENTS[active]!.topicId
+type DashboardRow = LandingTopic & { change?: 'worse' | 'new' }
 
-  // Steps through the comments by itself until someone points at one.
-  useEffect(() => {
-    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const timer = window.setInterval(() => setActive((i) => (i + 1) % RAW_COMMENTS.length), 2600)
-    return () => window.clearInterval(timer)
-  }, [paused])
-
-  const pick = (i: number) => {
-    setActive(i)
-    setPaused(true)
+/** The sample's topics as the Themes tab lists them: flagged first, tagged Worse or New from What changed. */
+function dashboardRows(sample: LandingSample): DashboardRow[] {
+  const changes = new Map<string, 'worse' | 'new'>()
+  for (const row of sample.whatChanged.rows) {
+    if (row.kind === 'worse' || row.kind === 'new') changes.set(row.id, row.kind)
   }
+  const rows: DashboardRow[] = sample.topics.map((topic) => ({ ...topic, change: changes.get(topic.id) }))
+  // A new topic What changed found but the topic list doesn't hold yet.
+  for (const row of sample.whatChanged.rows) {
+    if (row.kind !== 'new' || rows.some((topic) => topic.id === row.id)) continue
+    const counts = row.complaintCounts?.current ?? { negative: 0, total: 0 }
+    rows.push({
+      id: row.id,
+      label: row.label,
+      negative: counts.negative,
+      neutral: counts.total - counts.negative,
+      positive: 0,
+      percentOfTotal: row.share.current,
+      change: 'new',
+    })
+  }
+  return rows.sort(
+    (a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || b.percentOfTotal - a.percentOfTotal,
+  )
+}
 
+/** The app's window, as every demo on this page shows it: chrome, the form's name, its view tabs. */
+function AppFrame({
+  sample,
+  tab,
+  className = '',
+  children,
+}: {
+  sample: LandingSample
+  tab: 'Themes' | 'Trend' | 'Response' | 'Individual'
+  className?: string
+  children: React.ReactNode
+}) {
   return (
-    <div className="grid grid-cols-[minmax(0,15rem)_auto_minmax(0,1fr)] items-center gap-4 max-[1000px]:grid-cols-1">
-      <ul
-        aria-label="Raw feedback: point at one to see its topic"
-        className="m-0 flex list-none flex-col gap-2.5 p-0 max-[1000px]:hidden"
-        onMouseLeave={() => setPaused(false)}
-      >
-        {RAW_COMMENTS.map((comment, i) => (
-          <li
-            className="animate-in fade-in slide-in-from-left-4 fill-mode-both duration-700 ease-out motion-reduce:animate-none"
-            key={comment.text}
-            style={{ animationDelay: `${i * 90}ms`, rotate: i === active ? '0deg' : `${[-1.2, 0.8, -0.4, 1, -0.8][i]}deg` }}
-          >
-            <button
-              aria-pressed={i === active}
-              className={`flex w-full cursor-pointer items-start gap-2 rounded-[10px] border px-3 py-2.5 text-left text-[13px] leading-4.75 transition-[border-color,background-color,box-shadow,translate] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5] ${
-                i === active
-                  ? 'translate-x-1.5 border-[#1e55c5] bg-[#f5f8ff] text-[#14181f] shadow-[0_6px_16px_rgba(30,85,197,0.16)]'
-                  : 'border-[#e8eaf1] bg-white text-[#3f4045] shadow-[0_2px_8px_rgba(15,23,42,0.05)]'
-              }`}
-              onBlur={() => setPaused(false)}
-              onFocus={() => pick(i)}
-              onMouseEnter={() => pick(i)}
-              type="button"
-            >
-              <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={14} />
-              <span>“{comment.text}”</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <ArrowRight
-        aria-hidden="true"
-        className="text-[#8fc9ff] animate-in fade-in fill-mode-both delay-500 duration-500 motion-reduce:animate-none max-[1000px]:hidden"
-        size={28}
-      />
-
-      {/* Narrow screens have no room for the list, so the current comment sits above the card. */}
-      <p
-        className="m-0 hidden items-start gap-2 rounded-[10px] border border-[#1e55c5] bg-[#f5f8ff] px-3 py-2.5 text-[13px] leading-4.75 text-[#14181f] max-[1000px]:flex"
-        key={active}
-      >
-        <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={14} />
-        <span className="animate-in fade-in duration-500 motion-reduce:animate-none">“{RAW_COMMENTS[active]!.text}”</span>
-      </p>
-
-      <section
-        aria-label="Topics found in the sample feedback"
-        className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-5 pb-3 shadow-[0_16px_40px_rgba(30,85,197,0.10)] animate-in fade-in slide-in-from-right-4 fill-mode-both delay-500 duration-700 ease-out motion-reduce:animate-none"
-      >
-        <div className="flex items-center justify-between gap-3 px-5 pb-3">
-          <h3 className="m-0 flex items-center gap-2 text-[14px] font-semibold text-black">
-            <Sparkles className="text-[#1e55c5]" fill="currentColor" size={15} />
-            Topics
-            <span className="font-medium text-[#726f6f]">{SAMPLE_RESPONSE_COUNT} responses</span>
-          </h3>
+    <div
+      aria-label={`Sample dashboard for ${sample.formTitle}, ${tab} tab`}
+      className={`mx-auto w-full max-w-224 min-w-0 overflow-hidden rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.12)] ${className}`}
+      role="group"
+    >
+      <div aria-hidden="true" className="flex h-9 items-center gap-1.5 border-b border-[#eef0f4] bg-[#f7f8fb] px-3.5">
+        <span className="size-2.5 rounded-full bg-[#d9dde6]" />
+        <span className="size-2.5 rounded-full bg-[#d9dde6]" />
+        <span className="size-2.5 rounded-full bg-[#d9dde6]" />
+      </div>
+      <div className="flex flex-col gap-4 p-6 max-[560px]:p-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="m-0 text-[20px] font-semibold text-[#14181f]">{sample.formTitle}</p>
           <SampleTag />
         </div>
-        <ul className="m-0 flex list-none flex-col p-0">
-          {LANDING_TOPICS.map((topic) => {
-            const isActive = topic.id === activeTopic
-            return (
-              <li
-                className={`flex flex-col gap-1.5 border-l-[3px] py-2.5 pr-5 pl-4.25 transition-colors duration-300 ${
-                  isActive ? 'border-[#1e55c5] bg-[#f7f8fb]' : topic.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
-                }`}
-                key={topic.id}
-              >
-                <span className="flex min-w-0 flex-1 items-center gap-2 text-[14px] text-[#14181f]">
-                  <span className={`truncate ${isActive ? 'font-medium' : ''}`}>{topic.label}</span>
-                  {topic.hasViolation ? (
-                    <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" size={15} />
-                  ) : null}
-                  {isActive ? (
-                    <span className="ml-auto shrink-0 text-[11px] font-semibold text-[#1e55c5]">Filed here</span>
-                  ) : null}
-                </span>
-                <span className="flex items-center gap-3">
-                  <SentimentBar
-                    className="min-w-0 flex-1"
-                    maxValue={AXIS_MAX}
-                    negative={topic.negative}
-                    neutral={topic.neutral}
-                    positive={topic.positive}
-                    title={topic.label}
-                  />
-                  <span className="w-9 text-right text-[14px] text-[#14181f] tabular-nums">{topic.percentOfTotal}%</span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+        <div aria-hidden="true" className="flex flex-wrap gap-2.5">
+          {(['Themes', 'Trend', 'Response', 'Individual'] as const).map((name) => (
+            <span
+              className={`inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold ${
+                name === tab ? 'bg-[#1e55c5] text-white' : 'border border-[#c9cfdb] text-[#726f6f]'
+              }`}
+              key={name}
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+        {children}
+      </div>
     </div>
   )
 }
 
+/** A section's centred heading and one line on what to look at. */
+function SectionIntro({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
+      <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance" id={id}>
+        {title}
+      </h2>
+      <p className="m-0 text-[16px] leading-6.5 text-[#3f4045]">{children}</p>
+    </div>
+  )
+}
+
+const SECTION = 'mx-auto flex max-w-300 flex-col gap-12 px-6 py-24 max-[560px]:px-4 max-[560px]:py-16'
+
+/** The Themes tab's topic rows: share, sentiment, and the Worse / New / flag marks. */
+function TopicRows({ rows }: { rows: DashboardRow[] }) {
+  return (
+  <ul className="m-0 list-none p-0">
+    {rows.map((row) => {
+      const worse = row.change === 'worse'
+      return (
+        <li
+          className={`grid grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.75rem] items-center gap-4 border-l-[3px] px-4 py-2.5 [grid-template-areas:'name_bar_pct'] max-[700px]:grid-cols-[minmax(0,1fr)_2.75rem] max-[700px]:gap-y-1.5 max-[700px]:[grid-template-areas:'name_pct'_'bar_bar'] ${
+            worse ? 'border-[#1e55c5] bg-[#f7f8fb]' : row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
+          }`}
+          key={row.id}
+        >
+          <span className="flex min-w-0 items-center gap-2 text-[14px] text-[#14181f] [grid-area:name]">
+            <span className="truncate">{row.label}</span>
+            {row.hasViolation ? (
+              <span className="flex shrink-0 items-center gap-1.5">
+                <TriangleAlert aria-label="Contains possible violations" className="text-[#e0507a]" role="img" size={15} />
+              </span>
+            ) : null}
+            {row.change === 'worse' ? (
+              <span
+                className="shrink-0 rounded-full bg-[#fdecea] px-2 py-0.5 text-[11px] font-semibold text-[#c4280b]"
+               
+              >
+                Worse
+              </span>
+            ) : row.change === 'new' ? (
+              <span className="shrink-0 rounded-full bg-[#edf2fd] px-2 py-0.5 text-[11px] font-semibold text-[#1e55c5]">
+                New
+              </span>
+            ) : null}
+          </span>
+          <SentimentBar
+            className="min-w-0 [grid-area:bar]"
+            maxValue={AXIS_MAX}
+            negative={row.negative}
+            neutral={row.neutral}
+            positive={row.positive}
+            title={row.label}
+          />
+          <span className="text-right text-[14px] text-[#14181f] tabular-nums [grid-area:pct]">
+            {row.percentOfTotal}%
+          </span>
+        </li>
+      )
+    })}
+  </ul>
+  )
+}
+
+/** The app's Themes tab on sample data: the proof under the hero. */
+function DashboardPicture({ sample }: { sample: LandingSample }) {
+  const rows = dashboardRows(sample)
+  const totals = rows.reduce(
+    (sum, row) => ({ negative: sum.negative + row.negative, neutral: sum.neutral + row.neutral, positive: sum.positive + row.positive }),
+    { negative: 0, neutral: 0, positive: 0 },
+  )
+  const allMentions = totals.negative + totals.neutral + totals.positive
+  const share = (n: number) => `${(n / allMentions) * 100}%`
+  const flagged = sample.whatChanged.rows.reduce((sum, row) => sum + row.violations, 0)
+  return (
+    <AppFrame sample={sample} tab="Themes">
+          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
+            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
+              <p className="m-0 mt-1 text-[20px] font-bold text-[#14181f] tabular-nums">{sample.responseCount}</p>
+            </div>
+            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
+              <div
+                aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
+                className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
+                role="img"
+              >
+                <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
+                <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
+                <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+              </div>
+            </div>
+            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Violation mentions</p>
+              <p className="m-0 mt-1 flex items-baseline gap-2">
+                <span className="text-[20px] font-bold text-[#14181f] tabular-nums">{flagged}</span>
+                <span className="text-[12px] font-semibold text-[#c2365f]">{flagged} to review</span>
+              </p>
+            </div>
+          </div>
+          <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
+            <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
+              <span className="flex items-center gap-2">
+                Topics found by AI ({rows.length})
+              </span>
+              <span className="font-medium text-[#726f6f]">Share</span>
+            </div>
+            <TopicRows rows={rows} />
+          </div>
+    </AppFrame>
+  )
+}
+
+/** The opening: the headline and sign-in, then the app itself with what to notice. */
+function Hero({
+  title,
+  intro,
+  secondary,
+  sample,
+  sampleId,
+  onSampleChange,
+}: {
+  title: string
+  intro: React.ReactNode
+  /** A second, quieter action under the sign-in. */
+  secondary?: React.ReactNode
+  sample: LandingSample
+  sampleId: LandingSampleId
+  onSampleChange: (id: LandingSampleId) => void
+}) {
+  return (
+    <section className="mx-auto flex max-w-360 flex-col gap-14 px-6 pt-10 pb-24 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
+      <div className="flex flex-col items-center gap-6 text-center">
+        <h1 className="m-0 max-w-208 text-[52px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[38px]">
+          {title}
+        </h1>
+        <p className="m-0 max-w-160 text-[16px] leading-7 text-[#3f4045]">{intro}</p>
+        <div className="flex w-full justify-center">
+          <SignInAction />
+        </div>
+        {secondary}
+        {/* The first thing HR asks about grievance data, answered next to the action. */}
+        <p className="m-0 flex max-w-150 items-start gap-2 text-left text-[13px] leading-5 text-[#3f4045]">
+          <ShieldCheck aria-hidden className="mt-0.5 shrink-0 text-[#1e55c5]" size={16} />
+          Analysis runs on KMUTT's own servers. People you share results with don't see respondents' names unless
+          you allow it.
+        </p>
+      </div>
+      <div className="flex flex-col gap-5">
+        <div className="flex justify-center">
+          <SampleSwitch onChange={onSampleChange} value={sampleId} />
+        </div>
+        <DashboardPicture sample={sample} />
+      </div>
+    </section>
+  )
+}
+
 /** The whole flow in three steps, each shown as the small piece of product it involves. */
-function HowItWorks() {
+function HowItWorks({ sample }: { sample: LandingSample }) {
   const step = 'flex flex-col gap-3'
   const label = 'm-0 flex items-center gap-2.5 text-[16px] font-semibold text-[#14181f]'
   const num =
     'flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1e55c5] text-[12px] font-semibold text-white'
   const text = 'm-0 text-[14px] leading-5.5 text-[#3f4045]'
   const mock = 'rounded-[10px] border border-[#e8eaf1] bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)]'
+  // Step 3 shows the sample's topic that's getting worse, with its real sentiment split.
+  const worseId = sample.whatChanged.rows.find((row) => row.kind === 'worse')?.id
+  const worse = sample.topics.find((topic) => topic.id === worseId) ?? sample.topics[0]!
+  const total = worse.negative + worse.neutral + worse.positive
+  const share = (n: number) => `${(n / total) * 100}%`
   return (
-    <section aria-labelledby="how-title" className="mx-auto flex max-w-300 flex-col gap-8 px-6 pb-24 max-[560px]:px-4 max-[560px]:pb-16">
-      <h2 className="m-0 text-[24px] leading-[1.2] font-semibold tracking-[-0.01em]" id="how-title">
-        How it works
-      </h2>
-      <ol className="m-0 grid list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
+    <section aria-labelledby="how-title" className={SECTION}>
+      <SectionIntro id="how-title" title="How it works">
+        From one form to a short list of what to act on, in three steps.
+      </SectionIntro>
+      <ol className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
         <li className={step}>
           <h3 className={label}>
             <span className={num}>1</span>
@@ -251,7 +380,7 @@ function HowItWorks() {
               <span className="truncate">opengnp.sit.kmutt.ac.th/f/…</span>
             </span>
             <span className="shrink-0 text-[13px] font-semibold text-[#14181f] tabular-nums">
-              {SAMPLE_RESPONSE_COUNT} <span className="font-normal text-[#726f6f]">responses</span>
+              {sample.responseCount} <span className="font-normal text-[#726f6f]">responses</span>
             </span>
           </div>
         </li>
@@ -262,17 +391,17 @@ function HowItWorks() {
           </h3>
           <p className={text}>AI groups every answer into topics and shows how people feel and what changed.</p>
           <div className={`${mock} flex flex-col gap-2`} aria-hidden="true">
-            <span className="flex items-center justify-between text-[13px] text-[#14181f]">
-              Shift swaps take too long
-              <span className="flex items-center gap-1 text-[12px] font-semibold text-[#e12b0c]">
+            <span className="flex items-center justify-between gap-3 text-[13px] text-[#14181f]">
+              <span className="min-w-0 truncate">{worse.label}</span>
+              <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#e12b0c]">
                 <TrendingUp size={13} />
                 Getting worse
               </span>
             </span>
             <span className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-              <span style={{ width: '74%', backgroundColor: SENTIMENT_COLORS.negative }} />
-              <span style={{ width: '19%', backgroundColor: SENTIMENT_COLORS.neutral }} />
-              <span style={{ width: '7%', backgroundColor: SENTIMENT_COLORS.positive }} />
+              <span style={{ width: share(worse.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
+              <span style={{ width: share(worse.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
+              <span style={{ width: share(worse.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
             </span>
           </div>
         </li>
@@ -281,174 +410,297 @@ function HowItWorks() {
   )
 }
 
-const PANEL = 'flex flex-col gap-4 rounded-[15px] border border-[#e9eaed] bg-white p-6 max-[560px]:p-4'
-
-function DrillIn() {
+/** Workplace or open house: every sample demo on the page follows this. */
+function SampleSwitch({ value, onChange }: { value: LandingSampleId; onChange: (id: LandingSampleId) => void }) {
   return (
-    <section aria-label={`Feedback behind ${DRILL_TOPIC.label}`} className={PANEL}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="m-0 text-[16px] font-semibold text-black">{DRILL_TOPIC.label}</h3>
-        <SampleTag />
-      </div>
-      <p className="m-0 flex gap-2.5 rounded-[10px] bg-[#edf2fd] p-3.5 text-[13px] leading-5 text-[#1f3d7a]">
-        <Sparkles className="mt-0.5 shrink-0 text-[#1e55c5]" fill="currentColor" size={15} />
-        {DRILL_TOPIC.summary}
-      </p>
-      <div className="flex flex-col gap-2.5">
-        {DRILL_TOPIC.points.map((point) => (
-          <FeedbackPointCard key={point.id} point={point} query="" showName={false} />
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+      <span className="text-[13px] font-medium text-[#3f4045]" id="sample-switch-label">
+        Example feedback from:
+      </span>
+      <div
+        aria-labelledby="sample-switch-label"
+        className="inline-flex rounded-full border border-[#d2d8e5] bg-white p-1"
+        role="group"
+      >
+        {LANDING_SAMPLE_OPTIONS.map((option) => (
+          <button
+            aria-pressed={option.id === value}
+            className={`h-8 cursor-pointer rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5] ${
+              option.id === value ? 'bg-[#1e55c5] text-white' : 'text-[#3f4045] hover:bg-[#f7f8fb]'
+            }`}
+            key={option.id}
+            onClick={() => onChange(option.id)}
+            type="button"
+          >
+            {option.label}
+          </button>
         ))}
       </div>
-    </section>
-  )
-}
-
-/** The dashboard's own review controls on a flagged point, answered locally instead of saved. */
-function FlagReview() {
-  const [point, setPoint] = useState<FeedbackPoint>(FLAGGED_POINT)
-  const review = async (status: ViolationReview) =>
-    setPoint(
-      status === 'confirmed'
-        ? { ...FLAGGED_POINT, violationStatus: 'confirmed', reviewedBy: 'you' }
-        : status === 'dismissed'
-          ? { ...FLAGGED_POINT, violation: false, dismissed: true, reviewedBy: 'you' }
-          : FLAGGED_POINT,
-    )
-  return (
-    <section aria-label="Review a flagged comment" className={PANEL}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="m-0 flex items-center gap-2 text-[16px] font-semibold text-black">
-          {FLAGGED_TOPIC}
-          {point.violation ? (
-            <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" size={16} />
-          ) : null}
-        </h3>
-        <SampleTag />
-      </div>
-      <p className="m-0 text-[13px] leading-5 text-[#726f6f]">
-        Try it: confirm the flag, or mark it not a violation to drop it from every count.
-      </p>
-      <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
-    </section>
-  )
-}
-
-/** The Trend tab's chart and What changed, on sample data; pinning a topic works as in the dashboard. */
-function TrendDemo() {
-  const [pinned, setPinned] = useState<string | null>('shift')
-  return (
-    <div className="flex flex-col gap-4.5">
-      <TopicTrendsCard
-        action={<SampleTag />}
-        data={LANDING_TREND.volumeSeries}
-        onPinnedTopicChange={setPinned}
-        pinnedTopic={pinned}
-        responses={LANDING_TREND.responseCounts}
-        sentimentByTopic={LANDING_TREND.topicSentimentSeries}
-        sentimentSeries={LANDING_TREND.sentimentSeries}
-        series={LANDING_TREND.topicVolumeSeries}
-        spikes={LANDING_TREND.timelineEvents}
-        summaries={LANDING_TREND.topicSummaries}
-      />
-      <WhatChangedCard data={LANDING_WHAT_CHANGED} />
     </div>
   )
 }
 
-/** "/" for signed-out visitors, and /about for anyone: what the product does, shown with sample data, and the sign-in. */
-export function LandingPage() {
+const NAV_LINK =
+  'rounded-[10px] px-3 py-2 text-[14px] font-semibold text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:outline-2 focus-visible:outline-[#1e55c5]'
+
+function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const signedIn = useAuth().status === 'ready'
   return (
-    <div className="min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]">
-      <header className="mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
+    <header className="mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
+      <Link aria-label={`${brand.name} overview`} className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]" to="/about">
         <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
-        <Link
-          className="rounded-[10px] px-3 py-2 text-[14px] font-semibold text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
-          to={signedIn ? '/' : '/login'}
-        >
-          {signedIn ? 'Go to Home' : 'Sign in'}
+      </Link>
+      <nav aria-label="Site" className="flex items-center gap-1">
+        {page === 'landing' ? (
+          <Link className={NAV_LINK} to="/demo">
+            See the demo
+          </Link>
+        ) : (
+          <Link className={NAV_LINK} to="/about">
+            Overview
+          </Link>
+        )}
+        <Link className={NAV_LINK} to={signedIn ? '/' : '/login'}>
+          {signedIn ? 'Go to home' : 'Sign in'}
         </Link>
-      </header>
+      </nav>
+    </header>
+  )
+}
 
+function ClosingBand({ demoLink = false, trustLine = true }: { demoLink?: boolean; trustLine?: boolean }) {
+  return (
+    <section className="bg-[#1e55c5] text-white">
+      <div className="mx-auto flex max-w-180 flex-col items-center gap-6 px-6 py-20 text-center max-[560px]:px-4 max-[560px]:py-16">
+        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
+          Ask your first question today.
+        </h2>
+        {trustLine ? (
+          <p className="m-0 flex items-start gap-2.5 text-left text-[16px] leading-6.5 text-[#dbe6ff]">
+            <ShieldCheck className="mt-1 shrink-0 text-white" size={18} />
+            {brand.name}'s AI runs on KMUTT's own servers. Responses are never sent to outside AI services such as
+            ChatGPT or Gemini.
+          </p>
+        ) : null}
+        <div className="flex w-full justify-center">
+          <SignInAction tone="blue" />
+        </div>
+        {demoLink ? (
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-[6px] text-[14px] font-semibold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            to="/demo"
+          >
+            Or see the full demo first
+            <ArrowRight size={16} />
+          </Link>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function SiteFooter() {
+  return (
+    <footer className="mx-auto flex max-w-300 flex-wrap items-center justify-between gap-3 px-6 py-8 text-[12px] text-[#726f6f] max-[560px]:px-4">
+      <span className="flex flex-wrap gap-x-4 gap-y-1">
+        <span>© {new Date().getFullYear()} {brand.name}</span>
+        <span>School of Information Technology, KMUTT</span>
+      </span>
+      <span className="flex gap-4">
+        <Link className={linkClass} to="/terms">
+          Terms of Use
+        </Link>
+        <Link className={linkClass} to="/privacy">
+          Privacy Notice
+        </Link>
+      </span>
+    </footer>
+  )
+}
+
+const HERO_INTRO = (
+  <>
+    Send one form. {brand.name} reads every open answer and sorts it into topics, sentiment and what changed since
+    last time, so you know where to act first.
+  </>
+)
+
+/** One selling point: what the visitor gains, beside the slice of the app that delivers it. */
+function SellingPoint({
+  title,
+  children,
+  visual,
+  flip = false,
+}: {
+  title: string
+  children: React.ReactNode
+  visual: React.ReactNode
+  flip?: boolean
+}) {
+  return (
+    <div className="grid grid-cols-2 items-center gap-14 max-[900px]:grid-cols-1 max-[900px]:gap-8">
+      <div className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`}>
+        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">{title}</h2>
+        <p className="m-0 text-[16px] leading-7 text-[#3f4045]">{children}</p>
+      </div>
+      <div className="min-w-0">{visual}</div>
+    </div>
+  )
+}
+
+/** The three things a buyer gets, each proved by a working slice of the app on sample data. */
+function SellingPoints({ sample }: { sample: LandingSample }) {
+  const rows = dashboardRows(sample)
+  const flagged = sample.flaggedPoint
+  const [point, setPoint] = useState<FeedbackPoint>(flagged)
+  const review = async (status: ViolationReview) =>
+    setPoint(
+      status === 'confirmed'
+        ? { ...flagged, violationStatus: 'confirmed', reviewedBy: 'you' }
+        : status === 'dismissed'
+          ? { ...flagged, violation: false, dismissed: true, reviewedBy: 'you' }
+          : flagged,
+    )
+  const card = 'rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.10)]'
+  return (
+    <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
+      <SellingPoint
+        title="Stop reading every answer one by one."
+        visual={
+          <div className={`${card} flex flex-col gap-2.5 p-5`}>
+            <div className="flex items-center justify-between gap-3 pb-1">
+              <span className="text-[13px] font-semibold text-[#14181f]">
+                {sample.responseCount} answers in, {rows.length} topics out
+              </span>
+              <SampleTag />
+            </div>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {sample.comments.slice(0, 4).map((comment) => (
+                <li className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3" key={comment.text}>
+                  <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
+                  <span className="flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
+                    <ArrowRight aria-hidden size={12} />
+                    Filed under {rows.find((row) => row.id === comment.topicId)?.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        }
+      >
+        {brand.name} reads every open answer and groups it into topics, with how people feel about each. Hundreds of
+        comments become one short list you can take in at a glance.
+      </SellingPoint>
+      <SellingPoint flip title="Know what got worse before it becomes a problem." visual={<WhatChangedCard data={sample.whatChanged} />}>
+        Each month is compared with the last. Only the topics that clearly got worse, got better, or are new are
+        called out, so you know where to look first.
+      </SellingPoint>
+      <SellingPoint
+        title="Catch serious complaints early. You make the call."
+        visual={
+          <div className={`${card} flex flex-col gap-3 p-5`}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="m-0 flex items-center gap-2 text-[16px] font-semibold text-[#14181f]">
+                {sample.flaggedTopic}
+                {point.violation ? (
+                  <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" role="img" size={16} />
+                ) : null}
+              </p>
+              <SampleTag />
+            </div>
+            <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
+          </div>
+        }
+      >
+        Comments that may break the law or your organisation's values are flagged for you. The AI can be wrong, so
+        you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it here.
+      </SellingPoint>
+    </section>
+  )
+}
+
+const TRUST = [
+  {
+    icon: Server,
+    title: 'Stays at KMUTT',
+    text: "Analysis runs on KMUTT's own servers. Responses are never sent to outside AI services such as ChatGPT or Gemini.",
+  },
+  {
+    icon: EyeOff,
+    title: 'Names stay private',
+    text: "People you share results with don't see respondents' names unless you allow it.",
+  },
+  {
+    icon: UserCheck,
+    title: 'You stay in charge',
+    text: 'The AI suggests and you decide. Every flag can be confirmed or dismissed, and every number opens to the comments behind it.',
+  },
+]
+
+function TrustSection() {
+  return (
+    <section aria-labelledby="trust-title" className={SECTION}>
+      <SectionIntro id="trust-title" title="Built for sensitive feedback.">
+        Grievances and honest feedback need care. This is how {brand.name} handles them.
+      </SectionIntro>
+      <ul className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-10 p-0 max-[900px]:grid-cols-1 max-[900px]:gap-8">
+        {TRUST.map(({ icon: Icon, title, text }) => (
+          <li className="flex flex-col gap-2.5 border-t border-[#d2d8e5] pt-5" key={title}>
+            <Icon aria-hidden className="text-[#1e55c5]" size={22} />
+            <p className="m-0 text-[16px] font-semibold text-[#14181f]">{title}</p>
+            <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{text}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+const PAGE = 'min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]'
+
+/** "/" for signed-out visitors, and /about for anyone: why to use it, proved with sample data, and the sign-in. */
+export function LandingPage() {
+  const [sampleId, setSampleId] = useState<LandingSampleId>('workplace')
+  const sample = LANDING_SAMPLES[sampleId]
+  return (
+    <div className={PAGE}>
+      <SiteHeader page="landing" />
       <main>
-        <section className="mx-auto grid max-w-300 grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-center gap-14 px-6 pt-10 pb-24 max-[1200px]:grid-cols-1 max-[1200px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
-          <div className="flex flex-col items-start gap-6">
-            <h1 className="m-0 text-[52px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[38px]">
-              Know what your people are really telling you.
-            </h1>
-            <p className="m-0 max-w-136 text-[17px] leading-7 text-[#3f4045]">
-              Send one form. {brand.name} reads every open answer and sorts it into topics,
-              sentiment and what changed since last time, so you know where to act first.
-            </p>
-            <SignInAction />
-          </div>
-          <RawToRead />
-        </section>
-
-        <HowItWorks />
-
-        <section className="border-y border-[#e8eaf1] bg-white">
-          <div className="mx-auto flex max-w-300 flex-col gap-12 px-6 py-24 max-[560px]:px-4 max-[560px]:py-16">
-            <div className="flex max-w-160 flex-col gap-4">
-              <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
-                See what changed, not just what was said.
-              </h2>
-              <p className="m-0 text-[16px] leading-6.5 text-[#3f4045]">
-                Each line is a topic over time, and the strip below shows how people felt that week. Under it,
-                What changed lists only the topics that clearly got worse, got better, or are new.
-              </p>
-            </div>
-            <TrendDemo />
-          </div>
-        </section>
-
-        <section className="mx-auto flex max-w-300 flex-col gap-12 px-6 py-24 max-[560px]:px-4 max-[560px]:py-16">
-          <div className="flex max-w-160 flex-col gap-4">
-            <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
-              Every number opens to the words behind it.
-            </h2>
-            <p className="m-0 text-[16px] leading-6.5 text-[#3f4045]">
-              Open any topic to read the AI's summary and the exact comments behind it. AI can be wrong, so when
-              it flags a comment as a possible violation, you decide whether it stands.
-            </p>
-          </div>
-          <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-start gap-6 max-[900px]:grid-cols-1">
-            <DrillIn />
-            <FlagReview />
-          </div>
-        </section>
-
-        <section className="bg-[#1e55c5] text-white">
-          <div className="mx-auto grid max-w-300 grid-cols-[minmax(0,1fr)_auto] items-end gap-12 px-6 py-20 max-[900px]:grid-cols-1 max-[900px]:gap-8 max-[560px]:px-4 max-[560px]:py-16">
-            <div className="flex flex-col gap-5">
-              <h2 className="m-0 max-w-xl text-[36px] leading-[1.12] font-semibold tracking-[-0.01em] text-balance max-[560px]:text-[30px]">
-                Ask your first question today.
-              </h2>
-              <p className="m-0 flex max-w-xl items-start gap-2.5 text-[16px] leading-6.5 text-[#dbe6ff]">
-                <ShieldCheck className="mt-1 shrink-0 text-white" size={18} />
-                {brand.name}'s AI runs on KMUTT's own servers. Responses are never sent to outside AI services such
-                as ChatGPT or Gemini.
-              </p>
-            </div>
-            <SignInAction tone="blue" />
-          </div>
-        </section>
+        <Hero
+          intro={HERO_INTRO}
+          onSampleChange={setSampleId}
+          sample={sample}
+          sampleId={sampleId}
+          secondary={
+            <Link className={`${NAV_LINK} inline-flex items-center gap-1.5`} to="/demo">
+              See the full demo
+              <ArrowRight size={16} />
+            </Link>
+          }
+          title="Know what your people are really telling you."
+        />
+        <div className="border-t border-[#e8eaf1]">
+          <SellingPoints key={sampleId} sample={sample} />
+        </div>
+        <div className="border-t border-[#e8eaf1]">
+          <HowItWorks sample={sample} />
+        </div>
+        <div className="border-t border-[#e8eaf1]">
+          <TrustSection />
+        </div>
+        {/* The trust section just said it; the band only asks. */}
+        <ClosingBand demoLink trustLine={false} />
       </main>
+      <SiteFooter />
+    </div>
+  )
+}
 
-      <footer className="mx-auto flex max-w-300 flex-wrap items-center justify-between gap-3 px-6 py-8 text-[12px] text-[#726f6f] max-[560px]:px-4">
-        <span className="flex flex-wrap gap-x-4 gap-y-1">
-          <span>© 2026 {brand.name}</span>
-          <span>School of Information Technology, KMUTT</span>
-        </span>
-        <span className="flex gap-4">
-          <Link className={linkClass} to="/terms">
-            Terms of Use
-          </Link>
-          <Link className={linkClass} to="/privacy">
-            Privacy Notice
-          </Link>
-        </span>
-      </footer>
+/** /demo: the real dashboard on sample data, with its own tour; nothing reaches the server. */
+export function DemoPage() {
+  return (
+    <div className="min-h-screen bg-[#f5f9ff]">
+      <FormDashboardPage demo />
     </div>
   )
 }
