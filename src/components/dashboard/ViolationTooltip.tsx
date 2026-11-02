@@ -38,7 +38,7 @@ export function ViolationTooltip({
         </span>
         {/* Only where someone acts on a single piece of feedback. */}
         {scope === 'point' ? (
-          <span className="mt-1.5 block pl-5 text-[11px] text-[#929292]">
+          <span className="mt-1.5 block pl-5 text-[11px] text-[#726f6f]">
             Flagged automatically. The AI can be wrong.
           </span>
         ) : null}

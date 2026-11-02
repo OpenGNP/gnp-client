@@ -33,7 +33,7 @@ export function FolderBreadcrumb({
               {folder.label}
             </Link>
           ) : (
-            <span className="px-1 text-[#929292]">…</span>
+            <span className="px-1 text-[#726f6f]">…</span>
           )}
         </Fragment>
       ))}

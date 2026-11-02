@@ -107,9 +107,9 @@ export function TopicPicker({
         >
           <div className="flex flex-col gap-2.5 border-b border-[#eef0f4] p-3">
             <div className="flex items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-2.5 py-2 focus-within:border-[#1e55c5]">
-              <Search className="shrink-0 text-[#929292]" size={14} />
+              <Search className="shrink-0 text-[#726f6f]" size={14} />
               <input
-                className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#929292]"
+                className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#726f6f]"
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={`Search ${topics.length} topics…`}
                 type="text"
@@ -118,7 +118,7 @@ export function TopicPicker({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-[#929292]">Quick pick</span>
+              <span className="text-[11px] font-medium text-[#726f6f]">Quick pick</span>
               <div className="inline-flex overflow-hidden rounded-[8px] border border-[#1e55c5]">
                 {RANKS.map((option) => (
                   <button
@@ -138,7 +138,7 @@ export function TopicPicker({
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-[#929292]">
+            <div className="flex items-center justify-between text-[11px] text-[#726f6f]">
               <span>
                 On chart: {selectedIds.length}/{max}
                 {pending ? ' (updating…)' : ''}
@@ -155,7 +155,7 @@ export function TopicPicker({
 
           <div className="min-h-0 flex-1 overflow-y-auto py-1">
             {visible.length === 0 ? (
-              <p className="m-0 px-3 py-6 text-center text-[12px] text-[#929292]">
+              <p className="m-0 px-3 py-6 text-center text-[12px] text-[#726f6f]">
                 No topics match “{search}”.
               </p>
             ) : (

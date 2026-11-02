@@ -337,7 +337,7 @@ export function PublishModal({
               </Button>
             </div>
             {/* The other "share": easy to mix up, so point the way. */}
-            <span className="text-[11px] text-[#929292]">
+            <span className="text-[11px] text-[#726f6f]">
               This link is for people answering the form. To let colleagues see the results, use Share results.
             </span>
           </div>

@@ -75,13 +75,13 @@ export function ThemesReport({
   return (
     <article className="text-[12px] leading-[1.5] text-[#14181f]">
       <header className="border-b border-[#e9eaed] pb-4">
-        <p className="m-0 text-[11px] font-semibold tracking-[0.6px] text-[#929292] uppercase">AI analysis report</p>
+        <p className="m-0 text-[11px] font-semibold tracking-[0.6px] text-[#726f6f] uppercase">AI analysis report</p>
         <h1 className="m-0 mt-1 text-[22px] font-bold">{formTitle}</h1>
         <p className="m-0 mt-1 text-[#726f6f]">
           {/* Semicolons: a scope item can hold commas ("Department = A, B"). */}
           {scope.length > 0 ? scope.join('; ') : `All feedback, ${themes.rangeLabel}`}
         </p>
-        <p className="m-0 mt-0.5 text-[11px] text-[#929292]">
+        <p className="m-0 mt-0.5 text-[11px] text-[#726f6f]">
           Topics sorted by {topicSortLabel(sort)}
           {pinsViolations(sort) ? ' (violations first)' : ''}. Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
@@ -105,7 +105,7 @@ export function ThemesReport({
             ['Positive', `${percent(positive, analysed)}%`],
           ].map(([label, value]) => (
             <div key={label}>
-              <dt className="text-[11px] text-[#929292]">{label}</dt>
+              <dt className="text-[11px] text-[#726f6f]">{label}</dt>
               <dd className="m-0 text-[16px] font-bold">{value}</dd>
             </div>
           ))}
@@ -115,7 +115,7 @@ export function ThemesReport({
       <Section title="Topics">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-left text-[10px] text-[#929292] uppercase">
+            <tr className="text-left text-[10px] text-[#726f6f] uppercase">
               <th className="pb-1 font-semibold">Topic</th>
               <th className="w-16 pb-1 text-right font-semibold">Mentions</th>
               <th className="w-[38%] px-3 pb-1 font-semibold">Sentiment</th>
@@ -138,7 +138,7 @@ export function ThemesReport({
             ))}
           </tbody>
         </table>
-        <p className="m-0 mt-2 flex gap-4 text-[10px] text-[#929292]">
+        <p className="m-0 mt-2 flex gap-4 text-[10px] text-[#726f6f]">
           {(['negative', 'neutral', 'positive'] as const).map((key) => (
             <span className="flex items-center gap-1 capitalize" key={key}>
               <span className="inline-block size-2.5 rounded-sm" style={{ backgroundColor: SENTIMENT_COLORS[key] }} />

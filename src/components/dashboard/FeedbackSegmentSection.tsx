@@ -17,6 +17,7 @@ import {
 import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
 import { Highlight } from './Highlight'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { needsReview } from './violationReview'
 import { ViolationTooltip } from './ViolationTooltip'
 
 type SortOption = 'newest' | 'oldest'
@@ -50,7 +51,6 @@ function toggleInSet<T>(set: Set<T>, value: T) {
   return next
 }
 
-const needsReview = (point: FeedbackPoint) => Boolean(point.violation) && point.violationStatus !== 'confirmed'
 
 /** gnp-ai's violation_type → the adjective in the tag. */
 const VIOLATION_KIND: Record<string, string> = { legal: 'legal', moral: 'moral', ethics: 'ethical' }
@@ -112,7 +112,7 @@ function ViolationReviewRow({
   // Owner only: the tag is gone, but the call can still be undone.
   if (point.dismissed) {
     return onReview ? (
-      <span className="flex items-center gap-1 text-[11px] text-[#929292]">
+      <span className="flex items-center gap-1 text-[11px] text-[#726f6f]">
         Marked not a violation{point.reviewedBy ? ` by ${point.reviewedBy}` : ''}
         <ReviewButton disabled={busy} hint="Put the tag back" onClick={() => review(null)}>
           {saving === null ? savingLabel : 'Undo'}
@@ -142,7 +142,7 @@ function ViolationReviewRow({
         </span>
       </ViolationTooltip>
       {point.violationStatus === 'confirmed' ? (
-        <span className="flex items-center gap-1 text-[11px] text-[#929292]">
+        <span className="flex items-center gap-1 text-[11px] text-[#726f6f]">
           Confirmed by {point.reviewedBy ?? 'a reviewer'}
           {onReview ? (
             <ReviewButton disabled={busy} hint="Back to the AI's tag, unreviewed" onClick={() => review(null)}>
@@ -231,7 +231,7 @@ export function FeedbackPointCard({
         onClick={() => setIsExpanded(!isExpanded)}
         type="button"
       >
-        {isExpanded ? 'Hide original Feedback' : 'Show original Feedback'}
+        {isExpanded ? 'Hide original feedback' : 'Show original feedback'}
         <ChevronDown
           className={cn('transition-transform', isExpanded && 'rotate-180')}
           size={14}
@@ -241,8 +241,8 @@ export function FeedbackPointCard({
       {isExpanded ? (
         <div className="flex flex-col gap-2 rounded-[8px] bg-[#fafbfe] p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-[#929292]">Original Feedback</span>
-            <span className="text-[11px] text-[#929292]">
+            <span className="text-[11px] font-semibold text-[#726f6f]">Original feedback</span>
+            <span className="text-[11px] text-[#726f6f]">
               {showName ? (
                 <>
                   <span className={point.respondentName ? 'font-medium text-[#3f4045]' : undefined}>
@@ -435,8 +435,8 @@ export function FeedbackSegmentSection({
     <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          <p className="m-0 text-[12px] font-medium text-[#929292]">
-            Feedback Segment ({visiblePoints.length})
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">
+            Feedback ({visiblePoints.length})
           </p>
           {period ? (
             <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[#eef3fd] py-0.5 pr-1 pl-2.5 text-[11px] font-semibold text-[#1e55c5]">
@@ -506,10 +506,10 @@ export function FeedbackSegmentSection({
       </div>
 
       <div className="flex items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-2.5 py-2 focus-within:border-[#1e55c5]">
-        <Search className="shrink-0 text-[#929292]" size={14} />
+        <Search className="shrink-0 text-[#726f6f]" size={14} />
         <input
           aria-label="Search this topic's feedback"
-          className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#929292]"
+          className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#726f6f]"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search feedback…"
           type="text"
@@ -518,7 +518,7 @@ export function FeedbackSegmentSection({
         {query ? (
           <button
             aria-label="Clear search"
-            className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#929292] hover:bg-[#f7f8fb] hover:text-black"
+            className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#726f6f] hover:bg-[#f7f8fb] hover:text-black"
             onClick={() => setQuery('')}
             type="button"
           >
@@ -541,7 +541,7 @@ export function FeedbackSegmentSection({
           ))}
         </div>
       ) : (
-        <p className="m-0 flex items-center gap-1.5 text-[12px] text-[#929292]">
+        <p className="m-0 flex items-center gap-1.5 text-[12px] text-[#726f6f]">
           <MessageSquareText size={14} />
           {query.trim() ? `No feedback matches “${query.trim()}” with these filters.` : 'No feedback matches this filter.'}
         </p>

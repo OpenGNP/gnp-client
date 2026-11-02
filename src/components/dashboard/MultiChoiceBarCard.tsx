@@ -15,7 +15,7 @@ export function MultiChoiceBarCard({ breakdown }: MultiChoiceBarCardProps) {
     <div className="flex w-full flex-col gap-5 py-10">
       <div className="flex flex-col gap-2 px-7.5">
         <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
-        <p className="m-0 text-[12px] font-medium text-[#929292]">
+        <p className="m-0 text-[12px] font-medium text-[#726f6f]">
           Response: {breakdown.totalRespondents} - respondents could select more than one
           option
         </p>
@@ -57,7 +57,7 @@ export function MultiChoiceBarCard({ breakdown }: MultiChoiceBarCardProps) {
                   }}
                 />
               </div>
-              <span className="w-20 shrink-0 text-right text-[12px] text-[#929292]">
+              <span className="w-20 shrink-0 text-right text-[12px] text-[#726f6f]">
                 {option.value} ({percent}%)
               </span>
             </div>

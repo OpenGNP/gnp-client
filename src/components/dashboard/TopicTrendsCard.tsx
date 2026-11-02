@@ -76,7 +76,7 @@ function NegativeCell({ counts }: { counts: SentimentCounts }) {
 
 function DeltaCell({ value }: { value: number | null }) {
   if (value === null) return <span />
-  if (value === 0) return <span className="text-right text-[11px] text-[#929292]">–</span>
+  if (value === 0) return <span className="text-right text-[11px] text-[#726f6f]">–</span>
   return (
     // Neutral colour on purpose: more mentions isn't good or bad by itself.
     <span className="inline-flex items-center justify-end text-[11px] font-semibold text-[#3f4045]">
@@ -189,7 +189,7 @@ export function TopicTrendsCard({
             <TooltipTrigger asChild>
               <button
                 aria-label="How to read Mentions over time"
-                className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
+                className="flex size-5 cursor-help items-center justify-center rounded-full text-[#726f6f] transition-colors hover:text-[#3f4045]"
                 type="button"
               >
                 <Info size={15} />
@@ -434,7 +434,7 @@ export function TopicTrendsCard({
               </span>
             ) : null}
           </p>
-          <div className={cn(ROW_GRID, 'px-2 pb-1 text-[10px] font-medium text-[#929292]')}>
+          <div className={cn(ROW_GRID, 'px-2 pb-1 text-[10px] font-medium text-[#726f6f]')}>
             <span>Topic</span>
             <span className="text-right">Mentions</span>
             {/* Only a hovered period has a previous one to compare with; the column keeps its width. */}

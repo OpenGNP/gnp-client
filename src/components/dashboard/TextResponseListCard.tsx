@@ -17,7 +17,7 @@ function ResponseCard({ response, showName }: { response: TextResponse; showName
 
   return (
     <div className="flex items-start gap-2.5 rounded-[8px] border border-[#e8eaf1] bg-[#f7f8fb] px-4 py-3">
-      <MessageSquareText className="mt-0.5 shrink-0 text-[#929292]" size={16} />
+      <MessageSquareText className="mt-0.5 shrink-0 text-[#726f6f]" size={16} />
       <div className="min-w-0 flex-1">
         <p
           className={cn(
@@ -40,7 +40,7 @@ function ResponseCard({ response, showName }: { response: TextResponse; showName
           <p
             className={cn(
               'm-0 mt-1.5 text-[12px]',
-              response.respondentName ? 'font-medium text-[#726f6f]' : 'text-[#929292]',
+              response.respondentName ? 'font-medium text-[#726f6f]' : 'text-[#726f6f]',
             )}
           >
             {response.respondentName ?? 'Anonymous'}
@@ -73,7 +73,7 @@ export function TextResponseListCard({ breakdown, hideNames = false }: TextRespo
     <div className="flex w-full flex-col gap-5 py-10">
       <div className="flex flex-col gap-2 px-7.5">
         <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
-        <p className="m-0 text-[12px] font-medium text-[#929292]">
+        <p className="m-0 text-[12px] font-medium text-[#726f6f]">
           Response: {responses.length}
         </p>
       </div>

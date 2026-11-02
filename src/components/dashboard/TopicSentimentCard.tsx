@@ -89,14 +89,17 @@ function TopicRow({
 function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
   return (
     <div className="flex h-6.25 w-full items-center gap-4 px-7.5 max-[900px]:hidden">
-      <span className="min-w-0 flex-1 text-[12px] font-medium text-[#929292]">
-        Feedback points:
+      <span className="min-w-0 flex-1 text-[12px] font-medium text-[#726f6f]">
+        Mentions:
       </span>
-      <div className="flex w-60 shrink-0 items-center justify-between text-[12px] font-medium text-[#929292]">
+      <div className="flex w-60 shrink-0 items-center justify-between text-[12px] font-medium text-[#726f6f]">
         <span>0</span>
         <span>{axisMax}</span>
       </div>
-      <span aria-hidden="true" className="w-12 shrink-0" />
+      {/* The row's % is its share of all feedback, not of negative. */}
+      <span className="w-12 shrink-0 text-right text-[12px] font-medium text-[#726f6f]" title="Share of all feedback">
+        Share
+      </span>
     </div>
   )
 }
@@ -183,10 +186,10 @@ export function TopicSentimentCard({
                 </span>
               ) : null}
               <div className="flex h-8.75 w-56 items-center gap-2 rounded-[10px] border border-[#e6e7eb] px-2.5 focus-within:border-[#1e55c5]">
-                <Search className="shrink-0 text-[#929292]" size={14} />
+                <Search className="shrink-0 text-[#726f6f]" size={14} />
                 <input
                   aria-label="Search topics and feedback"
-                  className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#929292]"
+                  className="w-full bg-transparent text-[12px] text-black outline-none placeholder:text-[#726f6f]"
                   onChange={(event) => onQueryChange(event.target.value)}
                   placeholder="Search topics or feedback…"
                   type="text"
@@ -195,7 +198,7 @@ export function TopicSentimentCard({
                 {query ? (
                   <button
                     aria-label="Clear search"
-                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#929292] hover:bg-[#f7f8fb] hover:text-black"
+                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#726f6f] hover:bg-[#f7f8fb] hover:text-black"
                     onClick={() => onQueryChange('')}
                     type="button"
                   >
@@ -208,7 +211,7 @@ export function TopicSentimentCard({
           {sortable ? (
             <DropdownMenu>
               <div className="flex items-center gap-2.5">
-                <span className="flex items-center gap-2.5 text-[12px] font-medium text-[#929292]">
+                <span className="flex items-center gap-2.5 text-[12px] font-medium text-[#726f6f]">
                   <ArrowUpDown size={16} />
                   Sort by
                 </span>
@@ -238,7 +241,7 @@ export function TopicSentimentCard({
                     <span className="flex flex-col">
                       {option.label}
                       {option.hint ? (
-                        <span className="text-[11px] text-[#929292]">{option.hint}</span>
+                        <span className="text-[11px] text-[#726f6f]">{option.hint}</span>
                       ) : null}
                     </span>
                   </DropdownMenuItem>

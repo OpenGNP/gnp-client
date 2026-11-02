@@ -72,7 +72,7 @@ function Calendar({
           "absolute right-0 top-0 flex size-6 items-center justify-center rounded-[6px] text-[#3f4045] outline-none transition-colors hover:bg-[#f7f8fb] disabled:pointer-events-none disabled:opacity-40",
         month_grid: "mt-1 w-full border-collapse",
         weekdays: "flex",
-        weekday: "flex-1 pb-1.5 text-center text-[10px] font-medium text-[#929292]",
+        weekday: "flex-1 pb-1.5 text-center text-[10px] font-medium text-[#726f6f]",
         week: "flex w-full",
         day: "flex-1 p-0 text-center align-middle",
         hidden: "invisible",

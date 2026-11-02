@@ -192,7 +192,7 @@ function SearchPanel({
         ) : (
           groups.map((group) => (
             <div aria-label={group.title} key={group.title} role="group">
-              <p className="m-0 px-4.5 pt-2 pb-1 text-[11px] font-semibold tracking-[0.3px] text-[#929292] uppercase">
+              <p className="m-0 px-4.5 pt-2 pb-1 text-[11px] font-semibold tracking-[0.3px] text-[#726f6f] uppercase">
                 {group.title}
               </p>
               {group.results.map((result) => {
@@ -216,7 +216,7 @@ function SearchPanel({
                       <span className="truncate text-[14px] text-[#14181f]">
                         <Highlighted label={result.label} term={term} />
                       </span>
-                      <span className="truncate text-[12px] text-[#929292]">{result.path}</span>
+                      <span className="truncate text-[12px] text-[#726f6f]">{result.path}</span>
                     </span>
                   </div>
                 )
@@ -226,7 +226,7 @@ function SearchPanel({
         )}
       </div>
 
-      <div className="flex items-center gap-4 border-t border-[#eef0f4] px-4.5 py-2 text-[11px] text-[#929292] max-[560px]:hidden">
+      <div className="flex items-center gap-4 border-t border-[#eef0f4] px-4.5 py-2 text-[11px] text-[#726f6f] max-[560px]:hidden">
         <span>
           <Kbd>↑</Kbd> <Kbd>↓</Kbd> to move
         </span>

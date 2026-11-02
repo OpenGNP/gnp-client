@@ -188,11 +188,9 @@ export function TopicDetailPanel({
             <X size={18} />
           </button>
         </div>
-        <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#929292]">
+        <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#726f6f]">
           <MessageCircle size={14} />
-          {feedbackPoints} Feedback Points
-          <span className="size-1 shrink-0 rounded-full bg-[#929292]" />
-          {topic.percentOfTotal}% of total feedback
+          {feedbackPoints} {feedbackPoints === 1 ? 'mention' : 'mentions'} ({topic.percentOfTotal}% of all feedback)
         </div>
       </div>
 
@@ -206,7 +204,7 @@ export function TopicDetailPanel({
 
       <div className="flex flex-wrap gap-4">
         <div className="flex min-w-45 flex-1 flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
-          <p className="m-0 text-[12px] font-medium text-[#929292]">Sentiment analysis</p>
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Sentiment analysis</p>
           <div className="flex flex-1 items-center justify-center gap-3">
             <SentimentGauge
               negative={topic.negative}
@@ -221,7 +219,7 @@ export function TopicDetailPanel({
                   className="size-1.75 shrink-0 rounded-full"
                   style={{ backgroundColor: SENTIMENT_COLORS.negative }}
                 />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Negative:{' '}
                   <span className="text-[#14181f]">{percentOf(topic.negative, feedbackPoints)}%</span>
                 </span>
@@ -231,7 +229,7 @@ export function TopicDetailPanel({
                   className="size-1.75 shrink-0 rounded-full"
                   style={{ backgroundColor: SENTIMENT_COLORS.neutral }}
                 />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Neutral: <span className="text-[#14181f]">{percentOf(topic.neutral, feedbackPoints)}%</span>
                 </span>
               </span>
@@ -240,7 +238,7 @@ export function TopicDetailPanel({
                   className="size-1.75 shrink-0 rounded-full"
                   style={{ backgroundColor: SENTIMENT_COLORS.positive }}
                 />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Positive:{' '}
                   <span className="text-[#14181f]">{percentOf(topic.positive, feedbackPoints)}%</span>
                 </span>
@@ -250,7 +248,7 @@ export function TopicDetailPanel({
         </div>
 
         <div className="flex min-w-45 flex-1 flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
-          <p className="m-0 text-[12px] font-medium text-[#929292]">Keyword</p>
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Keywords</p>
           <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 py-2">
             {topic.keywords.map((keyword) => (
               <span className={KEYWORD_SIZE_CLASSES[keyword.weight]} key={keyword.text}>
@@ -264,7 +262,7 @@ export function TopicDetailPanel({
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
         <div className="flex items-center justify-between gap-3">
           {/* Not "Mentions over time": that is the Trend tab's multi-topic line chart. */}
-          <p className="m-0 text-[12px] font-medium text-[#929292]">Mentions over time</p>
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Mentions over time</p>
           <div className="flex items-center gap-3">
             <label className="flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-[#5f6368]">
               <Switch checked={showSentiment} onCheckedChange={toggleSentiment} />
@@ -304,13 +302,13 @@ export function TopicDetailPanel({
                 axisLine={false}
                 dataKey="label"
                 interval={0}
-                tick={{ fill: '#929292', fontSize: 11 }}
+                tick={{ fill: '#726f6f', fontSize: 11 }}
                 tickLine={false}
               />
               <YAxis
                 axisLine={false}
                 allowDecimals={false}
-                tick={{ fill: '#929292', fontSize: 11 }}
+                tick={{ fill: '#726f6f', fontSize: 11 }}
                 tickLine={false}
               />
               <Tooltip

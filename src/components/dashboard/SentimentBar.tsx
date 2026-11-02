@@ -31,7 +31,7 @@ export function SentimentBar({
       <TooltipTrigger asChild>
         <div
           className={`flex h-6.25 items-center gap-0.5 ${className}`}
-          aria-label={`Negative ${negative}, Neutral ${neutral}, Positive ${positive}, out of ${maxValue} feedback points`}
+          aria-label={`Negative ${negative}, Neutral ${neutral}, Positive ${positive}, out of ${maxValue} mentions`}
           role="img"
         >
           {segments.map((segment) => (

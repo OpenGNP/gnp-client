@@ -34,6 +34,7 @@ import { ThemesReport } from '../components/report/ThemesReport'
 import { ActiveFilterBar, type ActiveFilterChip } from '../components/dashboard/ActiveFilterBar'
 import { DASHBOARD_TOUR, INDIVIDUAL_TOUR, RESPONSE_TOUR, TREND_TOUR } from '../components/dashboard/dashboardTour'
 import { DateRangeFilter } from '../components/dashboard/DateRangeFilter'
+import { needsReview } from '../components/dashboard/violationReview'
 import { ExportMenu } from '../components/dashboard/ExportMenu'
 import { FeedbackFilter } from '../components/dashboard/FeedbackFilter'
 import { IndividualResponseList } from '../components/dashboard/IndividualResponseList'
@@ -120,7 +121,7 @@ function StatusRow({ form, now, freshness }: { form: ApiFormDetail | null; now: 
         ) : (
           <MessageSquareText className="text-[#3f4045]" size={20} strokeWidth={1.8} />
         )}
-        <span className="font-medium text-[#929292]">
+        <span className="font-medium text-[#726f6f]">
           {freshness?.kind === 'ai' ? 'AI analysed' : 'Last response'}
         </span>
         {freshness ? (
@@ -129,7 +130,7 @@ function StatusRow({ form, now, freshness }: { form: ApiFormDetail | null; now: 
               ? formatDateTime(freshness.at)
               : '—'}
             {freshness.pending ? (
-              <span className="font-medium text-[#929292]"> ({freshness.pending} pending)</span>
+              <span className="font-medium text-[#726f6f]"> ({freshness.pending} pending)</span>
             ) : null}
           </span>
         ) : (
@@ -153,6 +154,7 @@ function StatCard({
   actionLabel,
   note,
   noteTooltip,
+  footer,
 }: {
   icon: React.ReactNode
   iconBgClassName: string
@@ -169,6 +171,8 @@ function StatCard({
   note?: string
   /** Explains `note` on hover. */
   noteTooltip?: string
+  /** Shown on the line under the number when there's no delta (e.g. the owner's "5 to review"). */
+  footer?: React.ReactNode
 }) {
   const Root = onClick ? 'button' : 'div'
   return (
@@ -181,7 +185,7 @@ function StatCard({
       onClick={onClick}
       type={onClick ? 'button' : undefined}
     >
-      <p className="m-0 w-full truncate text-[12px] font-medium text-[#929292]">{label}</p>
+      <p className="m-0 w-full truncate text-[12px] font-medium text-[#726f6f]">{label}</p>
       <div className="flex min-w-0 items-center gap-4.5 @min-[34rem]:@max-[50rem]:gap-2.5">
         <div
           className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:size-10 @min-[34rem]:@max-[50rem]:[&_svg]:size-5 ${iconBgClassName}`}
@@ -191,19 +195,20 @@ function StatCard({
         <div className="flex min-w-0 flex-col gap-1.5">
           <p className="m-0 flex min-w-0 items-baseline gap-2">
             <span className="text-[20px] font-bold text-[#14181f]">{value}</span>
-            {note ? (
+            {/* Dotted underline only when there's something to read on hover. */}
+            {note && noteTooltip ? (
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
-                  <span className="cursor-help truncate text-[12px] font-medium text-[#929292] underline decoration-dotted underline-offset-2">
+                  <span className="cursor-help truncate text-[12px] font-medium text-[#726f6f] underline decoration-dotted underline-offset-2">
                     {note}
                   </span>
                 </TooltipTrigger>
-                {noteTooltip ? (
-                  <TooltipContent className="max-w-64 whitespace-normal leading-4.5" side="top">
-                    {noteTooltip}
-                  </TooltipContent>
-                ) : null}
+                <TooltipContent className="max-w-64 whitespace-normal leading-4.5" side="top">
+                  {noteTooltip}
+                </TooltipContent>
               </Tooltip>
+            ) : note ? (
+              <span className="truncate text-[12px] font-medium text-[#726f6f]">{note}</span>
             ) : null}
           </p>
           {/* Always one line tall, even when empty or wrapping: a second line spills into
@@ -216,7 +221,9 @@ function StatCard({
                   {deltaLabel}
                 </span>
               </>
-            ) : null}
+            ) : (
+              footer
+            )}
           </div>
         </div>
       </div>
@@ -651,6 +658,20 @@ export function FormDashboardPage({
   // is always visible. One row of three whenever the space allows: equal when there's
   // room, else Sentiment widest (its gauge) and Violation narrowest (just a number) —
   // sized by the column, which the topic panel narrows, not the screen.
+  // Flags the owner hasn't confirmed or dismissed yet, same rule as the panel's "Needs review".
+  const topicsToReview = (themes?.aiDiscoveredTopics ?? []).filter((topic) =>
+    topic.feedbackSegment.some(needsReview),
+  )
+  const reviewCount = topicsToReview.reduce((sum, topic) => sum + topic.feedbackSegment.filter(needsReview).length, 0)
+  // Still-standing flags (confirmed or not; dismissed ones are no longer `violation`).
+  const violationMentions = (themes?.aiDiscoveredTopics ?? []).reduce(
+    (sum, topic) => sum + topic.feedbackSegment.filter((point) => point.violation).length,
+    0,
+  )
+  const isOwner = routeForm.role === 'owner'
+  // The list's first topic with flags left to review: the card opens it.
+  const reviewTopic = topicsToReview[0]
+
   const themesStatCards = themes ? (
     <div className="@container">
       <div className="grid grid-cols-1 gap-4 @min-[34rem]:grid-cols-[1.2fr_1.3fr_0.8fr] @min-[50rem]:grid-cols-3">
@@ -659,14 +680,14 @@ export function FormDashboardPage({
           deltaLabel={themes.responderDelta > 0 ? themes.responderDeltaLabel : undefined}
           icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
           iconBgClassName="bg-[#edf2fd]"
-          label="Total Responses"
+          label="Total responses"
           note={themes.awaitingAnalysis ? `${themes.awaitingAnalysis} pending analysis` : undefined}
           noteTooltip="AI analysis runs automatically. These responses are counted here, but their feedback won't appear in topics or sentiment until they're analysed."
           value={themes.totalResponders}
         />
 
         <div className="flex h-29.5 min-w-0 flex-col rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-4">
-          <p className="m-0 text-[12px] font-medium text-[#929292]">Overall Sentiment</p>
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
           <div className="flex items-center gap-3">
             <SentimentGauge
               negative={themes.sentiment.negative}
@@ -679,19 +700,19 @@ export function FormDashboardPage({
             <div className="flex flex-col gap-2 text-[12px]">
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Negative: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Neutral: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
                 </span>
               </span>
               <span className="flex items-center gap-2">
                 <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
-                <span className="text-[#929292]">
+                <span className="text-[#726f6f]">
                   Positive: <span className={sentimentTotal === 0 ? 'text-[#b0b1b3]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
                 </span>
               </span>
@@ -699,15 +720,36 @@ export function FormDashboardPage({
           </div>
         </div>
 
+        {/* Everyone sees the same total; the owner also gets what's left to review, and the
+            card opens the first topic with flags to review (else it scrolls to the list). */}
         <StatCard
+          actionLabel={isOwner && reviewTopic ? `Review flagged mentions in ${reviewTopic.label}` : 'Show violation topics'}
           deltaClassName="text-[#881921]"
+          footer={
+            isOwner && violationMentions > 0 ? (
+              reviewCount > 0 ? (
+                <span className="font-semibold text-[#c2365f]">{reviewCount} to review</span>
+              ) : (
+                <span className="text-[#726f6f]">All reviewed</span>
+              )
+            ) : null
+          }
           icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
           iconBgClassName="bg-[#ffeaeb]"
-          label="Violation Topics"
-          value={themes.violationTopics.length}
-          {...(themes.violationTopics.length > 0
-            ? { onClick: showViolationTopics, actionLabel: 'Show violation topics' }
-            : {})}
+          label="Violation mentions"
+          note={
+            themes.violationTopics.length > 0
+              ? `in ${themes.violationTopics.length} ${themes.violationTopics.length === 1 ? 'topic' : 'topics'}`
+              : undefined
+          }
+          onClick={
+            isOwner && reviewTopic
+              ? () => selectTopic(reviewTopic.id)
+              : themes.violationTopics.length > 0
+                ? showViolationTopics
+                : undefined
+          }
+          value={violationMentions}
         />
       </div>
     </div>
@@ -868,7 +910,7 @@ export function FormDashboardPage({
                   options={[
                     {
                       label: 'Excel (.xlsx)',
-                      description: 'Topics with their sentiment, and every feedback point',
+                      description: 'Topics with their sentiment, and every mention',
                       icon: FileSpreadsheet,
                       extension: 'xlsx',
                       download: () =>
@@ -1023,7 +1065,7 @@ export function FormDashboardPage({
                       sort={topicSort}
                       selectedTopicId={selectedTopicId}
                       sortable
-                      title={`AI discovered topic (${themes.aiDiscoveredTopics.length})`}
+                      title={`Topics found by AI (${themes.aiDiscoveredTopics.length})`}
                       topics={themes.aiDiscoveredTopics}
                     />
                   </>
@@ -1040,7 +1082,7 @@ export function FormDashboardPage({
                         <Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />
                       </div>
                       <div className="flex flex-col gap-2.5">
-                        <p className="m-0 text-[12px] font-medium text-[#929292]">Total Responses</p>
+                        <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
                         <p className="m-0 text-[20px] font-bold text-[#14181f]">
                           {responses.totalResponses}
                         </p>
