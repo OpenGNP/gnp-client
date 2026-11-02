@@ -203,6 +203,8 @@ export type FormTrendAnalytics = {
   /** Per charted topic: mentions + sentiment over the whole window. */
   topicSummaries: TrendTopicSummary[]
   sentimentSeries: TrendSentimentPoint[]
+  /** Responses submitted per bucket, index-aligned with `volumeSeries`. Missing from older API responses. */
+  responseCounts?: number[]
   /** null = the range doesn't hold two complete periods with feedback. Missing from older API responses. */
   whatChanged?: WhatChanged | null
   timelineEvents: TrendTimelineEvent[]

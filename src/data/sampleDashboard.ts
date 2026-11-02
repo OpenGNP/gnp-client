@@ -218,6 +218,8 @@ export const SAMPLE_TREND: FormTrendAnalytics = {
       { id: 'sample-canteen', label: 'Canteen food and prices', kind: 'better', share: { previous: 9, current: 5 }, complaints: { previous: 60, current: 40 }, violations: 0, quote: null },
     ],
   },
+  // Sums to SAMPLE_THEMES.totalResponders (124).
+  responseCounts: [16, 18, 21, 22, 23, 24],
   timelineEvents: [
     { id: 'sample-wifi-spike', date: iso(29), topicId: 'sample-wifi', bucketIndex: 4, count: 12, usual: 6 },
   ],

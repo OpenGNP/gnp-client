@@ -570,6 +570,7 @@ export function TrendView({
           data={trend.volumeSeries}
           onPinnedTopicChange={onPinnedChange}
           pinnedTopic={pinnedTopic}
+          responses={trend.responseCounts}
           sentimentByTopic={trend.topicSentimentSeries ?? {}}
           sentimentSeries={trend.sentimentSeries}
           series={trend.topicVolumeSeries}

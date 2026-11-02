@@ -16,11 +16,12 @@ const series = [
   { id: '2', label: 'Parking' },
 ]
 
-function Card() {
+function Card({ responses }: { responses?: number[] }) {
   const [pinned, setPinned] = useState<string | null>(null)
   return (
     <TopicTrendsCard
       onPinnedTopicChange={setPinned}
+      responses={responses}
       pinnedTopic={pinned}
       sentimentSeries={[]}
       data={[
@@ -51,6 +52,14 @@ function renderCard() {
 }
 
 describe('TopicTrendsCard side panel', () => {
+  it('shows the whole-period response total only when the server sent counts', () => {
+    const { unmount } = render(<Card responses={[7, 11]} />)
+    expect(screen.getByText('18 responses')).toBeInTheDocument()
+    unmount()
+    render(<Card />)
+    expect(screen.queryByText(/responses?$/)).not.toBeInTheDocument()
+  })
+
   it('shows whole-period totals and sentiment, biggest topic first', () => {
     renderCard()
     expect(screen.getByText('Whole period')).toBeInTheDocument()
