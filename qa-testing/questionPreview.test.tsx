@@ -55,4 +55,17 @@ describe('question cards', () => {
     await user.click(within(feedback).getByRole('menuitem', { name: 'Text' }))
     expect(questionInputs().map((input) => (input as HTMLInputElement).value)).toEqual([''])
   })
+
+  it('lets Feedback add a choice question, marked as not analysed by AI', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    // The existing Feedback choice question says so; the text one keeps the AI label.
+    expect(screen.getByText('Not analysed by AI')).toBeInTheDocument()
+    expect(screen.getByText('AI Analyze')).toBeInTheDocument()
+
+    const feedback = screen.getByRole('region', { name: 'Feedback' })
+    await user.click(within(feedback).getByRole('button', { name: 'Add new question' }))
+    await user.click(within(feedback).getByRole('menuitem', { name: 'Choice' }))
+    expect(within(feedback).getAllByText('Not analysed by AI')).toHaveLength(2)
+  })
 })

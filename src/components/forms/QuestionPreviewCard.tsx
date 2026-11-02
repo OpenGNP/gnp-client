@@ -64,11 +64,15 @@ export function QuestionPreviewCard({
         <span className="justify-self-center" onClick={(event) => event.stopPropagation()}>
           <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
         </span>
-        {showAiAnalyze && question.type === 'text' ? (
-          <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px] text-[#1e55c5]">
-            <Sparkles size={13} />
-            AI Analyze
-          </span>
+        {showAiAnalyze ? (
+          question.type === 'text' ? (
+            <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px] text-[#1e55c5]">
+              <Sparkles size={13} />
+              AI Analyze
+            </span>
+          ) : (
+            <span className="justify-self-end text-[12px] text-[#726f6f]">Not analysed by AI</span>
+          )
         ) : (
           <span aria-hidden="true" />
         )}

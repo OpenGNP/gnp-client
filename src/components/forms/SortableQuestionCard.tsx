@@ -64,6 +64,7 @@ export function SortableQuestionCard({
               onChange={onChange}
               onDelete={onDelete}
               question={question}
+              showAiAnalyze={showAiAnalyze}
             />
           )}
         </div>
