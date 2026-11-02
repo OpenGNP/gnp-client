@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   UserCheck,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -26,17 +27,16 @@ import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
 import {
-  LANDING_SAMPLE_OPTIONS,
   LANDING_SAMPLES,
   type LandingSample,
-  type LandingSampleId,
   type LandingTopic,
 } from '../data/landingSample'
 import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
 import { EditFormPage } from './EditFormPage'
 import { FormDashboardPage } from './FormDashboardPage'
 import { showAlert } from '../lib/alertDialog'
-import { DemoContext, demoSaveError } from '../lib/demo'
+import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
+import { DEMO_FORM_ID, DemoContext, demoSaveError } from '../lib/demo'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 import { cn } from '../lib/utils'
@@ -439,16 +439,12 @@ function Hero({
   intro,
   secondary,
   sample,
-  sampleId,
-  onSampleChange,
 }: {
   title: string
   intro: React.ReactNode
   /** A second, quieter action under the sign-in. */
   secondary?: React.ReactNode
   sample: LandingSample
-  sampleId: LandingSampleId
-  onSampleChange: (id: LandingSampleId) => void
 }) {
   // A floating answer under the pointer, and so the topic to light in the dashboard.
   const [hoverTopic, setHoverTopic] = useState<string | null>(null)
@@ -474,9 +470,6 @@ function Hero({
       </div>
       <div className="relative flex flex-col gap-5">
         <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
-        <div className="flex justify-center">
-          <SampleSwitch onChange={onSampleChange} value={sampleId} />
-        </div>
         {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
         {/* As wide as the frame only: full width, it would cover the floating answers in the gutters. */}
         <div className="hero-rise relative z-10 mx-auto w-full max-w-224">
@@ -562,36 +555,6 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         </li>
       </ol>
     </section>
-  )
-}
-
-/** Workplace or open house: every sample demo on the page follows this. */
-function SampleSwitch({ value, onChange }: { value: LandingSampleId; onChange: (id: LandingSampleId) => void }) {
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-      <span className="text-[13px] font-medium text-[#3f4045]" id="sample-switch-label">
-        Example feedback from:
-      </span>
-      <div
-        aria-labelledby="sample-switch-label"
-        className="inline-flex rounded-full border border-[#d2d8e5] bg-white p-1"
-        role="group"
-      >
-        {LANDING_SAMPLE_OPTIONS.map((option) => (
-          <button
-            aria-pressed={option.id === value}
-            className={`h-8 cursor-pointer rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5] ${
-              option.id === value ? 'bg-[#1e55c5] text-white' : 'text-[#3f4045] hover:bg-[#f7f8fb]'
-            }`}
-            key={option.id}
-            onClick={() => onChange(option.id)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -892,19 +855,22 @@ const PAGE = 'min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]'
 
 /** "/" for signed-out visitors, and /about for anyone: why to use it, proved with sample data, and the sign-in. */
 export function LandingPage() {
-  const [sampleId, setSampleId] = useState<LandingSampleId>('workplace')
-  const sample = LANDING_SAMPLES[sampleId]
+  const sample = LANDING_SAMPLES.workplace
+  const queryClient = useQueryClient()
+  // Warm the cache so /demo opens without skeletons. Keys must match FormDashboardPage's unfiltered ones.
+  useEffect(() => {
+    void queryClient.prefetchQuery(formQuery(DEMO_FORM_ID))
+    void queryClient.prefetchQuery(responsesQuery(DEMO_FORM_ID))
+    void queryClient.prefetchQuery(themesQuery(DEMO_FORM_ID, { demo: {} }))
+    void queryClient.prefetchQuery(trendQuery(DEMO_FORM_ID, { rank: 'mentioned', demo: {} }))
+  }, [queryClient])
   return (
     <div className={PAGE}>
       <SiteHeader page="landing" />
       <main>
-        {/* Keyed: a new sample starts the hero afresh (no topic open or lit from the last one). */}
         <Hero
           intro={HERO_INTRO}
-          key={sampleId}
-          onSampleChange={setSampleId}
           sample={sample}
-          sampleId={sampleId}
           secondary={
             <Link className={`${NAV_LINK} inline-flex items-center gap-1.5`} to="/demo">
               See the full demo
@@ -914,7 +880,7 @@ export function LandingPage() {
           title="Know what your people are really telling you."
         />
         <div className="border-t border-[#e8eaf1]">
-          <SellingPoints key={sampleId} sample={sample} />
+          <SellingPoints sample={sample} />
         </div>
         <div className="border-t border-[#e8eaf1]">
           <HowItWorks sample={sample} />
