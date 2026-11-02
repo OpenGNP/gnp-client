@@ -2,12 +2,13 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 import { readLastSignedInUserId, useAuth } from '../lib/auth'
+import { LandingPage } from '../pages/LandingPage'
 import { ErrorCard } from './ErrorCard'
 import { AppShellSkeleton } from './skeletons/AppShellSkeleton'
 
 /**
- * Holds the app back until the session resolves: sends signed-out visitors to
- * /login (preserving where they were headed), shows a back-to-login card if the API is
+ * Holds the app back until the session resolves: shows signed-out visitors the landing
+ * page at /, sends them to /login elsewhere (preserving where they were headed), shows a back-to-login card if the API is
  * unreachable (an app-shaped skeleton while it's still resolving), else renders the app.
  */
 export function AppGate({ children }: { children: ReactNode }) {
@@ -16,6 +17,10 @@ export function AppGate({ children }: { children: ReactNode }) {
 
   if (status === 'ready') {
     return <>{children}</>
+  }
+
+  if (status === 'unauthenticated' && location.pathname === '/') {
+    return <LandingPage />
   }
 
   if (status === 'unauthenticated') {

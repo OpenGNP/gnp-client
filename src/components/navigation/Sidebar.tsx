@@ -7,6 +7,7 @@ import {
   FolderOpen,
   FolderPlus,
   HardDrive,
+  Info,
   Home,
   LogOut,
   MoreHorizontal,
@@ -18,6 +19,7 @@ import {
   Users,
 } from 'lucide-react'
 import { type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { SidebarTreeSkeleton } from '../skeletons/SidebarTreeSkeleton'
 import { UserAvatar } from '../UserAvatar'
@@ -335,6 +337,12 @@ function SidebarRail({
               <DropdownMenuItem onSelect={onGoProfile}>
                 <UserRound size={14} />
                 Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/about">
+                  <Info size={14} />
+                  About GNP
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onLogout}>
                 <LogOut size={14} />
@@ -939,6 +947,12 @@ function UserProfile({
           <DropdownMenuItem onSelect={onGoProfile}>
             <UserRound size={14} />
             Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/about">
+              <Info size={14} />
+              About GNP
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onLogout}>
             <LogOut size={14} />

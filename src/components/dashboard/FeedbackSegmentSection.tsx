@@ -186,7 +186,7 @@ function ViolationReviewRow({
   )
 }
 
-function FeedbackPointCard({
+export function FeedbackPointCard({
   point,
   showName,
   onOpenResponse,

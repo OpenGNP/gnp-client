@@ -8,6 +8,7 @@ import { AlertDialogHost } from './components/AlertDialogHost.tsx'
 import { AppGate } from './components/AppGate.tsx'
 import { AuthProvider } from './components/AuthProvider.tsx'
 import { MaybeMsalProvider } from './components/MaybeMsalProvider.tsx'
+import { LandingPage } from './pages/LandingPage.tsx'
 import { EmailLoginPage, LoginPage } from './pages/LoginPage.tsx'
 import { PrivacyPage, TermsPage } from './pages/LegalPage.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
@@ -35,6 +36,8 @@ createRoot(document.getElementById('root')!).render(
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/email" element={<EmailLoginPage />} />
+                    {/* The landing page, open to everyone; "/" shows it only to signed-out visitors. */}
+                    <Route path="/about" element={<LandingPage />} />
                     <Route
                       path="*"
                       element={

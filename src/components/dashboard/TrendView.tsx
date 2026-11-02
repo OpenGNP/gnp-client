@@ -295,7 +295,7 @@ function WhatChangedGroup({
   )
 }
 
-function WhatChangedCard({
+export function WhatChangedCard({
   data,
   onTopicSelect,
   onTopicOpen,
