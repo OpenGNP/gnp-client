@@ -70,7 +70,7 @@ function TopicRow({
 }) {
   return (
     <button
-      className={`flex min-h-13 w-full cursor-pointer items-center gap-4 border-l-[3px] py-2.5 pr-7.5 pl-6.75 text-left transition-colors ${
+      className={`col-span-full grid min-h-13 w-full cursor-pointer grid-cols-subgrid items-center border-l-[3px] py-2.5 pr-7.5 pl-6.75 text-left transition-colors ${
         isSelected
           ? 'border-[#1e55c5] bg-[#f7f8fb]'
           : topic.hasViolation
@@ -80,7 +80,7 @@ function TopicRow({
       onClick={() => onSelect?.(topic.id)}
       type="button"
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
         <div className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 truncate text-[14px] text-[#14181f]">
             <Highlight query={query} text={topic.label} />
@@ -108,14 +108,14 @@ function TopicRow({
         ) : null}
       </div>
       <SentimentBar
-        className="w-60 shrink-0"
+        className="w-60 justify-self-center"
         maxValue={axisMax}
         negative={topic.negative}
         neutral={topic.neutral}
         positive={topic.positive}
         title={topic.label}
       />
-      <span className="w-12 shrink-0 text-right text-[14px] text-[#14181f]">
+      <span className="text-right text-[14px] text-[#14181f]">
         {topic.percentOfTotal}%
       </span>
     </button>
@@ -124,16 +124,16 @@ function TopicRow({
 
 function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
   return (
-    <div className="flex h-6.25 w-full items-center gap-4 px-7.5 max-[900px]:hidden">
-      <span className="min-w-0 flex-1 text-[12px] font-medium text-[#726f6f]">
+    <div className="col-span-full grid h-6.25 grid-cols-subgrid items-center px-7.5 max-[900px]:hidden">
+      <span className="min-w-0 text-[12px] font-medium text-[#726f6f]">
         Mentions:
       </span>
-      <div className="flex w-60 shrink-0 items-center justify-between text-[12px] font-medium text-[#726f6f]">
+      <div className="flex w-60 items-center justify-between justify-self-center text-[12px] font-medium text-[#726f6f]">
         <span>0</span>
         <span>{axisMax}</span>
       </div>
       {/* The row's % is its share of all feedback, not of negative. */}
-      <span className="w-12 shrink-0 text-right text-[12px] font-medium text-[#726f6f]" title="Share of all feedback">
+      <span className="text-right text-[12px] font-medium text-[#726f6f]" title="Share of all feedback">
         Share
       </span>
     </div>
@@ -291,7 +291,9 @@ export function TopicSentimentCard({
         </div>
       </div>
 
-      <div className="flex flex-col">
+      {/* One grid for the axis and every row: the name column is as wide as the longest name
+          (capped), and each bar sits in the middle of the space between it and Share. */}
+      <div className="grid grid-cols-[fit-content(55%)_minmax(15rem,1fr)_auto] gap-x-4">
         <FeedbackPointsAxis axisMax={axisMax} />
         {visibleTopics.map((topic) => (
           <TopicRow
@@ -306,7 +308,7 @@ export function TopicSentimentCard({
           />
         ))}
         {matches && sortedTopics.length === 0 ? (
-          <p className="m-0 px-7.5 py-6 text-center text-[13px] text-[#726f6f]">
+          <p className="col-span-full m-0 px-7.5 py-6 text-center text-[13px] text-[#726f6f]">
             No topics or feedback match “{query.trim()}”.
           </p>
         ) : null}
