@@ -66,7 +66,14 @@ import { FormActionButton } from '../components/navigation/FormActionBar'
 import { FormDetailTabs } from '../components/navigation/FormDetailTabs'
 import { HeadroomBar } from '../components/navigation/HeadroomBar'
 import { ResponseStateChip } from '../components/navigation/ResponseStateChip'
-import type { FeedbackDateRange, FormTrendAnalytics, TrendBucket, TrendRank } from '../data/dashboardAnalytics'
+import type {
+  FeedbackDateRange,
+  FeedbackPoint,
+  FormTrendAnalytics,
+  TopicSentiment,
+  TrendBucket,
+  TrendRank,
+} from '../data/dashboardAnalytics'
 import { useDetailPanelLayout } from '../hooks/useDetailPanelLayout'
 import { useNow } from '../hooks/useNow'
 import { formatDateTime, formStatusBadge } from '../lib/responseWindow'
@@ -250,11 +257,6 @@ export function FormDashboardPage({
   const routeForm = useRouteForm()
   const formId = routeForm.formId ?? 0
   const queryClient = useQueryClient()
-  // Then refetch: counts on Themes and Trend drop dismissed points too.
-  const reviewPointViolation = async (pointId: string, status: ViolationReview) => {
-    await reviewViolation(pointId, status)
-    await queryClient.invalidateQueries({ queryKey: queryKeys.analytics(formId) })
-  }
   const hasValidId = routeForm.formId !== null
   useRecordFormOpen(routeForm.formId)
   // New responses, finished AI runs and form edits show up without a refresh.
@@ -420,6 +422,31 @@ export function FormDashboardPage({
   // yellow banner says so, Export / Share are off) and the real view returns when the
   // tour ends. Response explains itself, so its tour only runs from the Tour button.
   const { user } = useAuth()
+  // Applies the server's answer to the cached point (and its topic's flag) right away,
+  // then refreshes Themes + Trend in the background for the counts.
+  const reviewPointViolation = async (pointId: string, status: ViolationReview) => {
+    const result = await reviewViolation(pointId, status)
+    const patch: Partial<FeedbackPoint> = {
+      ...result,
+      dismissed: status === 'dismissed',
+      reviewedBy: status === null ? null : (user?.fullName ?? user?.email ?? null),
+    }
+    const patchTopic = (topic: TopicSentiment): TopicSentiment => {
+      const feedbackSegment = topic.feedbackSegment.map((point) => (point.id === pointId ? { ...point, ...patch } : point))
+      return { ...topic, feedbackSegment, hasViolation: feedbackSegment.some((point) => point.violation) }
+    }
+    queryClient.setQueriesData<FormThemeAnalytics>({ queryKey: queryKeys.allThemes(formId) }, (data) =>
+      data
+        ? {
+            ...data,
+            violationTopics: data.violationTopics.map(patchTopic),
+            aiDiscoveredTopics: data.aiDiscoveredTopics.map(patchTopic),
+          }
+        : data,
+    )
+    void queryClient.invalidateQueries({ queryKey: queryKeys.allThemes(formId) })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.allTrends(formId) })
+  }
   const tabTour =
     activeView === 'themes'
       ? {

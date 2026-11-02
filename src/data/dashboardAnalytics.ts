@@ -20,7 +20,9 @@ export type FeedbackPoint = {
   violationStatus?: 'possible' | 'violation' | 'confirmed' | null
   /** The AI's category: legal / moral / ethics. */
   violationType?: string | null
-  /** Who confirmed it, and when. */
+  /** A reviewer marked it not a violation: no tag, but the owner can undo it. */
+  dismissed?: boolean
+  /** Who confirmed or dismissed it, and when. */
   reviewedBy?: string | null
   reviewedAt?: string | null
   quote: string

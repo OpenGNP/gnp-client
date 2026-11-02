@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Check, ChevronDown, MessageSquareText, Search, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ChevronDown, Loader2, MessageSquareText, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { ViolationReview } from '../../api/analytics'
@@ -85,34 +85,40 @@ function ReviewButton({
 /** The violation tag (two levels + the AI's category) and, for the owner, the review actions. */
 function ViolationReviewRow({
   point,
-  dismissed,
   onReview,
 }: {
   point: FeedbackPoint
-  /** Marked not a violation in this session: the tag is gone, but Undo stays until the panel closes. */
-  dismissed: boolean
   onReview?: (status: ViolationReview) => Promise<void>
 }) {
-  const [busy, setBusy] = useState(false)
+  // The action being saved (undefined = none); null is Undo.
+  const [saving, setSaving] = useState<ViolationReview | undefined>(undefined)
+  const busy = saving !== undefined
   const review = (status: ViolationReview) => {
     if (!onReview) return
-    setBusy(true)
+    setSaving(status)
     onReview(status)
       .catch((error: unknown) =>
         showAlert(error instanceof ApiError ? error.message : 'Could not save your review. Please try again.'),
       )
-      .finally(() => setBusy(false))
+      .finally(() => setSaving(undefined))
   }
+  const savingLabel = (
+    <>
+      <Loader2 className="animate-spin" size={12} />
+      Saving…
+    </>
+  )
 
-  if (dismissed) {
-    return (
+  // Owner only: the tag is gone, but the call can still be undone.
+  if (point.dismissed) {
+    return onReview ? (
       <span className="flex items-center gap-1 text-[11px] text-[#929292]">
-        Marked not a violation
+        Marked not a violation{point.reviewedBy ? ` by ${point.reviewedBy}` : ''}
         <ReviewButton disabled={busy} hint="Put the tag back" onClick={() => review(null)}>
-          Undo
+          {saving === null ? savingLabel : 'Undo'}
         </ReviewButton>
       </span>
-    )
+    ) : null
   }
   if (!point.violation) return null
 
@@ -125,10 +131,10 @@ function ViolationReviewRow({
       <ViolationTooltip scope="point">
         <span
           className={cn(
-            'flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset',
-            possible
-              ? 'bg-[#fff6e5] text-[#b7791f] ring-[#f5dfb0]'
-              : 'bg-[#fdeaea] text-[#c1121f] ring-[#f3c9c9]',
+            // The app's violation pink. Filled = sure (AI or a reviewer); dashed outline = possible,
+            // like What changed's hollow / dashed marks for a tentative change.
+            'flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-[#e0507a]',
+            possible ? 'border border-dashed border-[#e0507a] bg-white px-2.25 py-0.75' : 'bg-[#fcf3f6]',
           )}
         >
           <AlertTriangle size={11} />
@@ -140,7 +146,7 @@ function ViolationReviewRow({
           Confirmed by {point.reviewedBy ?? 'a reviewer'}
           {onReview ? (
             <ReviewButton disabled={busy} hint="Back to the AI's tag, unreviewed" onClick={() => review(null)}>
-              Undo
+              {saving === null ? savingLabel : 'Undo'}
             </ReviewButton>
           ) : null}
         </span>
@@ -151,16 +157,28 @@ function ViolationReviewRow({
             hint="Keeps the tag and records that you checked it"
             onClick={() => review('confirmed')}
           >
-            <Check size={12} />
-            Confirm violation
+            {saving === 'confirmed' ? (
+              savingLabel
+            ) : (
+              <>
+                <Check size={12} />
+                Confirm violation
+              </>
+            )}
           </ReviewButton>
           <ReviewButton
             disabled={busy}
             hint="Removes the tag and stops counting it as a violation"
             onClick={() => review('dismissed')}
           >
-            <X size={12} />
-            Not a violation
+            {saving === 'dismissed' ? (
+              savingLabel
+            ) : (
+              <>
+                <X size={12} />
+                Not a violation
+              </>
+            )}
           </ReviewButton>
         </span>
       ) : null}
@@ -173,12 +191,10 @@ function FeedbackPointCard({
   showName,
   onOpenResponse,
   query,
-  dismissed,
   onReview,
 }: {
   point: FeedbackPoint
   showName: boolean
-  dismissed: boolean
   onReview?: (status: ViolationReview) => Promise<void>
   onOpenResponse?: (submissionId: number) => void
   /** The section's search, highlighted. */
@@ -203,7 +219,7 @@ function FeedbackPointCard({
           {point.sentiment}
         </span>
 
-        <ViolationReviewRow dismissed={dismissed} onReview={onReview} point={point} />
+        <ViolationReviewRow onReview={onReview} point={point} />
       </div>
 
       <p className="m-0 text-[13px] leading-[1.6] text-[#14181f]">
@@ -302,20 +318,6 @@ export function FeedbackSegmentSection({
   initialQuery = '',
   onReviewViolation,
 }: FeedbackSegmentSectionProps) {
-  // Dismissed while this panel is open: kept in the list (with Undo) after the refetch drops the flag.
-  const [dismissedHere, setDismissedHere] = useState<Set<string>>(new Set())
-  const reviewPoint = (point: FeedbackPoint) =>
-    onReviewViolation
-      ? async (status: ViolationReview) => {
-          await onReviewViolation(point.id, status)
-          setDismissedHere((prev) => {
-            const next = new Set(prev)
-            if (status === 'dismissed') next.add(point.id)
-            else next.delete(point.id)
-            return next
-          })
-        }
-      : undefined
   const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [query, setQuery] = useState(initialQuery)
   const [selectedSentiments, setSelectedSentiments] = useState<Set<string>>(new Set())
@@ -395,9 +397,8 @@ export function FeedbackSegmentSection({
         const t = Date.parse(point.submittedAt)
         if (t < Date.parse(period.from) || t >= Date.parse(period.to)) return false
       }
-      // A point dismissed here stays put until the panel closes, so its Undo doesn't vanish.
-      if (violationsOnly && !point.violation && !dismissedHere.has(point.id)) return false
-      if (needsReviewOnly && !needsReview(point) && !dismissedHere.has(point.id)) return false
+      if (violationsOnly && !point.violation) return false
+      if (needsReviewOnly && !needsReview(point)) return false
       if (selectedSentiments.size > 0 && !selectedSentiments.has(point.sentiment)) {
         return false
       }
@@ -412,8 +413,7 @@ export function FeedbackSegmentSection({
     // reported breach should not be buried by date. Within each group the
     // chosen newest/oldest order still applies.
     return [...filtered].sort((a, b) => {
-      const isFlagged = (point: FeedbackPoint) => Boolean(point.violation) || dismissedHere.has(point.id)
-      const flagged = Number(isFlagged(b)) - Number(isFlagged(a))
+      const flagged = Number(Boolean(b.violation)) - Number(Boolean(a.violation))
       if (flagged !== 0) return flagged
       return sortOption === 'newest'
         ? b.submittedAt.localeCompare(a.submittedAt)
@@ -424,7 +424,6 @@ export function FeedbackSegmentSection({
     period,
     violationsOnly,
     needsReviewOnly,
-    dismissedHere,
     selectedSentiments,
     selectedDemos,
     sortOption,
@@ -532,9 +531,8 @@ export function FeedbackSegmentSection({
         <div className="flex flex-col gap-3">
           {visiblePoints.map((point) => (
             <FeedbackPointCard
-              dismissed={dismissedHere.has(point.id)}
               key={point.id}
-              onReview={reviewPoint(point)}
+              onReview={onReviewViolation ? (status) => onReviewViolation(point.id, status) : undefined}
               onOpenResponse={onOpenResponse}
               point={point}
               query={query}
