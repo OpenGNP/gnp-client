@@ -103,7 +103,7 @@ export function ResponseDetailPanel({
         </div>
         <p className="m-0 text-[12px] font-medium text-[#929292]">
           {formatDateTime(response.submittedAt)}
-          {!hideNames && response.respondentName ? ` · Response #${response.number}` : null}
+          {!hideNames && response.respondentName ? ` (Response #${response.number})` : null}
         </p>
       </div>
 

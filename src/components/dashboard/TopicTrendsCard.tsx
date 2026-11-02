@@ -339,7 +339,7 @@ export function TopicTrendsCard({
 
           {/* Sentiment over the same dates, directly under the volume lines. */}
           <p className="m-0 mt-1 flex items-center gap-1.5 pl-10 text-[11px] text-[#726f6f]">
-            <span className="font-semibold text-[#3f4045]">Sentiment</span>·
+            <span className="font-semibold text-[#3f4045]">Sentiment:</span>
             {focusEntry ? (
               <span
                 aria-hidden="true"
@@ -521,7 +521,7 @@ export function TopicTrendsCard({
                           </span>
                           {spike ? (
                             <span className="shrink-0 rounded-full bg-[#fee6e8] px-1.5 text-[10px] font-semibold text-[#f63b56]">
-                              Spike · usually ~{spike.usual}
+                              Spike (usually ~{spike.usual})
                             </span>
                           ) : null}
                           {pinned ? <Pin className="shrink-0 text-[#1e55c5]" size={12} /> : null}

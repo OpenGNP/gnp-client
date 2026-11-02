@@ -18,6 +18,7 @@ import type {
   WhatChanged,
   WhatChangedRow,
 } from '../../data/dashboardAnalytics'
+import { summarizeTrend } from '../../lib/trendSummary'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { Tooltip as HoverTooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { TopicTrendsCard } from './TopicTrendsCard'
@@ -526,6 +527,79 @@ function TimelineCard({
   )
 }
 
+const SUMMARY_CHIP =
+  'inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#e9eaed] bg-white px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-[#1e55c5]'
+
+/** One line above the chart: what to look at first, each part jumping to where it's explained. */
+function TrendSummaryBar({
+  trend,
+  onShowChanges,
+  onShowSpike,
+}: {
+  trend: FormTrendAnalytics
+  onShowChanges: () => void
+  onShowSpike: (topicId: string) => void
+}) {
+  const { comparison, spike } = summarizeTrend(trend)
+  if (!comparison && !spike) return null
+  const group = (kind: ChangeKind) => GROUPS.find((g) => g.kind === kind)!
+  const counts = comparison
+    ? [
+        { key: 'worse', n: comparison.worse, ...group('worse'), title: 'getting worse' },
+        { key: 'new', n: comparison.new, ...group('new'), title: comparison.new === 1 ? 'new topic' : 'new topics' },
+        {
+          key: 'violations',
+          n: comparison.violations,
+          Icon: TriangleAlert,
+          tone: 'text-[#e0507a]',
+          title: comparison.violations === 1 ? 'possible violation' : 'possible violations',
+        },
+      ].filter((c) => c.n > 0)
+    : []
+
+  return (
+    <section
+      aria-label="Trend summary"
+      className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-[15px] border border-[#e9eaed] bg-white px-5.5 py-3.5"
+    >
+      {comparison ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-[#3f4045]">
+            {comparison.current} vs {comparison.previous}:
+          </span>
+          {counts.length === 0 ? (
+            <span className="text-[13px] text-[#726f6f]">No big changes</span>
+          ) : (
+            counts.map(({ key, n, Icon, tone, title }) => (
+              <button className={`${SUMMARY_CHIP} ${tone}`} key={key} onClick={onShowChanges} type="button">
+                <Icon className="shrink-0" size={14} />
+                {n} {title}
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+      {spike ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-[#3f4045]">Biggest spike:</span>
+          <button
+            // Wraps instead of truncating, so the topic name survives on a phone.
+            className={`${SUMMARY_CHIP} min-w-0 flex-wrap gap-y-0.5 rounded-[12px] text-left text-[#14181f]`}
+            onClick={() => onShowSpike(spike.topicId)}
+            type="button"
+          >
+            <ArrowUp className="shrink-0 text-[#1e55c5]" size={14} />
+            <span>{spike.label}</span>
+            <span className="font-medium text-[#726f6f]">
+              {spike.period}: {spike.count} mentions (usually ~{spike.usual})
+            </span>
+          </button>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 export type TrendViewProps = {
   trend: FormTrendAnalytics
   /** The topic picker — it only changes which lines Mentions over time draws, so it lives on that card. */
@@ -554,6 +628,7 @@ export function TrendView({
   // not on it yet, while a "Compare" jump's new topic selection is still loading.
   const pinnedTopic = trend.topicVolumeSeries.some((entry) => entry.id === pinned) ? pinned : null
   const chartRef = useRef<HTMLDivElement>(null)
+  const changesRef = useRef<HTMLDivElement>(null)
   // The Timeline sits below What changed, so bring the chart into view to show the pin.
   const pinFromTimeline = (id: string | null) => {
     onPinnedChange(id)
@@ -562,6 +637,14 @@ export function TrendView({
 
   return (
     <div className="flex flex-col gap-4.5">
+      <TrendSummaryBar
+        onShowChanges={() => changesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        // A charted topic is pinned; one not on the chart is added to it first (and pinned).
+        onShowSpike={(id) =>
+          trend.topicVolumeSeries.some((entry) => entry.id === id) ? pinFromTimeline(id) : onTopicSelect?.(id)
+        }
+        trend={trend}
+      />
       {/* Full width: volume lines + the sentiment strip under them, and the topic
           detail side panel. */}
       <div data-tour="trend-chart" ref={chartRef}>
@@ -581,7 +664,7 @@ export function TrendView({
 
       {/* Wide screens: Timeline is a sticky rail beside What changed; else it stacks below. */}
       <div className="flex flex-col gap-4.5 min-[1280px]:grid min-[1280px]:grid-cols-[minmax(0,1fr)_300px] min-[1280px]:items-start">
-        <div data-tour="trend-movement">
+        <div className="scroll-mt-4" data-tour="trend-movement" ref={changesRef}>
           <WhatChangedCard
             data={trend.whatChanged ?? null}
             onTopicOpen={onTopicOpen}

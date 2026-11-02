@@ -119,13 +119,14 @@ function SearchPanel({
     ]
   } else {
     // Same as Home's Recent: mine by opened-or-modified, shared ones once I've opened them.
-    const when = (time: ReturnType<typeof recentTime>) => `${time.label} ${formatRelativeTime(time.at)}`
+    const when = (time: ReturnType<typeof recentTime>) =>
+      `${time.label.toLowerCase()} ${formatRelativeTime(time.at)}`
     const recent = [
       ...flattenTree(projects, '')
         .filter((result) => result.kind === 'form')
         .map((result) => {
           const dated = result.kind === 'shared' ? {} : result.item
-          return { result: { ...result, path: `${result.path} · ${when(recentTime(dated))}` }, at: recency(dated) }
+          return { result: { ...result, path: `${result.path}, ${when(recentTime(dated))}` }, at: recency(dated) }
         }),
       ...shared
         .filter((form) => form.lastOpenedAt)
@@ -134,7 +135,7 @@ function SearchPanel({
             kind: 'shared' as const,
             urlId: form.urlId,
             label: form.formTitle ?? 'Untitled form',
-            path: `${form.ownerName ? `Shared by ${form.ownerName}` : 'Shared with me'} · ${when({ label: 'Opened', at: form.lastOpenedAt })}`,
+            path: `${form.ownerName ? `Shared by ${form.ownerName}` : 'Shared with me'}, ${when({ label: 'Opened', at: form.lastOpenedAt })}`,
           },
           at: Date.parse(form.lastOpenedAt ?? '') || 0,
         })),

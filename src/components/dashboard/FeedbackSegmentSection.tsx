@@ -248,7 +248,7 @@ export function FeedbackPointCard({
                   <span className={point.respondentName ? 'font-medium text-[#3f4045]' : undefined}>
                     <Highlight query={query} text={point.respondentName ?? 'Anonymous'} />
                   </span>
-                  {' · '}
+                  {', '}
                 </>
               ) : null}
               {formatFeedbackDate(point.submittedAt)}

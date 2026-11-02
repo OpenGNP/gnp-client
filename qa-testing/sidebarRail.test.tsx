@@ -106,8 +106,8 @@ describe('collapsed sidebar rail', () => {
     renderSidebar()
     await user.keyboard('/')
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-      expect.stringMatching(/^Canteen pricesShared by Somchai · Opened/),
-      expect.stringMatching(/^Canteen surveyMy forms › Canteen · Modified/),
+      expect.stringMatching(/^Canteen pricesShared by Somchai, opened/),
+      expect.stringMatching(/^Canteen surveyMy forms › Canteen, modified/),
     ])
   })
 

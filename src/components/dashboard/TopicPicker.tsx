@@ -95,7 +95,7 @@ export function TopicPicker({
           >
             <ListFilter size={compact ? 14 : 16} />
             {compact ? 'Topics: ' : ''}
-            {rankShort} · {selectedIds.length}
+            {rankShort} ({selectedIds.length})
             <ChevronDown size={compact ? 14 : 16} />
           </button>
         </PopoverTrigger>
@@ -141,7 +141,7 @@ export function TopicPicker({
             <div className="flex items-center justify-between text-[11px] text-[#929292]">
               <span>
                 On chart: {selectedIds.length}/{max}
-                {pending ? ' · updating…' : ''}
+                {pending ? ' (updating…)' : ''}
               </span>
               <button
                 className="cursor-pointer font-medium text-[#1e55c5] hover:underline"
