@@ -291,5 +291,17 @@ export const SAMPLE_INDIVIDUAL: FormIndividualResponses = {
       3: i % 2 ? ['Library', 'Canteen'] : ['Computer labs'],
       4: [text],
     },
+    // The sample topic that quotes this feedback, so the panel's AI analysis has something to show.
+    points: TOPICS.flatMap((seed) =>
+      seed.quotes
+        .filter(([, quote]) => quote === text)
+        .map(([sentiment, quote, violation]) => ({
+          topicId: seed.id,
+          topic: seed.label,
+          sentiment,
+          violation: Boolean(violation),
+          text: quote,
+        })),
+    ),
   })),
 }

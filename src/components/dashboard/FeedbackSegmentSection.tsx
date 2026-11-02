@@ -2,7 +2,7 @@ import { AlertTriangle, ArrowRight, Check, ChevronDown, Loader2, MessageSquareTe
 import { useMemo, useState } from 'react'
 
 import type { ViolationReview } from '../../api/analytics'
-import type { FeedbackPoint, FeedbackSentiment } from '../../data/dashboardAnalytics'
+import type { FeedbackPoint } from '../../data/dashboardAnalytics'
 import { showAlert } from '../../lib/alertDialog'
 import { ApiError } from '../../lib/api'
 import { includesNeedle, toNeedle } from '../../lib/textSearch'
@@ -17,6 +17,7 @@ import {
 import { FeedbackFilter, type DemographicFilterGroup } from './FeedbackFilter'
 import { Highlight } from './Highlight'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { SENTIMENT_BADGE_CLASSES } from './sentimentColors'
 import { needsReview } from './violationReview'
 import { ViolationTooltip } from './ViolationTooltip'
 
@@ -27,11 +28,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'oldest', label: 'Oldest' },
 ]
 
-const SENTIMENT_BADGE_CLASSES: Record<FeedbackSentiment, string> = {
-  negative: 'bg-[#f9eaea] text-[#e12b0c]',
-  neutral: 'bg-[#fdf3e0] text-[#b7791f]',
-  positive: 'bg-[#eaf9ec] text-[#08882c]',
-}
 
 function formatFeedbackDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {

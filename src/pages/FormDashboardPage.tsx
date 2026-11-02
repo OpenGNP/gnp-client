@@ -1293,6 +1293,12 @@ export function FormDashboardPage({
             onClose={() => setSelectedResponseId(null)}
             onNext={() => stepResponse(1)}
             onPrevious={() => stepResponse(-1)}
+            onOpenTopic={(topicId) => {
+              selectTopic(topicId)
+              setActiveView('themes')
+              window.scrollTo({ top: 0 })
+            }}
+            openableTopicIds={new Set(themes?.aiDiscoveredTopics.map((topic) => topic.id))}
             query={responseQuery}
             response={selectedResponse}
             total={responseResults.length}
