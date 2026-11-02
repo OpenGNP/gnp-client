@@ -4,12 +4,13 @@ import type { FeedbackPoint, FeedbackSentiment, FormTrendAnalytics, WhatChanged 
 
 export const SAMPLE_RESPONSE_COUNT = 214
 
+/** Raw answers, each with the topic the AI filed it under (ids from LANDING_TOPICS). */
 export const RAW_COMMENTS = [
-  'Swapping a shift still means three emails and a phone call.',
-  'My manager actually listens when I raise something.',
-  'Getting a swap approved takes days if my supervisor is away.',
-  'Overtime on my payslip never matches what I worked.',
-  'First week was great, but nobody showed me the HR system.',
+  { text: 'Swapping a shift still means three emails and a phone call.', topicId: 'shift' },
+  { text: 'My manager actually listens when I raise something.', topicId: 'managers' },
+  { text: 'Getting a swap approved takes days if my supervisor is away.', topicId: 'shift' },
+  { text: 'Overtime on my payslip never matches what I worked.', topicId: 'pay' },
+  { text: 'First week was great, but nobody showed me the HR system.', topicId: 'onboarding' },
 ]
 
 export type LandingTopic = {

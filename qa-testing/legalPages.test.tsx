@@ -23,7 +23,7 @@ describe('legal pages', () => {
     expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     expect(hrefs('Terms of Use')).toEqual(['/terms'])
     expect(hrefs('Privacy Notice')).toEqual(['/privacy'])
-    expect(hrefs('Back to GNP')).toEqual(['/', '/'])
+    expect(hrefs('Back to OpenGNP')).toEqual(['/', '/'])
   })
 
   it('from a form, goes back to that form (a respondent has no account to sign in to)', () => {
@@ -34,6 +34,6 @@ describe('legal pages', () => {
 
   it('ignores a `from` that isn\'t one of our form links', () => {
     renderAt(PrivacyPage, '/privacy?from=https%3A%2F%2Fevil.example')
-    expect(hrefs('Back to GNP')).toEqual(['/', '/'])
+    expect(hrefs('Back to OpenGNP')).toEqual(['/', '/'])
   })
 })

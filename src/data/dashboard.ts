@@ -38,7 +38,7 @@ export const brand = {
   // The one logo file, used everywhere (favicon too, from index.html). It's square with
   // room around the wordmark: show it with object-cover in a ~1.9:1 box.
   logo: logoGnp,
-  name: 'GNP',
+  name: 'OpenGNP',
 }
 
 export const user = {
