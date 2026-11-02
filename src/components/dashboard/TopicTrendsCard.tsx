@@ -132,7 +132,7 @@ export function TopicTrendsCard({
   // What clicking `id` will do — one wording for the chart's lines and the panel's rows.
   const pinHint = (id: string, label: string) =>
     pinnedTopic === id
-      ? 'Pinned — click to unpin'
+      ? 'Pinned. Click to unpin'
       : pinnedTopic
         ? `Click to highlight ${label} instead`
         : 'Click to keep this topic highlighted'
