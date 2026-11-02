@@ -1,41 +1,14 @@
 import { useState } from 'react'
-import { Cell, Pie, PieChart, Tooltip } from 'recharts'
-import type { TooltipContentProps } from 'recharts'
+import { Cell, Pie, PieChart } from 'recharts'
 
-import type { DemographicOption, SingleChoiceBreakdown } from '../../data/dashboardAnalytics'
+import type { SingleChoiceBreakdown } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
 import { getDemographicColor } from './demographicColors'
 
+const share = (value: number, total: number) => (total > 0 ? Math.round((value / total) * 100) : 0)
+
 export type DemographicPieCardProps = {
   breakdown: SingleChoiceBreakdown
-}
-
-function DemographicTooltip({
-  active,
-  payload,
-  totalResponses,
-}: TooltipContentProps & { totalResponses: number }) {
-  const entry = payload?.[0]
-
-  if (!active || !entry) {
-    return null
-  }
-
-  const option = entry.payload as DemographicOption
-  const percent = totalResponses > 0 ? Math.round((option.value / totalResponses) * 100) : 0
-
-  return (
-    <div className="flex items-center gap-2 rounded-[8px] border border-[#e8eaf1] bg-white px-3 py-2 text-[12px] whitespace-nowrap shadow-[0_8px_24px_rgba(15,23,42,0.14)]">
-      <span
-        className="size-2.5 shrink-0 rounded-full"
-        style={{ backgroundColor: entry.color }}
-      />
-      <span className="font-medium text-[#14181f]">{option.label}</span>
-      <span className="text-[#726f6f]">
-        {option.value} ({percent}%)
-      </span>
-    </div>
-  )
 }
 
 export function DemographicPieCard({ breakdown }: DemographicPieCardProps) {
@@ -47,34 +20,28 @@ export function DemographicPieCard({ breakdown }: DemographicPieCardProps) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-3.25 py-10">
+    <div className="@container flex w-full flex-col gap-3.25 py-10">
       <div className="flex flex-col gap-2 px-7.5">
         <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
         <p className="m-0 text-[12px] font-medium text-[#726f6f]">
-          Response: {totalResponses}
+          {totalResponses} {totalResponses === 1 ? 'response' : 'responses'}
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-5 px-10 max-[560px]:px-4">
+      <div className="flex flex-col items-center justify-center gap-5 px-7.5 @md:flex-row max-[560px]:px-4">
         <div
           aria-label={`${breakdown.title} breakdown`}
           className="shrink-0"
           role="img"
         >
-          <PieChart height={260} width={260}>
-            <Tooltip
-              content={(tooltipProps) => (
-                <DemographicTooltip {...tooltipProps} totalResponses={totalResponses} />
-              )}
-              cursor={false}
-            />
+          <PieChart height={200} width={200}>
             <Pie
-              cx={130}
-              cy={130}
+              cx={100}
+              cy={100}
               data={breakdown.options}
               dataKey="value"
               isAnimationActive={false}
-              outerRadius={120}
+              outerRadius={96}
               stroke="#fff"
               strokeWidth={2}
             >
@@ -86,18 +53,17 @@ export function DemographicPieCard({ breakdown }: DemographicPieCardProps) {
                   key={option.id}
                   onMouseEnter={() => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(null)}
-                  style={{ cursor: 'pointer' }}
                 />
               ))}
             </Pie>
           </PieChart>
         </div>
 
-        <div className="flex flex-col gap-3.75">
+        <div className="flex min-w-0 flex-col gap-3.75">
           {breakdown.options.map((option, index) => (
             <span
               className={cn(
-                '-mx-1.5 flex cursor-pointer items-center gap-2 rounded-[6px] px-1.5 py-0.5 transition-all duration-150',
+                '-mx-1.5 flex items-center gap-2 rounded-[6px] px-1.5 py-0.5 transition-all duration-150',
                 activeIndex === index ? 'bg-[#f7f8fb]' : 'bg-transparent',
                 isDimmed(index) && 'opacity-50',
               )}
@@ -111,11 +77,14 @@ export function DemographicPieCard({ breakdown }: DemographicPieCardProps) {
               />
               <span
                 className={cn(
-                  'text-[14px] text-[#404040]',
-                  activeIndex === index && 'font-semibold text-[#14181f]',
+                  'min-w-0 text-[14px] text-[#404040]',
+                  activeIndex === index && 'text-[#14181f]',
                 )}
               >
                 {option.label}
+              </span>
+              <span className="shrink-0 text-[12px] whitespace-nowrap text-[#726f6f]">
+                {option.value} ({share(option.value, totalResponses)}%)
               </span>
             </span>
           ))}

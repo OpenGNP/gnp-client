@@ -603,6 +603,11 @@ export function FormDashboardPage({
     window.scrollTo({ top: 0 })
   }
 
+  const openIndividual = () => {
+    setActiveView('individual')
+    window.scrollTo({ top: 0 })
+  }
+
   // Themes panel → Individual tab with that response open. The topic stays selected,
   // so going back to Themes reopens it.
   const openResponse = (submissionId: number) => {
@@ -1108,12 +1113,14 @@ export function FormDashboardPage({
                         <ResponseOverviewSection
                           breakdowns={responses.demographic}
                           hideNames={hideNames}
+                          onSearchAll={openIndividual}
                           title="Demographic overview"
                           tourId="response-demographic"
                         />
                         <ResponseOverviewSection
                           breakdowns={responses.feedback}
                           hideNames={hideNames}
+                          onSearchAll={openIndividual}
                           title="Feedback overview"
                           tourId="response-feedback"
                         />

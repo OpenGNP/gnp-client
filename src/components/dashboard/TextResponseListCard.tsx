@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { MessageSquareText } from 'lucide-react'
+import { ChevronRight, MessageSquareText } from 'lucide-react'
 
 import type { TextResponse, TextResponseBreakdown } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
 import { Pagination } from './Pagination'
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 10
 const LONG_RESPONSE_THRESHOLD = 220
 
 const toTextResponse = (response: string | TextResponse): TextResponse =>
@@ -55,9 +55,11 @@ export type TextResponseListCardProps = {
   breakdown: TextResponseBreakdown
   /** The dashboard's "Hide names" toggle. */
   hideNames?: boolean
+  /** Goes to the Individual tab, where answers can be searched. */
+  onSearchAll?: () => void
 }
 
-export function TextResponseListCard({ breakdown, hideNames = false }: TextResponseListCardProps) {
+export function TextResponseListCard({ breakdown, hideNames = false, onSearchAll }: TextResponseListCardProps) {
   const [page, setPage] = useState(1)
 
   const responses = breakdown.responses.map(toTextResponse)
@@ -71,11 +73,23 @@ export function TextResponseListCard({ breakdown, hideNames = false }: TextRespo
 
   return (
     <div className="flex w-full flex-col gap-5 py-10">
-      <div className="flex flex-col gap-2 px-7.5">
-        <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
-        <p className="m-0 text-[12px] font-medium text-[#726f6f]">
-          Response: {responses.length}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-7.5">
+        <div className="flex flex-col gap-2">
+          <p className="m-0 text-[14px] font-medium text-black">{breakdown.title}</p>
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">
+            {responses.length} {responses.length === 1 ? 'response' : 'responses'}
+          </p>
+        </div>
+        {onSearchAll && totalPages > 1 ? (
+          <button
+            className="flex cursor-pointer items-center gap-0.5 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#1e55c5] hover:underline"
+            onClick={onSearchAll}
+            type="button"
+          >
+            Search all in Individual
+            <ChevronRight size={14} />
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 px-10 max-[560px]:px-4">
