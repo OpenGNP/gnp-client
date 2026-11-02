@@ -23,7 +23,6 @@ import { ViolationTooltip } from '../components/dashboard/ViolationTooltip'
 import { ChangeTag } from '../components/dashboard/TopicSentimentCard'
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
 import {
@@ -47,12 +46,6 @@ const AXIS_MAX = 50
 
 const linkClass =
   'rounded-[4px] text-[#1e55c5] underline-offset-3 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]'
-
-function SampleTag() {
-  return (
-    <span className="shrink-0 rounded-full bg-[#fff4d9] px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-[#7a5a00]">Sample data</span>
-  )
-}
 
 /** The real sign-in, so the page's action works in place (the email form stands in when MSAL isn't configured). */
 function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
@@ -145,18 +138,16 @@ function dashboardRows(sample: LandingSample): DashboardRow[] {
 /** The app's window, as every demo on this page shows it: chrome, the form's name, its view tabs. */
 function AppFrame({
   sample,
-  tab,
   className = '',
   children,
 }: {
   sample: LandingSample
-  tab: 'Themes' | 'Trend' | 'Response' | 'Individual'
   className?: string
   children: React.ReactNode
 }) {
   return (
     <div
-      aria-label={`Sample dashboard for ${sample.formTitle}, ${tab} tab`}
+      aria-label={`Sample dashboard for ${sample.formTitle}`}
       className={`mx-auto w-full max-w-224 min-w-0 overflow-hidden rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.12)] ${className}`}
       role="group"
     >
@@ -166,34 +157,17 @@ function AppFrame({
         <span className="size-2.5 rounded-full bg-[#d9dde6]" />
       </div>
       <div className="flex flex-col gap-4 p-6 max-[560px]:p-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="m-0 text-[20px] font-semibold text-[#14181f]">{sample.formTitle}</p>
-          <SampleTag />
+          <Link
+            className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#1e55c5] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+            to="/demo"
+          >
+            Open the full demo
+            <ArrowRight aria-hidden size={14} />
+          </Link>
         </div>
-        {/* The other tabs open that tab in /demo: the picture shows one, the demo has them all. */}
-        <div className="flex flex-wrap gap-2.5">
-          {(['Themes', 'Trend', 'Response', 'Individual'] as const).map((name) => {
-            const pill = 'inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold'
-            return name === tab ? (
-              <span className={`${pill} bg-[#1e55c5] text-white`} key={name}>
-                {name}
-              </span>
-            ) : (
-              <Tooltip delayDuration={200} key={name}>
-                <TooltipTrigger asChild>
-                  <Link
-                    aria-label={`Open the ${name} tab in the demo`}
-                    className={`${pill} border border-[#c9cfdb] text-[#726f6f] transition-colors hover:border-[#1e55c5] hover:text-[#1e55c5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]`}
-                    to={`/demo?view=${name.toLowerCase()}`}
-                  >
-                    {name}
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="top">Open in the demo</TooltipContent>
-              </Tooltip>
-            )
-          })}
-        </div>
+        {/* Themes only, and no tabs: the hero makes one point, and tabs here would invite clicks. */}
         {children}
       </div>
     </div>
@@ -353,7 +327,7 @@ function DashboardPicture({
   const share = (n: number) => `${(n / allMentions) * 100}%`
   const flagged = sample.whatChanged.rows.reduce((sum, row) => sum + row.violations, 0)
   return (
-    <AppFrame sample={sample} tab="Themes">
+    <AppFrame sample={sample}>
           <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
             <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
               <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
@@ -814,7 +788,6 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
                 <span className="text-[13px] font-semibold text-[#14181f]">
                   {sample.responseCount} answers in, {rows.length} topics out
                 </span>
-                <SampleTag />
               </div>
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
                 {sample.comments.slice(0, 4).map((comment) => (
@@ -863,7 +836,6 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
                     </ViolationTooltip>
                   ) : null}
                 </p>
-                <SampleTag />
               </div>
               <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
             </div>
