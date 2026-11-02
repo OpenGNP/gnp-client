@@ -57,7 +57,7 @@ export function CoverImageField({
             <Image size={18} strokeWidth={2.1} />
             <span>Add cover</span>
           </button>
-          <span className="text-[12px] text-[#b0b1b3]">{COVER_HINT}</span>
+          <span className="text-[12px] text-[#726f6f]">{COVER_HINT}</span>
         </div>
       )}
 

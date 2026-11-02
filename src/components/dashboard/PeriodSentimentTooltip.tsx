@@ -57,7 +57,7 @@ export function PeriodSentimentDetail({
   const smallSample = showCount && total > 0 && total < SMALL_SAMPLE_MENTIONS
   return (
     <div className="flex flex-col gap-1">
-      <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#929292]">
+      <p className="m-0 flex items-center gap-1.5 text-[11px] text-[#726f6f]">
         {/* "13 Oct: Shift swaps, 8 mentions" */}
         <span className="font-semibold text-[#14181f]">
           {label}
@@ -86,7 +86,7 @@ export function PeriodSentimentDetail({
         ) : null}
       </p>
       {total === 0 ? (
-        <p className="m-0 text-[11px] text-[#929292]">No feedback in this period</p>
+        <p className="m-0 text-[11px] text-[#726f6f]">No feedback in this period</p>
       ) : counts === undefined && mentions !== undefined ? null : (
         <p className="m-0 flex items-center gap-3">
           {SENTIMENT_KEYS.map((key) => (
@@ -98,12 +98,12 @@ export function PeriodSentimentDetail({
               />
               <span className="text-[#726f6f]">{sentimentName(key)}</span>
               <span className="font-semibold text-[#14181f]">{shares[key]}%</span>
-              {counts ? <span className="text-[11px] text-[#929292]">({counts[key]})</span> : null}
+              {counts ? <span className="text-[11px] text-[#726f6f]">({counts[key]})</span> : null}
             </span>
           ))}
         </p>
       )}
-      {note ? <p className="m-0 text-[11px] text-[#929292]">{note}</p> : null}
+      {note ? <p className="m-0 text-[11px] text-[#726f6f]">{note}</p> : null}
     </div>
   )
 }

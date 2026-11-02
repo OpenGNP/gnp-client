@@ -30,7 +30,7 @@ export function SentimentBreakdownTooltip({
     <div className="flex flex-col gap-1.5">
       {title ? <span className="max-w-60 truncate font-medium text-[#14181f]">{title}</span> : null}
       {score ? (
-        <span className="text-[#929292]">
+        <span className="text-[#726f6f]">
           Score:{' '}
           <span className="font-medium text-[#14181f]">
             {score.value} / {score.outOf}
@@ -54,8 +54,8 @@ export function SentimentBreakdownTooltip({
         ))}
       </div>
       {unit === 'count' ? (
-        <span className="border-t border-[#eef0f4] pt-1 text-[#929292]">
-          Total: <span className="font-medium text-[#14181f]">{total} feedback points</span>
+        <span className="border-t border-[#eef0f4] pt-1 text-[#726f6f]">
+          Total: <span className="font-medium text-[#14181f]">{total} mentions</span>
         </span>
       ) : null}
     </div>

@@ -120,14 +120,14 @@ export function ExportMenu({
               <span className="flex flex-col">
                 {option.label}
                 {option.description ? (
-                  <span className="text-[11px] leading-4 text-[#929292]">{option.description}</span>
+                  <span className="text-[11px] leading-4 text-[#726f6f]">{option.description}</span>
                 ) : null}
               </span>
             </DropdownMenuItem>
           ))}
           {scope?.length || !includeNames ? <DropdownMenuSeparator /> : null}
           {scope?.length ? (
-            <p className="m-0 flex max-w-56 items-start gap-1.5 px-3 py-1.5 text-[11px] leading-4 text-[#929292]">
+            <p className="m-0 flex max-w-56 items-start gap-1.5 px-3 py-1.5 text-[11px] leading-4 text-[#726f6f]">
               <ListFilter className="mt-0.5 shrink-0" size={12} />
               <span className="flex flex-col">
                 Only what the current filters show:
@@ -141,7 +141,7 @@ export function ExportMenu({
           ) : null}
           {includeNames ? null : (
             <>
-              <p className="m-0 flex max-w-56 items-start gap-1.5 px-3 py-1.5 text-[11px] leading-4 text-[#929292]">
+              <p className="m-0 flex max-w-56 items-start gap-1.5 px-3 py-1.5 text-[11px] leading-4 text-[#726f6f]">
                 <EyeOff className="mt-0.5 shrink-0" size={12} />
                 Names are hidden, so the file won’t include respondent names.
               </p>

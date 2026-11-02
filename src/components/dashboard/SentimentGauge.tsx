@@ -94,7 +94,7 @@ export function SentimentGauge({
     <Tooltip>
       <TooltipTrigger asChild>
         <svg
-          aria-label={`Sentiment score ${score} out of ${outOf}`}
+          aria-label={`Sentiment score ${score} out of ${outOf}, from 0 (most negative) to ${outOf} (most positive)`}
           className="shrink-0"
           height={(HEIGHT * width) / WIDTH}
           role="img"
@@ -132,12 +132,18 @@ export function SentimentGauge({
             y={CY + 29}
           >
             {total > 0 ? score : '–'}
+            {total > 0 ? (
+              <tspan fill="#726f6f" fontSize={9} fontWeight={400}>
+                /{outOf}
+              </tspan>
+            ) : null}
           </text>
-          <text fill="#929292" fontSize={10} textAnchor="middle" x={startLabel.x} y={labelY}>
-            0
+          {/* Words, not 0 / outOf, so the direction reads without the tooltip. */}
+          <text fill="#726f6f" fontSize={10} textAnchor="middle" x={startLabel.x} y={labelY}>
+            Neg
           </text>
-          <text fill="#929292" fontSize={10} textAnchor="middle" x={endLabel.x} y={labelY}>
-            {outOf}
+          <text fill="#726f6f" fontSize={10} textAnchor="middle" x={endLabel.x} y={labelY}>
+            Pos
           </text>
         </svg>
       </TooltipTrigger>

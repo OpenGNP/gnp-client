@@ -65,10 +65,10 @@ export function IndividualResponseList({
           className="flex min-w-60 flex-1 items-center gap-2 rounded-[8px] border border-[#e6e7eb] px-3 py-2 focus-within:border-[#1e55c5]"
           data-tour="individual-search"
         >
-          <Search className="shrink-0 text-[#929292]" size={16} />
+          <Search className="shrink-0 text-[#726f6f]" size={16} />
           <input
             aria-label="Search responses"
-            className="w-full bg-transparent text-[13px] text-black outline-none placeholder:text-[#929292]"
+            className="w-full bg-transparent text-[13px] text-black outline-none placeholder:text-[#726f6f]"
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search names or answers…"
             type="text"
@@ -77,7 +77,7 @@ export function IndividualResponseList({
           {query ? (
             <button
               aria-label="Clear search"
-              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#929292] hover:bg-[#f7f8fb] hover:text-black"
+              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-[#726f6f] hover:bg-[#f7f8fb] hover:text-black"
               onClick={() => onQueryChange('')}
               type="button"
             >
@@ -117,7 +117,7 @@ export function IndividualResponseList({
                       <span className="truncate text-[14px] font-semibold text-[#14181f]">
                         <Highlight query={query} text={labels.get(response.id) ?? ''} />
                       </span>
-                      <span className="shrink-0 text-[12px] text-[#929292]">
+                      <span className="shrink-0 text-[12px] text-[#726f6f]">
                         {formatDateTime(response.submittedAt)}
                       </span>
                     </span>
@@ -128,7 +128,7 @@ export function IndividualResponseList({
                       </span>
                     ) : null}
                   </span>
-                  <ChevronRight className="shrink-0 text-[#929292]" size={16} />
+                  <ChevronRight className="shrink-0 text-[#726f6f]" size={16} />
                 </button>
               </li>
             )

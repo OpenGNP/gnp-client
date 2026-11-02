@@ -101,7 +101,7 @@ export function ResponseDetailPanel({
             <X size={18} />
           </button>
         </div>
-        <p className="m-0 text-[12px] font-medium text-[#929292]">
+        <p className="m-0 text-[12px] font-medium text-[#726f6f]">
           {formatDateTime(response.submittedAt)}
           {!hideNames && response.respondentName ? ` (Response #${response.number})` : null}
         </p>
@@ -123,7 +123,7 @@ export function ResponseDetailPanel({
 
       {sections.map((section) => (
         <section className="flex flex-col gap-3" key={section.title}>
-          <h3 className="m-0 text-[11px] font-bold tracking-[0.6px] text-[#929292] uppercase">{section.title}</h3>
+          <h3 className="m-0 text-[11px] font-bold tracking-[0.6px] text-[#726f6f] uppercase">{section.title}</h3>
           <div className="flex flex-col divide-y divide-[#eef0f4] rounded-[10px] border border-[#e9eaed] p-4">
             {section.fields.map((field) => (
               <FieldAnswer

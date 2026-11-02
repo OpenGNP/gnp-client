@@ -157,7 +157,7 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
           </p>
         )}
         {tentative ? (
-          <p className="m-0 text-[11px] text-[#929292]">Too few mentions to tell this from chance</p>
+          <p className="m-0 text-[11px] text-[#726f6f]">Too few mentions to tell this from chance</p>
         ) : null}
       </TooltipContent>
     </HoverTooltip>
@@ -247,7 +247,7 @@ function WhatChangedGroup({
     <>
       <Icon className="shrink-0" size={15} />
       {title}
-      <span className="font-medium text-[#929292]">{rows.length}</span>
+      <span className="font-medium text-[#726f6f]">{rows.length}</span>
     </>
   )
   const list = (
@@ -319,7 +319,7 @@ export function WhatChangedCard({
                 <TooltipTrigger asChild>
                   <button
                     aria-label="How What changed is worked out"
-                    className="flex size-5 cursor-help items-center justify-center rounded-full text-[#929292] transition-colors hover:text-[#3f4045]"
+                    className="flex size-5 cursor-help items-center justify-center rounded-full text-[#726f6f] transition-colors hover:text-[#3f4045]"
                     type="button"
                   >
                     <Info size={15} />
@@ -339,7 +339,7 @@ export function WhatChangedCard({
             ) : null}
           </div>
           {data && data.rows.length > 0 ? (
-            <span className="flex w-44 shrink-0 items-center justify-center gap-3 text-[11px] font-medium text-[#929292] max-[640px]:hidden">
+            <span className="flex w-44 shrink-0 items-center justify-center gap-3 text-[11px] font-medium text-[#726f6f] max-[640px]:hidden">
               <span className="flex items-center gap-1">
                 <span
                   aria-hidden="true"
@@ -361,16 +361,16 @@ export function WhatChangedCard({
       </div>
 
       {!data ? (
-        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#929292]">
+        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#726f6f]">
           Not enough feedback yet to compare two complete periods in this range.
         </p>
       ) : data.rows.length === 0 ? (
-        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#929292]">
+        <p className="m-0 px-5.5 py-3 text-[12px] leading-4.5 text-[#726f6f]">
           No big changes since {data.previousLabel}
         </p>
       ) : (
         <>
-          <div className="mt-2 flex items-center gap-4 px-5.5 text-[12px] font-medium text-[#929292] max-[640px]:hidden">
+          <div className="mt-2 flex items-center gap-4 px-5.5 text-[12px] font-medium text-[#726f6f] max-[640px]:hidden">
             {/* Same cap as a row's button (minus its 22px left inset), so columns line up. */}
             <span className="flex min-w-0 max-w-[858px] flex-1 items-center gap-4">
               <span className="min-w-0 flex-1">Topic</span>

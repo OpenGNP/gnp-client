@@ -36,7 +36,7 @@ function FilterSection({
       <CollapsibleTrigger className="group flex w-full cursor-pointer items-center justify-between py-2.5 text-[13px] font-medium text-[#3f4045] outline-none">
         {label}
         <ChevronDown
-          className="text-[#929292] transition-transform group-data-[state=open]:rotate-180"
+          className="text-[#726f6f] transition-transform group-data-[state=open]:rotate-180"
           size={16}
         />
       </CollapsibleTrigger>
@@ -179,7 +179,7 @@ export function FeedbackFilter({
               <TriangleAlert className="shrink-0 text-[#e0507a]" size={14} />
               Violations only
               {violationCount !== undefined ? (
-                <span className="text-[#929292]">({violationCount})</span>
+                <span className="text-[#726f6f]">({violationCount})</span>
               ) : null}
             </span>
             <Switch checked={violationsOnly} onCheckedChange={onToggleViolationsOnly} />
@@ -190,7 +190,7 @@ export function FeedbackFilter({
             <span className="flex items-center gap-1.5">
               <TriangleAlert className="shrink-0 text-[#b7791f]" size={14} />
               Needs review
-              {needsReviewCount !== undefined ? <span className="text-[#929292]">({needsReviewCount})</span> : null}
+              {needsReviewCount !== undefined ? <span className="text-[#726f6f]">({needsReviewCount})</span> : null}
             </span>
             <Switch checked={needsReviewOnly} onCheckedChange={onToggleNeedsReviewOnly} />
           </label>

@@ -103,7 +103,7 @@ function DateChipInput({
       <CalendarIcon className="shrink-0" size={16} />
       <input
         aria-label={ariaLabel}
-        className="w-18.5 bg-transparent text-black outline-none placeholder:text-[#929292]"
+        className="w-18.5 bg-transparent text-black outline-none placeholder:text-[#726f6f]"
         maxLength={10}
         onBlur={(event) => commit(event.currentTarget.value)}
         onChange={(event) => setText(event.target.value)}
@@ -244,7 +244,7 @@ export function DateRangeFilter({
                 className={`self-start text-[12px] ${
                   draftPreset === 'all'
                     ? 'font-semibold text-[#1e55c5]'
-                    : 'font-medium text-[#929292]'
+                    : 'font-medium text-[#726f6f]'
                 }`}
                 onClick={handleResetClick}
                 type="button"
@@ -260,7 +260,7 @@ export function DateRangeFilter({
                     className={
                       draftPreset === preset.key
                         ? 'font-semibold text-[#1e55c5]'
-                        : 'font-medium text-[#929292]'
+                        : 'font-medium text-[#726f6f]'
                     }
                     key={preset.key}
                     onClick={() => handlePresetClick(preset.key)}
@@ -273,7 +273,7 @@ export function DateRangeFilter({
                   className={
                     draftPreset === 'custom'
                       ? 'font-semibold text-[#1e55c5]'
-                      : 'font-medium text-[#929292]'
+                      : 'font-medium text-[#726f6f]'
                   }
                   onClick={() => setDraftPreset('custom')}
                   type="button"
