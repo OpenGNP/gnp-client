@@ -139,7 +139,7 @@ describe('pages on React Query', () => {
   it('dashboard loads every source once and heads the page with the form name', async () => {
     renderAt(`/forms/${URL_ID}/dashboard`, '/forms/:projectId/dashboard', <FormDashboardPage />)
     expect(await screen.findByRole('heading', { level: 1, name: 'Canteen survey' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Themes Overview' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Themes overview' })).toBeInTheDocument()
     await waitFor(() => expect(count('/analytics/forms/4/trend')).toBe(1))
     expect(count('/forms/4')).toBe(1)
     expect(count('/analytics/forms/4/responses')).toBe(1)

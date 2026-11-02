@@ -161,7 +161,7 @@ export function PublishModal({
   return (
     <div className="flex w-[400px] max-w-[calc(100vw-32px)] flex-col gap-4 rounded-[10px] border border-[#d2d8e5] bg-white p-6 text-black shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
       <div className="flex items-center justify-between gap-3">
-        <p className="m-0 text-[17px] leading-6 font-bold text-black">Publish Setting</p>
+        <p className="m-0 text-[17px] leading-6 font-bold text-black">Publish settings</p>
         <ResponseStateChip badge={badge} />
       </div>
 

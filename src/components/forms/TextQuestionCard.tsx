@@ -54,7 +54,7 @@ export function TextQuestionCard({
           chipClassName="bg-[#e8eeff] text-[#1e55c5]"
           className="w-[203px]"
           icon={<MessageSquareText size={15} />}
-          label={isLong ? 'Long Answer' : 'Short Answer'}
+          label={isLong ? 'Long answer' : 'Short answer'}
           onCheckedChange={(checked) =>
             onChange({ ...question, answerLength: checked ? 'long' : 'short' })
           }
