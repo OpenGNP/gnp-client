@@ -1,5 +1,6 @@
 import type {
   DemographicBreakdown,
+  FeedbackPoint,
   FormTrendAnalytics,
   TopicSentiment,
   TrendBucket,
@@ -192,7 +193,10 @@ export function getFormTrendAnalytics(
 /** A reviewer's call on a flagged point; null undoes it (the AI's own level shows again). */
 export type ViolationReview = 'confirmed' | 'dismissed' | null
 
+/** How the point reads after a review, so the card updates without a refetch. */
+export type ViolationReviewResult = Pick<FeedbackPoint, 'violationStatus'> & { violation: boolean }
+
 /** Form owner only. */
 export function reviewViolation(pointId: string, status: ViolationReview) {
-  return apiPatch<null>(`/analytics/points/${pointId}/violation`, { status })
+  return apiPatch<ViolationReviewResult>(`/analytics/points/${pointId}/violation`, { status })
 }

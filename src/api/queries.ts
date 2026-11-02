@@ -26,6 +26,9 @@ export const queryKeys = {
   individual: (id: number) => ['analytics', id, 'individual'] as const,
   themes: (id: number, query: ThemeQuery) => ['analytics', id, 'themes', query] as const,
   trend: (id: number, query: TrendQuery) => ['analytics', id, 'trend', query] as const,
+  /** Every themes / trend query of a form, whatever its filters. */
+  allThemes: (id: number) => ['analytics', id, 'themes'] as const,
+  allTrends: (id: number) => ['analytics', id, 'trend'] as const,
   publicByToken: (token: string) => ['public-form', 'token', token] as const,
   session: ['session'] as const,
   me: ['me'] as const,
