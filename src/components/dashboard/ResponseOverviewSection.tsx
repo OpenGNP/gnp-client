@@ -1,5 +1,6 @@
 import type { DemographicBreakdown } from '../../data/dashboardAnalytics'
 import { cn } from '../../lib/utils'
+import { DEMOGRAPHIC_COLORS } from './demographicColors'
 import { DemographicPieCard } from './DemographicPieCard'
 import { MultiChoiceBarCard } from './MultiChoiceBarCard'
 import { TextResponseListCard } from './TextResponseListCard'
@@ -9,22 +10,36 @@ export type DemographicOverviewSectionProps = {
   breakdowns: DemographicBreakdown[]
   /** The dashboard's "Hide names" toggle (text responses). */
   hideNames?: boolean
+  onSearchAll?: () => void
   /** Its heading's `data-tour` target. */
   tourId?: string
 }
 
-function BreakdownCard({ breakdown, hideNames }: { breakdown: DemographicBreakdown; hideNames?: boolean }) {
+function BreakdownCard({
+  breakdown,
+  hideNames,
+  onSearchAll,
+}: {
+  breakdown: DemographicBreakdown
+  hideNames?: boolean
+  onSearchAll?: () => void
+}) {
   switch (breakdown.kind) {
     case 'single-choice':
-      return <DemographicPieCard breakdown={breakdown} />
+      // Past the palette, pie slices would repeat colours; bars are labelled per row.
+      return breakdown.options.length > DEMOGRAPHIC_COLORS.length ? (
+        <MultiChoiceBarCard breakdown={breakdown} />
+      ) : (
+        <DemographicPieCard breakdown={breakdown} />
+      )
     case 'multi-choice':
       return <MultiChoiceBarCard breakdown={breakdown} />
     case 'text':
-      return <TextResponseListCard breakdown={breakdown} hideNames={hideNames} />
+      return <TextResponseListCard breakdown={breakdown} hideNames={hideNames} onSearchAll={onSearchAll} />
   }
 }
 
-export function ResponseOverviewSection({ title, breakdowns, hideNames, tourId }: DemographicOverviewSectionProps) {
+export function ResponseOverviewSection({ title, breakdowns, hideNames, onSearchAll, tourId }: DemographicOverviewSectionProps) {
   if (breakdowns.length === 0) {
     return null
   }
@@ -47,7 +62,7 @@ export function ResponseOverviewSection({ title, breakdowns, hideNames, tourId }
             )}
             key={breakdown.id}
           >
-            <BreakdownCard breakdown={breakdown} hideNames={hideNames} />
+            <BreakdownCard breakdown={breakdown} hideNames={hideNames} onSearchAll={onSearchAll} />
           </div>
         ))}
       </div>
