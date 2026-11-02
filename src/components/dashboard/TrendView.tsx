@@ -433,12 +433,12 @@ function TimelineCard({
     else groups.push({ bucketIndex: event.bucketIndex, events: [event] })
   }
   return (
-    <section className="flex flex-col gap-3 rounded-[15px] border border-[#f3f4f5] bg-white px-5.75 py-3">
+    <section className="flex flex-col gap-3 rounded-[15px] border border-[#e9eaed] bg-white px-5.5 pt-2.5 pb-4">
       <h2 className="m-0 text-[16px] leading-9.25 font-semibold tracking-[0.16px] text-black">
-        Timeline of Key Events
+        Unusual spikes
       </h2>
       {events.length === 0 ? (
-        <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#73777e]">
+        <p className="m-0 pb-3 text-[12px] tracking-[0.12px] text-[#726f6f]">
           No unusual spikes in this range.
         </p>
       ) : (
@@ -449,7 +449,7 @@ function TimelineCard({
           />
           {groups.map((group) => (
             <li className="flex flex-col" key={group.bucketIndex}>
-              <p className="m-0 py-0.5 pl-6.5 text-[12px] font-semibold tracking-[0.12px] text-[#73777e]">
+              <p className="m-0 py-0.5 pl-6.5 text-[12px] font-semibold tracking-[0.12px] text-[#726f6f]">
                 {periodOf(group.bucketIndex)}
               </p>
               <ul className="m-0 flex list-none flex-col p-0">
@@ -496,11 +496,11 @@ function TimelineCard({
                         >
                           <span className="block font-semibold">{label}</span>
                           {event.count} mentions, usually ~{event.usual}
-                          <span className="block text-[#73777e]">
+                          <span className="block text-[#726f6f]">
                             {isPinned
                               ? 'Pinned. Click to unpin'
                               : color
-                                ? 'Click to highlight on Topic Trends'
+                                ? 'Click to highlight on Mentions over time'
                                 : 'Not on the chart. Click to add it'}
                           </span>
                         </TooltipContent>
@@ -528,10 +528,10 @@ function TimelineCard({
 
 export type TrendViewProps = {
   trend: FormTrendAnalytics
-  /** The topic picker — it only changes which lines Topic Trends draws, so it lives on that card. */
+  /** The topic picker — it only changes which lines Mentions over time draws, so it lives on that card. */
   topicControl?: React.ReactNode
   /**
-   * Pinned topic in Topic Trends (it also switches that card's sentiment strip). Owned
+   * Pinned topic in Mentions over time (it also switches that card's sentiment strip). Owned
    * by the page so the Themes tab's "Compare with other topics" can open it pinned.
    */
   pinned: string | null

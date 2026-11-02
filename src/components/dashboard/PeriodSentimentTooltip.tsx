@@ -39,7 +39,7 @@ type PeriodSentimentDetailProps = {
 
 /**
  * The tooltip's contents without its box, for hosts that draw their own (the Radix
- * TooltipContent on Topic Trends' panel rows).
+ * TooltipContent on Mentions over time's panel rows).
  */
 export function PeriodSentimentDetail({
   label,

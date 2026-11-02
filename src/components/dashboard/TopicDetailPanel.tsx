@@ -263,7 +263,7 @@ export function TopicDetailPanel({
 
       <div className="flex flex-col gap-3 rounded-[10px] border border-[#e9eaed] p-4">
         <div className="flex items-center justify-between gap-3">
-          {/* Not "Topic Trends": that's the Trend tab's multi-topic line chart. */}
+          {/* Not "Mentions over time": that is the Trend tab's multi-topic line chart. */}
           <p className="m-0 text-[12px] font-medium text-[#929292]">Mentions over time</p>
           <div className="flex items-center gap-3">
             <label className="flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-[#5f6368]">
