@@ -444,7 +444,7 @@ export type LandingSample = {
 /** Made-up results for the signed-out landing page, shown under a "Sample data" label. */
 export const LANDING_SAMPLES: Record<LandingSampleId, LandingSample> = {
   workplace: {
-    formTitle: 'Staff pulse survey, October',
+    formTitle: 'Staff pulse survey',
     responseCount: WORKPLACE_RESPONSE_COUNT,
     comments: WORKPLACE_COMMENTS,
     topics: WORKPLACE_TOPICS,
@@ -456,7 +456,7 @@ export const LANDING_SAMPLES: Record<LandingSampleId, LandingSample> = {
     pinnedTopic: 'shift',
   },
   event: {
-    formTitle: 'Open house visitor feedback, October',
+    formTitle: 'Open house visitor feedback',
     responseCount: 168,
     comments: EVENT_COMMENTS,
     topics: EVENT_TOPICS,

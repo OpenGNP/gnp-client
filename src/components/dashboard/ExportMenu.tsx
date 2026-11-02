@@ -83,7 +83,8 @@ export function ExportMenu({
     <div className="flex items-center gap-2">
       {failed ? <span className="text-[12px] text-destructive">Export failed</span> : null}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        {/* Disabled on the trigger too: it opens on pointerdown, which a disabled button still receives. */}
+        <DropdownMenuTrigger asChild disabled={pending || disabled}>
           {/* The dashboard's main action, so the one filled button in its row. */}
           <FormActionButton
             className="bg-[#1e55c5] hover:bg-[#1a49aa] disabled:hover:bg-[#1e55c5]"
