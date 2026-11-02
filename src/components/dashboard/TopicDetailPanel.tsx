@@ -282,20 +282,6 @@ export function TopicDetailPanel({
             ) : null}
           </div>
         </div>
-        {showSentiment ? (
-          <div className="-mt-1 flex flex-wrap items-center gap-3 text-[11px] text-[#726f6f]">
-            {SENTIMENT_KEYS.map((key) => (
-              <span className="flex items-center gap-1" key={key}>
-                <span
-                  aria-hidden="true"
-                  className="size-2 rounded-full"
-                  style={{ backgroundColor: SENTIMENT_COLORS[key] }}
-                />
-                {key[0]!.toUpperCase() + key.slice(1)}
-              </span>
-            ))}
-          </div>
-        ) : null}
         <div className="h-45 w-full">
           <ResponsiveContainer height="100%" width="100%">
             <BarChart
