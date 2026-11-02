@@ -185,10 +185,16 @@ function StatCard({
       onClick={onClick}
       type={onClick ? 'button' : undefined}
     >
-      <p className="m-0 w-full truncate text-[12px] font-medium text-[#726f6f]">{label}</p>
+      <p className="m-0 flex w-full min-w-0 items-center gap-1.5 text-[12px] font-medium text-[#726f6f]">
+        {/* The icon moves up here, small, while three cards share a narrow row. */}
+        <span aria-hidden="true" className="hidden shrink-0 @min-[34rem]:@max-[50rem]:flex [&_svg]:size-3.5">
+          {icon}
+        </span>
+        <span className="truncate">{label}</span>
+      </p>
       <div className="flex min-w-0 items-center gap-4.5 @min-[34rem]:@max-[50rem]:gap-2.5">
         <div
-          // Hidden while three cards share a narrow row: the number and its notes need the room.
+          // Moved next to the label (above) while three cards share a narrow row.
           className={`flex size-15.25 shrink-0 items-center justify-center rounded-[6px] @min-[34rem]:@max-[50rem]:hidden ${iconBgClassName}`}
         >
           {icon}
