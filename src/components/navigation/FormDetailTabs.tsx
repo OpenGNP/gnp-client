@@ -1,5 +1,7 @@
+import { useContext } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
+import { DemoContext } from '../../lib/demo'
 import { cn } from '../../lib/utils'
 import { ShareControl } from '../dashboard/ShareDialog'
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
@@ -25,9 +27,17 @@ export function FormDetailTabs({
   const { projectId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const isDashboardActive = location.pathname.endsWith('/dashboard')
+  // /demo keeps both tabs on one URL: the editor is ?mode=edit.
+  const demo = useContext(DemoContext)
+  const isDashboardActive = demo
+    ? new URLSearchParams(location.search).get('mode') !== 'edit'
+    : location.pathname.endsWith('/dashboard')
 
   function handleValueChange(value: string) {
+    if (demo) {
+      navigate(value === 'dashboard' ? '/demo' : '/demo?mode=edit')
+      return
+    }
     if (value === 'dashboard') {
       if (hasDashboardData) {
         navigate(`/forms/${encodeURIComponent(projectId ?? '')}/dashboard`)

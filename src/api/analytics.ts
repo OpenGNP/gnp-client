@@ -7,6 +7,7 @@ import type {
   TrendRank,
 } from '../data/dashboardAnalytics'
 import { apiGet, apiPatch, httpClient } from '../lib/api'
+import { DEMO_FORM_ID } from '../lib/demo'
 
 /**
  * The viewer's IANA time zone (e.g. "Asia/Bangkok"). Sent with the themes/trend
@@ -67,9 +68,11 @@ export type IndividualPoint = {
 
 export type FormIndividualResponses = { fields: IndividualField[]; responses: IndividualResponse[] }
 
+const analyticsPath = (formId: number) => (formId === DEMO_FORM_ID ? '/demo' : `/analytics/forms/${formId}`)
+
 /** Each submission's full answers, newest first — the Dashboard's Individual tab. */
 export function getFormIndividualResponses(formId: number): Promise<FormIndividualResponses> {
-  return apiGet<FormIndividualResponses>(`/analytics/forms/${formId}/individual`)
+  return apiGet<FormIndividualResponses>(`${analyticsPath(formId)}/individual`)
 }
 
 export type ResponseExportFormat = 'xlsx' | 'csv'
@@ -80,7 +83,7 @@ export async function downloadFormResponses(
   format: ResponseExportFormat,
   includeNames: boolean,
 ): Promise<Blob> {
-  const response = await httpClient.get<Blob>(`/forms/${formId}/export`, {
+  const response = await httpClient.get<Blob>(`${formId === DEMO_FORM_ID ? '/demo' : `/forms/${formId}`}/export`, {
     params: { format, tz: viewerTimeZone(), names: includeNames ? undefined : 0 },
     responseType: 'blob',
   })
@@ -88,7 +91,7 @@ export async function downloadFormResponses(
 }
 
 export function getFormResponseAnalytics(formId: number): Promise<FormResponseAnalytics> {
-  return apiGet<FormResponseAnalytics>(`/analytics/forms/${formId}/responses`)
+  return apiGet<FormResponseAnalytics>(`${analyticsPath(formId)}/responses`)
 }
 
 /**
@@ -148,7 +151,7 @@ export async function downloadFormThemes(
   if (tz) params.set('tz', tz)
   params.set('sort', sort)
   if (!includeNames) params.set('names', '0')
-  const response = await httpClient.get<Blob>(`/analytics/forms/${formId}/themes/export?${params}`, {
+  const response = await httpClient.get<Blob>(`${analyticsPath(formId)}/themes/export?${params}`, {
     responseType: 'blob',
   })
   return response.data
@@ -165,7 +168,7 @@ export function getFormThemeAnalytics(
   const tz = viewerTimeZone()
   if (tz) params.set('tz', tz)
   const qs = params.toString()
-  return apiGet<FormThemeAnalytics>(`/analytics/forms/${formId}/themes${qs ? `?${qs}` : ''}`)
+  return apiGet<FormThemeAnalytics>(`${analyticsPath(formId)}/themes${qs ? `?${qs}` : ''}`)
 }
 
 /**
@@ -199,7 +202,7 @@ export function getFormTrendAnalytics(
   const tz = viewerTimeZone()
   if (tz) params.set('tz', tz)
   const qs = params.toString()
-  return apiGet<FormTrendAnalytics>(`/analytics/forms/${formId}/trend${qs ? `?${qs}` : ''}`)
+  return apiGet<FormTrendAnalytics>(`${analyticsPath(formId)}/trend${qs ? `?${qs}` : ''}`)
 }
 
 /** A reviewer's call on a flagged point; null undoes it (the AI's own level shows again). */

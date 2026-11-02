@@ -1,4 +1,5 @@
 import { API_URL, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "../lib/api";
+import { DEMO_FORM_ID, demoSaveError } from "../lib/demo";
 import { asUtcIso } from "../lib/apiTimestamp";
 import { getRespondentDeviceId } from "../lib/respondentDevice";
 
@@ -206,7 +207,7 @@ export async function listForms(folderId?: number): Promise<ApiForm[]> {
 }
 
 export async function getForm(id: number): Promise<ApiFormDetail> {
-  const form = await apiGet<ApiFormDetail>(`/forms/${id}`);
+  const form = await apiGet<ApiFormDetail>(id === DEMO_FORM_ID ? "/demo/form" : `/forms/${id}`);
   const updatedAt = asUtcIso(form.updatedAt);
   return {
     ...form,
@@ -223,12 +224,14 @@ export async function getForm(id: number): Promise<ApiFormDetail> {
 
 /** Uploads (or replaces) a form's cover image. Returns the server's internal object key — most callers should just re-fetch the form rather than use it directly. */
 export function uploadFormCoverImage(id: number, file: File): Promise<{ coverImageUrl: string }> {
+  if (id === DEMO_FORM_ID) return Promise.reject(demoSaveError());
   const formData = new FormData();
   formData.append("file", file);
   return apiPost<{ coverImageUrl: string }>(`/forms/${id}/cover-image`, formData);
 }
 
 export function removeFormCoverImage(id: number): Promise<null> {
+  if (id === DEMO_FORM_ID) return Promise.reject(demoSaveError());
   return apiDelete<null>(`/forms/${id}/cover-image`);
 }
 
@@ -271,6 +274,7 @@ export async function listSharedForms(): Promise<ApiSharedForm[]> {
 
 /** Notes that I opened the form — drives "Date opened" sorting. Fire and forget. */
 export function recordFormOpen(formId: number): Promise<null> {
+  if (formId === DEMO_FORM_ID) return Promise.resolve(null);
   return apiPost<null>(`/forms/${formId}/open`);
 }
 
@@ -283,6 +287,7 @@ export type ApiCollaborator = {
 };
 
 export function getCollaborators(formId: number): Promise<ApiCollaborator[]> {
+  if (formId === DEMO_FORM_ID) return Promise.resolve([]);
   return apiGet<ApiCollaborator[]>(`/forms/${formId}/collaborators`);
 }
 
@@ -292,6 +297,7 @@ export function replaceCollaborators(
   emails: string[],
   showNamesToViewers?: boolean,
 ): Promise<ApiCollaborator[]> {
+  if (formId === DEMO_FORM_ID) return Promise.reject(demoSaveError());
   return apiPut<ApiCollaborator[]>(`/forms/${formId}/collaborators`, { emails, showNamesToViewers });
 }
 
@@ -299,10 +305,12 @@ export function updateForm(
   id: number,
   payload: UpdateFormPayload,
 ): Promise<{ id: number }> {
+  if (id === DEMO_FORM_ID) return Promise.reject(demoSaveError());
   return apiPatch<{ id: number }>(`/forms/${id}`, payload);
 }
 
 export function deleteForm(id: number): Promise<null> {
+  if (id === DEMO_FORM_ID) return Promise.reject(demoSaveError());
   return apiDelete<null>(`/forms/${id}`);
 }
 

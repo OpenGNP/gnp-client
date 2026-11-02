@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, RefreshCw, Share2 } from 'lucide-react'
 import { useContext, useState } from 'react'
-import { useParams } from 'react-router-dom'
 
 import { replaceCollaborators, type ApiCollaborator } from '../../api/forms'
-import { collaboratorsQuery, formQuery, formRefQuery, queryKeys } from '../../api/queries'
+import { collaboratorsQuery, formQuery, queryKeys } from '../../api/queries'
+import { useRouteForm } from '../../hooks/useRouteForm'
 import { ApiError } from '../../lib/api'
 import { SamplePreviewContext } from '../../lib/samplePreview'
 import { cn } from '../../lib/utils'
@@ -21,13 +21,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
  * Reads the route's form from the cache both pages already fill.
  */
 export function ShareControl() {
-  const { projectId: ref = '' } = useParams()
-  const formRef = useQuery({ ...formRefQuery(ref), enabled: ref !== '' }).data
-  const formId = formRef?.id ?? 0
-  const form = useQuery({ ...formQuery(formId), enabled: formId > 0 }).data
-  const role = form?.role ?? formRef?.role ?? 'owner'
+  const routeForm = useRouteForm()
+  const formId = routeForm.formId ?? 0
+  const form = useQuery({ ...formQuery(formId), enabled: routeForm.formId !== null }).data
+  const role = form?.role ?? routeForm.role
 
-  if (!formRef) return null
+  if (routeForm.formId === null) return null
   if (role === 'viewer') {
     const chip = (
       <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-[#f0f1f4] px-3 text-[12px] font-medium text-[#726f6f]">

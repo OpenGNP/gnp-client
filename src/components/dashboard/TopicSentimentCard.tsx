@@ -26,7 +26,7 @@ export type TopicChanges = {
 }
 
 /** "Worse" / "New" next to a topic's name; the tooltip says which periods were compared. */
-function ChangeTag({ kind, changes }: { kind: 'worse' | 'new'; changes: TopicChanges }) {
+export function ChangeTag({ kind, changes }: { kind: 'worse' | 'new'; changes: TopicChanges }) {
   const worse = kind === 'worse'
   return (
     <Tooltip delayDuration={200}>

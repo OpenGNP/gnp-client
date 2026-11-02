@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 
 import {
@@ -29,6 +29,7 @@ import { useRouteForm } from '../hooks/useRouteForm'
 import { FormLoadError } from '../components/FormLoadError'
 import { ApiError } from '../lib/api'
 import { showAlert } from '../lib/alertDialog'
+import { DemoContext } from '../lib/demo'
 import {
   accessSettingsFromForm,
   buildFieldPayloads,
@@ -59,6 +60,7 @@ export function EditFormPage({
   useRecordFormOpen(routeForm.role === 'owner' ? routeForm.formId : null)
 
   const queryClient = useQueryClient()
+  const demo = useContext(DemoContext)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [isPublished, setIsPublished] = useState(false)
@@ -203,6 +205,7 @@ export function EditFormPage({
       setSaveStatus('error')
       void showAlert(
         error instanceof ApiError ? error.message : 'Could not save the form. Please try again.',
+        demo ? { title: 'Sign in to save' } : undefined,
       )
     }
   }

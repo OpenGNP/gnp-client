@@ -13,7 +13,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import {
@@ -53,9 +53,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/toolti
 import { useHideNames } from '../hooks/useHideNames'
 import { useRouteForm } from '../hooks/useRouteForm'
 import { useAuth } from '../lib/auth'
+import { DemoContext } from '../lib/demo'
 import { SamplePreviewContext } from '../lib/samplePreview'
-import { demoResponsesCsv, filterDemoThemes } from '../components/dashboard/demoData'
-import { SAMPLE_FORM, SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
+import { SAMPLE_INDIVIDUAL, SAMPLE_RESPONSES, SAMPLE_THEMES, SAMPLE_TREND } from '../data/sampleDashboard'
 import { startTour } from '../lib/productTour'
 import { useFormEvents } from '../hooks/useFormEvents'
 import { useRecordFormOpen } from '../hooks/useRecordFormOpen'
@@ -288,20 +288,7 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
   )
 }
 
-const DEMO_ROUTE = {
-  formId: SAMPLE_FORM.id,
-  role: 'owner' as const,
-  status: 'ready' as const,
-  error: null,
-  retry: () => {},
-}
-
 export type FormDashboardPageProps = {
-  /**
-   * The public /demo: this same page on sample data, with no server calls. Reviews stay on
-   * the page and filters are off; the demo page supplies its own top bar.
-   */
-  demo?: boolean
   /** Folders containing this form, outermost first (empty: at the root of My forms). */
   folderPath?: { id: string; label: string }[]
   showSidebarToggle?: boolean
@@ -309,19 +296,18 @@ export type FormDashboardPageProps = {
 }
 
 export function FormDashboardPage({
-  demo = false,
   folderPath = [],
   showSidebarToggle = false,
   onToggleSidebar,
 }: FormDashboardPageProps) {
   // The URL carries the form's urlId; the API calls use its numeric id.
-  const urlForm = useRouteForm()
-  const routeForm = demo ? DEMO_ROUTE : urlForm
+  const routeForm = useRouteForm()
+  // In /demo, flag reviews stay on the page and live updates are off (they need a signed-in owner).
+  const demo = useContext(DemoContext)
   const formId = routeForm.formId ?? 0
   const queryClient = useQueryClient()
   const hasValidId = routeForm.formId !== null
-  // The demo never touches the server.
-  const canFetch = hasValidId && !demo
+  const canFetch = hasValidId
   useRecordFormOpen(demo ? null : routeForm.formId)
   // New responses, finished AI runs and form edits show up without a refresh.
   useFormEvents(demo ? null : routeForm.formId)
@@ -451,13 +437,11 @@ export function FormDashboardPage({
     enabled: canFetch,
   })
 
-  const form = demo ? SAMPLE_FORM : (formResult.data ?? null)
+  const form = formResult.data ?? null
   // While an empty form's tour runs, every tab shows sample data instead (see the tour
   // below); `real*` is what the server sent.
   const [tourPreviewing, setPreviewing] = useState(false)
-  const previewing = demo || tourPreviewing
-  // The demo's own copy of the sample themes, so a flag review shows on the page.
-  const [demoThemes, setDemoThemes] = useState(SAMPLE_THEMES)
+  const previewing = tourPreviewing
   const realResponses = responsesResult.data ?? null
   const realIndividual = individualResult.data ?? null
   const responses = previewing ? SAMPLE_RESPONSES : realResponses
@@ -487,8 +471,7 @@ export function FormDashboardPage({
   const sameFormLastGood = lastGood.formId === formId ? lastGood : null
   const realThemes = themesResult.data ?? sameFormLastGood?.themes ?? null
   const realTrend = trendResult.data ?? sameFormLastGood?.trend ?? null
-  // The demo filters its sample on the page; a real form asks the server.
-  const themes = demo ? filterDemoThemes(demoThemes, range, demoSel) : previewing ? SAMPLE_THEMES : realThemes
+  const themes = previewing ? SAMPLE_THEMES : realThemes
   const trend = previewing ? SAMPLE_TREND : realTrend
   const themesPending = themesResult.isPlaceholderData
   const trendPending = trendResult.isPlaceholderData
@@ -512,34 +495,28 @@ export function FormDashboardPage({
   const { user } = useAuth()
   // Applies the server's answer to the cached point (and its topic's flag) right away,
   // then refreshes Themes + Trend in the background for the counts.
+  // The demo's points as the AI left them, so undoing a review there restores them.
+  const demoOriginals = useRef(new Map<string, FeedbackPoint>())
   const reviewPointViolation = async (pointId: string, status: ViolationReview) => {
+    let patch: Partial<FeedbackPoint>
     if (demo) {
       // Answered on the page only: nothing is saved.
-      const original = SAMPLE_THEMES.aiDiscoveredTopics
-        .flatMap((topic) => topic.feedbackSegment)
-        .find((point) => point.id === pointId)
-      const local: Partial<FeedbackPoint> =
+      const seen = realThemes?.aiDiscoveredTopics.flatMap((topic) => topic.feedbackSegment).find((point) => point.id === pointId)
+      if (seen && !demoOriginals.current.has(pointId)) demoOriginals.current.set(pointId, seen)
+      const original = demoOriginals.current.get(pointId)
+      patch =
         status === 'confirmed'
           ? { violation: original?.violation ?? true, violationStatus: 'confirmed', dismissed: false, reviewedBy: 'you' }
           : status === 'dismissed'
             ? { violation: false, dismissed: true, reviewedBy: 'you' }
             : { violation: original?.violation, violationStatus: original?.violationStatus, dismissed: false, reviewedBy: null }
-      const patchLocal = (topic: TopicSentiment): TopicSentiment => {
-        const feedbackSegment = topic.feedbackSegment.map((point) => (point.id === pointId ? { ...point, ...local } : point))
-        return { ...topic, feedbackSegment, hasViolation: feedbackSegment.some((point) => point.violation) }
+    } else {
+      const result = await reviewViolation(pointId, status)
+      patch = {
+        ...result,
+        dismissed: status === 'dismissed',
+        reviewedBy: status === null ? null : (user?.fullName ?? user?.email ?? null),
       }
-      setDemoThemes((data) => ({
-        ...data,
-        violationTopics: data.violationTopics.map(patchLocal),
-        aiDiscoveredTopics: data.aiDiscoveredTopics.map(patchLocal),
-      }))
-      return
-    }
-    const result = await reviewViolation(pointId, status)
-    const patch: Partial<FeedbackPoint> = {
-      ...result,
-      dismissed: status === 'dismissed',
-      reviewedBy: status === null ? null : (user?.fullName ?? user?.email ?? null),
     }
     const patchTopic = (topic: TopicSentiment): TopicSentiment => {
       const feedbackSegment = topic.feedbackSegment.map((point) => (point.id === pointId ? { ...point, ...patch } : point))
@@ -554,6 +531,7 @@ export function FormDashboardPage({
           }
         : data,
     )
+    if (demo) return
     void queryClient.invalidateQueries({ queryKey: queryKeys.allThemes(formId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.allTrends(formId) })
   }
@@ -586,8 +564,7 @@ export function FormDashboardPage({
               empty: (realResponses?.totalResponses ?? 0) === 0,
               manual: true,
             }
-  // The demo's sample data is the real data here: the tour runs as on a full form.
-  const tabTour = demo ? { ...pageTour, loaded: true, empty: false } : pageTour
+  const tabTour = pageTour
 
   // The running tour, so "Exit preview" on the banner can end it too.
   const activeTour = useRef<{ stop: () => void } | null>(null)
@@ -613,9 +590,8 @@ export function FormDashboardPage({
   }
 
 
-  const loadFailure = demo
-    ? null
-    : routeForm.status === 'error'
+  const loadFailure =
+    routeForm.status === 'error'
       ? (routeForm.error ?? "This form hasn't been saved yet, so there's no dashboard.")
       : !hasValidId
         ? null // still resolving the URL — the page shows its loading placeholders
@@ -908,18 +884,6 @@ export function FormDashboardPage({
         onRemove: () => toggleDemo(label, value),
       })),
   )
-  // Trend's own filters would need the server (the sample is weekly only): shown, but off in the demo.
-  const lockForDemo = (node: React.ReactNode) =>
-    demo ? (
-      <div className="flex flex-col gap-1.5">
-        <fieldset className="m-0 min-w-0 border-0 p-0 opacity-60" disabled>
-          {node}
-        </fieldset>
-        <p className="m-0 text-[12px] text-[#726f6f]">Filters work on your own forms.</p>
-      </div>
-    ) : (
-      node
-    )
   // Date range + demographics, shared by Themes and Individual (Trend has its own row).
   const filterRow = (pending: boolean) =>
     themes ? (
@@ -951,18 +915,15 @@ export function FormDashboardPage({
   return (
     <SamplePreviewContext.Provider value={previewing}>
       <div>
-        {/* The demo page puts its own bar above both its tabs. */}
-        {demo ? null : (
-          <HeadroomBar>
-            <FormDetailTabs
-              canEdit={routeForm.role === 'owner'}
-              hasDashboardData
-              onToggleSidebar={onToggleSidebar}
-              showSidebarToggle={showSidebarToggle}
-            />
-          </HeadroomBar>
-        )}
-        {previewing && !demo ? (
+        <HeadroomBar>
+          <FormDetailTabs
+            canEdit={routeForm.role === 'owner'}
+            hasDashboardData
+            onToggleSidebar={onToggleSidebar}
+            showSidebarToggle={showSidebarToggle}
+          />
+        </HeadroomBar>
+        {previewing ? (
           // Top centre, in the empty middle of the Edit form | Dashboard bar (tabs left, Share
           // right); under 900px that middle is too narrow, so it sits at the bottom instead.
           // Above the tour's dimmed overlay (driver.js: z-index 10000) on every step.
@@ -1026,18 +987,10 @@ export function FormDashboardPage({
               ) : null}
               {activeView === 'response' && formReady && responses.totalResponses > 0 ? (
                 <ExportMenu
-                  disabled={previewing && !demo}
+                  disabled={previewing}
                   formTitle={form.formTitle}
                   includeNames={!hasNames || !hideNames}
-                  options={demo ? [
-                    {
-                      label: 'CSV (.csv)',
-                      description: 'Every response, as a plain table for other tools',
-                      icon: FileText,
-                      extension: 'csv',
-                      download: async () => demoResponsesCsv(SAMPLE_INDIVIDUAL, !hideNames),
-                    },
-                  ] : [
+                  options={[
                     {
                       label: 'Excel (.xlsx)',
                       description: 'Every response, plus a count per question',
@@ -1060,18 +1013,10 @@ export function FormDashboardPage({
               {/* Exports what's on screen: the same date range and demographic filter. */}
               {activeView === 'themes' && form && themes && themes.totalMentions > 0 ? (
                 <ExportMenu
-                  disabled={previewing && !demo}
+                  disabled={previewing}
                   formTitle={form.formTitle}
                   includeNames={!hasNames || !hideNames}
-                  // The demo keeps only the PDF report: it's built on the page, the files on the server.
-                  options={demo ? [
-                    {
-                      label: 'PDF report',
-                      description: 'This page, ready to print or share',
-                      icon: Printer,
-                      run: () => setPrintingReport(true),
-                    },
-                  ] : [
+                  options={[
                     {
                       label: 'Excel (.xlsx)',
                       description: 'Topics with their sentiment, and every mention',
@@ -1280,7 +1225,6 @@ export function FormDashboardPage({
                   all (`totalMentions` is all-time) — there's nothing to filter. They stay when
                   data exists but the current range/filters exclude it, so you can widen them. */}
               {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? (
-                lockForDemo(
                 <div className="flex flex-wrap items-end gap-3">
                   <DateRangeFilter
                     isDefault={range === null}
@@ -1316,8 +1260,7 @@ export function FormDashboardPage({
                     </div>
                   </div>
                   {trendPagePending ? <UpdatingIndicator /> : null}
-                </div>,
-                )
+                </div>
               ) : null}
               {activeView === 'trend' && trendReady && trend.totalMentions > 0 ? activeFilterBar : null}
 
@@ -1325,8 +1268,7 @@ export function FormDashboardPage({
                 trend.topicVolumeSeries.length > 0 ? (
                   <TrendView
                     topicControl={
-                      // The picker re-asks the server, so the demo leaves it out.
-                      trend.availableTopics.length > 0 && !demo ? (
+                      trend.availableTopics.length > 0 ? (
                         <>
                           {topicChartPending ? (
                             <span

@@ -19,8 +19,11 @@ import { FeedbackPointCard } from '../components/dashboard/FeedbackSegmentSectio
 import { SentimentBar } from '../components/dashboard/SentimentBar'
 import { SENTIMENT_COLORS } from '../components/dashboard/sentimentColors'
 import { WhatChangedCard } from '../components/dashboard/TrendView'
+import { ViolationTooltip } from '../components/dashboard/ViolationTooltip'
+import { ChangeTag } from '../components/dashboard/TopicSentimentCard'
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
 import {
@@ -31,12 +34,10 @@ import {
   type LandingTopic,
 } from '../data/landingSample'
 import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
-import { HeadroomBar } from '../components/navigation/HeadroomBar'
-import { SAMPLE_FORM_MODEL } from '../data/sampleDashboard'
-import { useFormAccessSettings } from '../hooks/useFormAccessSettings'
-import { useFormEditorModel } from '../hooks/useFormEditorModel'
-import { CreateFormPage } from './CreateFormPage'
+import { EditFormPage } from './EditFormPage'
 import { FormDashboardPage } from './FormDashboardPage'
+import { showAlert } from '../lib/alertDialog'
+import { DemoContext, demoSaveError } from '../lib/demo'
 import { useAuth } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 import { cn } from '../lib/utils'
@@ -169,17 +170,29 @@ function AppFrame({
           <p className="m-0 text-[20px] font-semibold text-[#14181f]">{sample.formTitle}</p>
           <SampleTag />
         </div>
-        <div aria-hidden="true" className="flex flex-wrap gap-2.5">
-          {(['Themes', 'Trend', 'Response', 'Individual'] as const).map((name) => (
-            <span
-              className={`inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold ${
-                name === tab ? 'bg-[#1e55c5] text-white' : 'border border-[#c9cfdb] text-[#726f6f]'
-              }`}
-              key={name}
-            >
-              {name}
-            </span>
-          ))}
+        {/* The other tabs open that tab in /demo: the picture shows one, the demo has them all. */}
+        <div className="flex flex-wrap gap-2.5">
+          {(['Themes', 'Trend', 'Response', 'Individual'] as const).map((name) => {
+            const pill = 'inline-flex h-8 items-center rounded-full px-3 text-[13px] font-semibold'
+            return name === tab ? (
+              <span className={`${pill} bg-[#1e55c5] text-white`} key={name}>
+                {name}
+              </span>
+            ) : (
+              <Tooltip delayDuration={200} key={name}>
+                <TooltipTrigger asChild>
+                  <Link
+                    aria-label={`Open the ${name} tab in the demo`}
+                    className={`${pill} border border-[#c9cfdb] text-[#726f6f] transition-colors hover:border-[#1e55c5] hover:text-[#1e55c5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]`}
+                    to={`/demo?view=${name.toLowerCase()}`}
+                  >
+                    {name}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="top">Open in the demo</TooltipContent>
+              </Tooltip>
+            )
+          })}
         </div>
         {children}
       </div>
@@ -202,12 +215,29 @@ function SectionIntro({ id, title, children }: { id: string; title: string; chil
 const SECTION = 'mx-auto flex max-w-300 flex-col gap-12 px-6 py-24 max-[560px]:px-4 max-[560px]:py-16'
 
 /** The Themes tab's topic rows; one can be opened in place to read what people said. */
-function TopicRows({ rows, sample }: { rows: DashboardRow[]; sample: LandingSample }) {
-  const [openId, setOpenId] = useState<string | null>(null)
+function TopicRows({
+  rows,
+  sample,
+  highlightId = null,
+  onOpenChange,
+}: {
+  rows: DashboardRow[]
+  sample: LandingSample
+  /** A floating answer is hovered: light the topic it was filed under. */
+  highlightId?: string | null
+  /** Tells the hero which topic is open, so the floating answers filed there light up. */
+  onOpenChange?: (topicId: string | null) => void
+}) {
+  const [openId, setOpenIdState] = useState<string | null>(null)
+  const setOpenId = (id: string | null) => {
+    setOpenIdState(id)
+    onOpenChange?.(id)
+  }
   return (
     <ul className="m-0 list-none p-0">
       {rows.map((row) => {
         const open = openId === row.id
+        const highlighted = highlightId === row.id && !open
         const panelId = `topic-${row.id}-details`
         // The answers filed under this topic; a new topic only has What changed's quote.
         const quotes = sample.comments.filter((comment) => comment.topicId === row.id).map((comment) => comment.text)
@@ -216,7 +246,13 @@ function TopicRows({ rows, sample }: { rows: DashboardRow[]; sample: LandingSamp
         return (
           <li
             className={`border-l-[3px] transition-colors ${
-              open ? 'border-[#1e55c5] bg-[#f7f8fb]' : row.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
+              open
+                ? 'border-[#1e55c5] bg-[#f7f8fb]'
+                : highlighted
+                  ? 'border-[#1e55c5] bg-[#edf2fd]'
+                  : row.hasViolation
+                    ? 'border-transparent bg-[#fff7f8]'
+                    : 'border-transparent'
             }`}
             key={row.id}
           >
@@ -230,16 +266,24 @@ function TopicRows({ rows, sample }: { rows: DashboardRow[]; sample: LandingSamp
               <span className="flex min-w-0 items-center gap-2 text-[14px] text-[#14181f] [grid-area:name]">
                 <span className={`truncate ${open ? 'font-medium' : ''}`}>{row.label}</span>
                 {row.hasViolation ? (
-                  <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" role="img" size={15} />
+                  <ViolationTooltip focusable={false} scope="topic">
+                    <TriangleAlert
+                      aria-label="Contains possible violations"
+                      className="flag-pulse shrink-0 text-[#e0507a]"
+                      role="img"
+                      size={15}
+                    />
+                  </ViolationTooltip>
                 ) : null}
-                {row.change === 'worse' ? (
-                  <span className="shrink-0 rounded-full bg-[#fdecea] px-2 py-0.5 text-[11px] font-semibold text-[#c4280b]">
-                    Worse
-                  </span>
-                ) : row.change === 'new' ? (
-                  <span className="shrink-0 rounded-full bg-[#edf2fd] px-2 py-0.5 text-[11px] font-semibold text-[#1e55c5]">
-                    New
-                  </span>
+                {row.change ? (
+                  <ChangeTag
+                    changes={{
+                      current: sample.whatChanged.currentLabel,
+                      previous: sample.whatChanged.previousLabel,
+                      kinds: {},
+                    }}
+                    kind={row.change}
+                  />
                 ) : null}
               </span>
               <SentimentBar
@@ -291,7 +335,15 @@ function TopicRows({ rows, sample }: { rows: DashboardRow[]; sample: LandingSamp
 }
 
 /** The app's Themes tab on sample data: the proof under the hero. */
-function DashboardPicture({ sample }: { sample: LandingSample }) {
+function DashboardPicture({
+  sample,
+  highlightId = null,
+  onOpenChange,
+}: {
+  sample: LandingSample
+  highlightId?: string | null
+  onOpenChange?: (topicId: string | null) => void
+}) {
   const rows = dashboardRows(sample)
   const totals = rows.reduce(
     (sum, row) => ({ negative: sum.negative + row.negative, neutral: sum.neutral + row.neutral, positive: sum.positive + row.positive }),
@@ -337,29 +389,41 @@ function DashboardPicture({ sample }: { sample: LandingSample }) {
               <span className="mr-8 font-medium text-[#726f6f]">Share</span>
             </div>
             {/* Keyed: switching sample closes any open topic. */}
-            <TopicRows key={sample.formTitle} rows={rows} sample={sample} />
+            <TopicRows highlightId={highlightId} key={sample.formTitle} onOpenChange={onOpenChange} rows={rows} sample={sample} />
           </div>
     </AppFrame>
   )
 }
 
-// Where each loose answer floats around the hero dashboard: side, height, depth (scroll speed), tilt.
-// Heights in px from the top, not %: opening a topic makes the dashboard taller, and the answers must not move with it.
+// Where each loose answer floats around the hero dashboard: side, height, gap from the frame's edge,
+// how far it drops to the dashboard, how far it then rises, tilt.
+// Heights in px from the top of the sample switch (negative: up beside the headline), not %: opening a topic makes the dashboard taller, and the answers must not move with it.
+// Answers start spread up the hero and drop to land beside the dashboard; higher ones drop further, so none passes another.
+// Then they rise, higher ones faster, so the stack spreads apart.
 const FLOATING_SPOTS = [
-  { side: 'left', top: '30px', inset: '1%', depth: 1.1, tilt: '-3deg' },
-  { side: 'left', top: '230px', inset: '0%', depth: 0.45, tilt: '2deg' },
-  { side: 'left', top: '430px', inset: '1.5%', depth: 0.8, tilt: '-1.5deg' },
-  { side: 'right', top: '70px', inset: '0.5%', depth: 0.6, tilt: '2.5deg' },
-  { side: 'right', top: '270px', inset: '1.5%', depth: 1.2, tilt: '-2deg' },
-  { side: 'right', top: '470px', inset: '0%', depth: 0.5, tilt: '1.5deg' },
+  { side: 'left', top: '-440px', gap: '2rem', drop: '480px', lift: '260px', tilt: '-3deg' },
+  { side: 'left', top: '20px', gap: '3rem', drop: '240px', lift: '180px', tilt: '2deg' },
+  { side: 'left', top: '470px', gap: '1.5rem', drop: '10px', lift: '100px', tilt: '-1.5deg' },
+  { side: 'right', top: '-320px', gap: '2.5rem', drop: '420px', lift: '240px', tilt: '2.5deg' },
+  { side: 'right', top: '110px', gap: '1.5rem', drop: '210px', lift: '160px', tilt: '-2deg' },
+  { side: 'right', top: '520px', gap: '3rem', drop: '20px', lift: '90px', tilt: '1.5deg' },
 ] as const
 
 /**
- * Parallax: loose sample answers in the gutters beside the dashboard, each drifting up at its
- * own depth as the page scrolls (index.css). Decorative repeats of the sample, so hidden from
+ * Parallax: loose sample answers in the gutters, spread up the hero, that drop to gather beside the
+ * dashboard as the page scrolls (index.css). Hovering one lights the topic it was filed under.
+ * Decorative repeats of the sample, so hidden from
  * assistive tech, and only drawn from 1440px wide (room beside the frame) with motion welcome.
  */
-function FloatingAnswers({ sample }: { sample: LandingSample }) {
+function FloatingAnswers({
+  sample,
+  activeTopic,
+  onHoverTopic,
+}: {
+  sample: LandingSample
+  activeTopic: string | null
+  onHoverTopic: (topicId: string | null) => void
+}) {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
       {FLOATING_SPOTS.map((spot, i) => {
@@ -367,14 +431,22 @@ function FloatingAnswers({ sample }: { sample: LandingSample }) {
         if (!comment) return null
         return (
           <p
-            className="parallax-answer absolute m-0 w-48 items-start gap-2 rounded-[10px] border border-[#e8eaf1] bg-white px-3 py-2.5 text-[12px] leading-4.5 text-[#3f4045] shadow-[0_8px_24px_rgba(20,40,90,0.08)]"
+            className={`parallax-answer pointer-events-auto absolute m-0 w-48 cursor-default items-start gap-2 rounded-[10px] border bg-white px-3 py-2.5 text-[12px] leading-4.5 text-[#3f4045] transition-[border-color,box-shadow] duration-200 ${
+              activeTopic === comment.topicId
+                ? 'border-[#1e55c5] shadow-[0_10px_28px_rgba(30,85,197,0.18)]'
+                : 'border-[#e8eaf1] shadow-[0_8px_24px_rgba(20,40,90,0.08)]'
+            }`}
             key={comment.text}
+            onMouseEnter={() => onHoverTopic(comment.topicId)}
+            onMouseLeave={() => onHoverTopic(null)}
             style={
               {
                 top: spot.top,
-                [spot.side]: spot.inset,
+                // Outside the frame's edge (half of max-w-224 = 28rem), past the card's width (w-48 = 12rem), clear of it.
+                [spot.side]: `calc(50% - 28rem - 12rem - ${spot.gap})`,
                 rotate: spot.tilt,
-                '--depth': spot.depth,
+                '--drop': spot.drop,
+                '--lift': spot.lift,
                 '--tilt': spot.tilt,
               } as React.CSSProperties
             }
@@ -404,6 +476,10 @@ function Hero({
   sampleId: LandingSampleId
   onSampleChange: (id: LandingSampleId) => void
 }) {
+  // A floating answer under the pointer, and so the topic to light in the dashboard.
+  const [hoverTopic, setHoverTopic] = useState<string | null>(null)
+  // The topic opened in the dashboard: its floating answers stay lit while it's open.
+  const [openTopic, setOpenTopic] = useState<string | null>(null)
   return (
     <section className="mx-auto flex max-w-360 flex-col gap-14 px-6 pt-10 pb-24 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
       <div className="flex flex-col items-center gap-6 text-center">
@@ -423,13 +499,14 @@ function Hero({
         </p>
       </div>
       <div className="relative flex flex-col gap-5">
-        <FloatingAnswers sample={sample} />
+        <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
         <div className="flex justify-center">
           <SampleSwitch onChange={onSampleChange} value={sampleId} />
         </div>
         {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
-        <div className="hero-rise relative z-10">
-          <DashboardPicture sample={sample} />
+        {/* As wide as the frame only: full width, it would cover the floating answers in the gutters. */}
+        <div className="hero-rise relative z-10 mx-auto w-full max-w-224">
+          <DashboardPicture highlightId={hoverTopic} onOpenChange={setOpenTopic} sample={sample} />
         </div>
       </div>
     </section>
@@ -725,60 +802,78 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
     )
   const card = 'rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.10)]'
   return (
-    <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 overflow-x-clip px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
-      <SellingPoint
-        stillVisual
-        title="Stop reading every answer one by one."
-        visual={
-          <div className={`${card} flex flex-col gap-2.5 p-5`}>
-            <div className="flex items-center justify-between gap-3 pb-1">
-              <span className="text-[13px] font-semibold text-[#14181f]">
-                {sample.responseCount} answers in, {rows.length} topics out
-              </span>
-              <SampleTag />
+    // Clipped at the screen edge, not the section's: the slide-ins mustn't scroll a phone sideways, and the cards' glow needs the room.
+    <div className="overflow-x-clip">
+      <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
+        <SellingPoint
+          stillVisual
+          title="Stop reading every answer one by one."
+          visual={
+            <div className={`${card} spot-card flex flex-col gap-2.5 p-5 [--glow:rgb(30_85_197/0.2)]`}>
+              <div className="flex items-center justify-between gap-3 pb-1">
+                <span className="text-[13px] font-semibold text-[#14181f]">
+                  {sample.responseCount} answers in, {rows.length} topics out
+                </span>
+                <SampleTag />
+              </div>
+              <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                {sample.comments.slice(0, 4).map((comment) => (
+                  <li className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3" key={comment.text}>
+                    <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
+                    <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
+                      <ArrowRight aria-hidden size={12} />
+                      Filed under {rows.find((row) => row.id === comment.topicId)?.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {sample.comments.slice(0, 4).map((comment) => (
-                <li className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3" key={comment.text}>
-                  <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
-                  <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
-                    <ArrowRight aria-hidden size={12} />
-                    Filed under {rows.find((row) => row.id === comment.topicId)?.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        }
-      >
-        {brand.name} reads every open answer and groups it into topics, with how people feel about each. Hundreds of
-        comments become one short list you can take in at a glance.
-      </SellingPoint>
-      <SellingPoint flip title="Know what got worse before it becomes a problem." visual={<WhatChangedCard data={sample.whatChanged} />}>
-        Each month is compared with the last. Only the topics that clearly got worse, got better, or are new are
-        called out, so you know where to look first.
-      </SellingPoint>
-      <SellingPoint
-        title="Catch serious complaints early. You make the call."
-        visual={
-          <div className={`${card} flex flex-col gap-3 p-5`}>
-            <div className="flex items-center justify-between gap-3">
-              <p className="m-0 flex items-center gap-2 text-[16px] font-semibold text-[#14181f]">
-                {sample.flaggedTopic}
-                {point.violation ? (
-                  <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" role="img" size={16} />
-                ) : null}
-              </p>
-              <SampleTag />
+          }
+        >
+          {brand.name} reads every open answer and groups it into topics, with how people feel about each. Hundreds of
+          comments become one short list you can take in at a glance.
+        </SellingPoint>
+        <SellingPoint
+          flip
+          title="Know what got worse before it becomes a problem."
+          visual={
+            <div className="spot-card [--glow:rgb(196_40_11/0.22)]">
+              <WhatChangedCard data={sample.whatChanged} />
             </div>
-            <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
-          </div>
-        }
-      >
-        Comments that may break the law or your organisation's values are flagged for you. The AI can be wrong, so
-        you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it here.
-      </SellingPoint>
-    </section>
+          }
+        >
+          Each month is compared with the last. Only the topics that clearly got worse, got better, or are new are
+          called out, so you know where to look first.
+        </SellingPoint>
+        <SellingPoint
+          title="Catch serious complaints early. You make the call."
+          visual={
+            <div className={`${card} spot-card flex flex-col gap-3 p-5 [--glow:rgb(224_80_122/0.26)]`}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="m-0 flex items-center gap-2 text-[16px] font-semibold text-[#14181f]">
+                  {sample.flaggedTopic}
+                  {point.violation ? (
+                    <ViolationTooltip scope="topic">
+                      <TriangleAlert
+                        aria-label="Contains possible violations"
+                        className="shrink-0 text-[#e0507a]"
+                        role="img"
+                        size={16}
+                      />
+                    </ViolationTooltip>
+                  ) : null}
+                </p>
+                <SampleTag />
+              </div>
+              <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
+            </div>
+          }
+        >
+          Comments that may break the law or your organisation's values are flagged for you. The AI can be wrong, so
+          you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it here.
+        </SellingPoint>
+      </section>
+    </div>
   )
 }
 
@@ -831,8 +926,10 @@ export function LandingPage() {
     <div className={PAGE}>
       <SiteHeader page="landing" />
       <main>
+        {/* Keyed: a new sample starts the hero afresh (no topic open or lit from the last one). */}
         <Hero
           intro={HERO_INTRO}
+          key={sampleId}
           onSampleChange={setSampleId}
           sample={sample}
           sampleId={sampleId}
@@ -861,85 +958,40 @@ export function LandingPage() {
   )
 }
 
-const DEMO_TAB =
-  'flex h-full items-center justify-center border-0 border-b-2 px-5 text-[16px] tracking-[0.16px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1e55c5] max-[560px]:px-3 max-[560px]:text-[14px]'
-
-/** The demo's top bar: the app's Edit form | Dashboard tabs, a sample label and the sign-in. */
-function DemoBar({ editing }: { editing: boolean }) {
-  const tab = (active: boolean) =>
-    cn(DEMO_TAB, active ? 'border-[#1e55c5] bg-[#edf2fd] font-medium text-[#1e55c5]' : 'border-transparent text-[#726f6f] hover:text-[#14181f]')
-  return (
-    <div className="flex h-12.5 items-center justify-between gap-3 border-b border-[#e8eaf1] pr-6 pl-4 max-[560px]:pr-3 max-[560px]:pl-2">
-      <div className="flex h-full min-w-0 items-center gap-3">
-        <Link
-          aria-label={`${brand.name} overview`}
-          className="shrink-0 rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
-          to="/about"
-        >
-          <img alt={brand.name} className="h-7 w-13.5 object-cover object-center" src={brand.logo} />
-        </Link>
-        <nav aria-label="Sample form" className="flex h-full">
-          <Link aria-current={editing ? 'page' : undefined} className={tab(editing)} to="/demo?mode=edit">
-            Edit form
-          </Link>
-          <Link aria-current={editing ? undefined : 'page'} className={tab(!editing)} to="/demo">
-            Dashboard
-          </Link>
-        </nav>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Link
-          className="inline-flex h-8 items-center rounded-[10px] bg-[#1e55c5] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a49aa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
-          to="/login"
-        >
-          Sign in
-        </Link>
-      </div>
-    </div>
-  )
-}
-
 /**
- * /demo: a sample form to explore before signing up, in place of a starter form in every
- * new account. "Edit form" is the real editor and "Dashboard" the real dashboard (with its
- * tour), both on sample data; edits live in this page only and are never saved.
+ * /demo: the real editor and dashboard on the server's demo form, in place of a starter form
+ * in every new account. Every control works; saving explains it needs an account (lib/demo.ts).
  */
 export function DemoPage() {
   const [params] = useSearchParams()
   const editing = params.get('mode') === 'edit'
-  // Held here, so switching tabs keeps what the visitor changed.
-  const { model, update } = useFormEditorModel(SAMPLE_FORM_MODEL)
-  const { settings, updateSettings } = useFormAccessSettings()
   return (
-    <div className="min-h-screen bg-[#f5f9ff]">
-      <HeadroomBar>
-        <DemoBar editing={editing} />
-      </HeadroomBar>
-      {/* On both tabs: what to try here, that it's a sample, and the way to your own form. */}
-      <p className="m-0 border-b border-[#f3d27a] bg-[#fff6d6] px-6 py-2.5 text-center text-[13px] text-[#7a5a00] max-[560px]:px-4">
-        {editing
-          ? 'Try it: rename questions, add options or new questions.'
-          : 'Try it: open a topic, filter the results or review a flag.'}{' '}
-        Nothing here is saved.{' '}
-        <Link className="font-semibold text-[#7a5a00] underline underline-offset-2" to="/login">
-          Sign in
-        </Link>{' '}
-        to build your own form.
-      </p>
-      {editing ? (
-        <>
-          <CreateFormPage
-            formAccessSettings={settings}
-            formModel={model}
-            onCloseSettings={() => {}}
-            onUpdateFormAccessSettings={updateSettings}
-            onUpdateFormModel={update}
-            showSettings={false}
-          />
-        </>
-      ) : (
-        <FormDashboardPage demo />
-      )}
-    </div>
+    <DemoContext.Provider value>
+      <div className="min-h-screen bg-[#f5f9ff]">
+        {/* Above the app's own bar: that this is the demo, and the ways out of it. */}
+        <div className="flex items-center gap-4 border-b border-[#f3d27a] bg-[#fff6d6] px-6 py-2 text-[13px] text-[#7a5a00] max-[560px]:px-4">
+          <Link
+            aria-label={`${brand.name} overview`}
+            className="shrink-0 rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
+            to="/about"
+          >
+            <img alt={brand.name} className="h-6 w-11.5 object-cover object-center" src={brand.logo} />
+          </Link>
+          <p className="m-0 min-w-0 flex-1 text-center">
+            {editing
+              ? 'Try it: rename questions, add options or open the settings.'
+              : 'Try it: open a topic, filter the results, export or review a flag.'}{' '}
+            Nothing here is saved.
+          </p>
+          <Link
+            className="inline-flex h-8 shrink-0 items-center rounded-[10px] bg-[#1e55c5] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a49aa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+            to="/login"
+          >
+            Sign in
+          </Link>
+        </div>
+        {editing ? <EditFormPage onMove={() => void showAlert(demoSaveError().message, { title: 'Sign in to move forms' })} /> : <FormDashboardPage />}
+      </div>
+    </DemoContext.Provider>
   )
 }

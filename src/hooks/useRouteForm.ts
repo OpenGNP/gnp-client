@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { formRefQuery } from '../api/queries'
+import { DEMO_FORM_ID, DemoContext } from '../lib/demo'
 
 /**
  * The form a `/forms/:projectId` route points at. The URL carries the form's `urlId`;
@@ -11,10 +12,12 @@ import { formRefQuery } from '../api/queries'
  * resolves too, and is swapped for its urlId form in place.
  */
 export function useRouteForm() {
+  // /demo has no :projectId: it's always the demo form, which the visitor "owns".
+  const demo = useContext(DemoContext)
   const { projectId: ref = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const result = useQuery({ ...formRefQuery(ref), enabled: ref !== '' })
+  const result = useQuery({ ...formRefQuery(ref), enabled: ref !== '' && !demo })
   const resolved = result.data
 
   useEffect(() => {
@@ -25,6 +28,9 @@ export function useRouteForm() {
     navigate(`/forms/${encodeURIComponent(resolved.urlId)}${rest}${location.search}`, { replace: true })
   }, [resolved, ref, location.pathname, location.search, navigate])
 
+  if (demo) {
+    return { formId: DEMO_FORM_ID, role: 'owner' as const, status: 'ready' as const, error: null, retry: () => {} }
+  }
   return {
     formId: resolved?.id ?? null,
     // The sidebar seeds its own forms without a role — those are always the owner's.
