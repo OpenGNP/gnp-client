@@ -4,8 +4,6 @@ import { needsReview } from '../components/dashboard/violationReview'
 import type { FeedbackPoint, FormTrendAnalytics, WhatChanged } from './dashboardAnalytics'
 import { responses, themes as rawThemes, trend as rawTrend } from './demoSnapshot.json'
 
-/* The /demo form's real AI results (demoSnapshot.json, from gnp-server `bun run demo:snapshot`). */
-
 const themes = rawThemes as unknown as FormThemeAnalytics
 const trend = rawTrend as unknown as FormTrendAnalytics
 
@@ -24,7 +22,7 @@ export type LandingSample = {
   formTitle: string
   responseCount: number
   /** Answers with the topic the AI filed them under, taking turns across topics so the first few differ. */
-  comments: { text: string; topicId: string }[]
+  comments: { text: string; topicId: string; violation?: boolean }[]
   topics: LandingTopic[]
   whatChanged: WhatChanged
   flaggedTopic: string
@@ -41,13 +39,15 @@ const QUOTES_PER_TOPIC = 3
 // In the dashboard's default Priority order.
 const topics = sortTopics(themes.aiDiscoveredTopics, 'priority')
 const points = topics.flatMap((topic) => topic.feedbackSegment)
-// Flagged answers first, so the violation is what a visitor sees under its topic.
-const quotesOf = (topic: (typeof topics)[number]) =>
-  [...topic.feedbackSegment].sort((a, b) => Number(Boolean(b.violation)) - Number(Boolean(a.violation)))
+// A topic's best quotes: flagged ones, then ones long enough to say something ("Easy." doesn't).
+// The AI's third-person retellings ("User asked …") read worse than the respondent's own words.
+const score = (point: FeedbackPoint) =>
+  (point.violation ? 2 : 0) + (point.quote.split(/\s+/).length >= 6 ? 1 : 0) - (/^User /.test(point.quote) ? 1 : 0)
+const bestQuotes = topics.map((topic) => [...topic.feedbackSegment].sort((a, b) => score(b) - score(a)))
 const comments = Array.from({ length: QUOTES_PER_TOPIC }, (_, i) =>
-  topics.flatMap((topic) => {
-    const point = quotesOf(topic)[i]
-    return point ? [{ text: point.quote, topicId: topic.id }] : []
+  topics.flatMap((topic, t) => {
+    const point = bestQuotes[t]![i]
+    return point ? [{ text: point.quote, topicId: topic.id, violation: point.violation }] : []
   }),
 ).flat()
 

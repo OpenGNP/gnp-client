@@ -229,11 +229,12 @@ function TopicRows({
         const highlighted = highlightId === row.id && !open
         const panelId = `topic-${row.id}-details`
         // The answers filed under this topic; a new topic only has What changed's quote.
+        // Flagged first, as the dashboard lists them.
         const quotes = sample.comments
           .filter((comment) => comment.topicId === row.id)
-          .map((comment) => comment.text)
+          .sort((a, b) => Number(Boolean(b.violation)) - Number(Boolean(a.violation)))
         const fallback = sample.whatChanged.rows.find((changed) => changed.id === row.id)?.quote
-        const shown = (quotes.length > 0 ? quotes : fallback ? [fallback] : []).slice(0, 3)
+        const shown = (quotes.length > 0 ? quotes : fallback ? [{ text: fallback }] : []).slice(0, 3)
         return (
           <li
             className={`border-l-[3px] transition-colors ${
@@ -312,11 +313,26 @@ function TopicRows({
                   <ul className="m-0 flex list-none flex-col gap-2 p-0">
                     {shown.map((quote) => (
                       <li
-                        className="flex items-start gap-2 rounded-[10px] border border-[#e9eaed] bg-white px-3.5 py-2.5 text-[13px] leading-5 text-[#14181f]"
-                        key={quote}
+                        className={`flex items-start gap-2 rounded-[10px] border px-3.5 py-2.5 text-[13px] leading-5 text-[#14181f] ${
+                          'violation' in quote && quote.violation
+                            ? 'border-[#f6c6d3] bg-[#fff7f8]'
+                            : 'border-[#e9eaed] bg-white'
+                        }`}
+                        key={quote.text}
                       >
-                        <MessageSquareText aria-hidden className="mt-0.5 shrink-0 text-[#726f6f]" size={14} />
-                        “{quote}”
+                        {'violation' in quote && quote.violation ? (
+                          <ViolationTooltip scope="point">
+                            <TriangleAlert
+                              aria-label="Flagged as a possible violation"
+                              className="mt-0.5 shrink-0 text-[#e0507a]"
+                              role="img"
+                              size={14}
+                            />
+                          </ViolationTooltip>
+                        ) : (
+                          <MessageSquareText aria-hidden className="mt-0.5 shrink-0 text-[#726f6f]" size={14} />
+                        )}
+                        “{quote.text}”
                       </li>
                     ))}
                   </ul>
