@@ -1,27 +1,13 @@
-import type { FeedbackPoint, FeedbackSentiment, FormTrendAnalytics, WhatChanged } from './dashboardAnalytics'
+import type { FormThemeAnalytics } from '../api/analytics'
+import { sortTopics } from '../components/dashboard/topicSort'
+import { needsReview } from '../components/dashboard/violationReview'
+import type { FeedbackPoint, FormTrendAnalytics, WhatChanged } from './dashboardAnalytics'
+import { responses, themes as rawThemes, trend as rawTrend } from './demoSnapshot.json'
 
-/* Workplace: made-up HR pulse-survey results. */
+/* The /demo form's real AI results (demoSnapshot.json, from gnp-server `bun run demo:snapshot`). */
 
-const WORKPLACE_RESPONSE_COUNT = 214
-
-/** Raw answers, each with the topic the AI filed it under (ids from its sample's topics). */
-const WORKPLACE_COMMENTS = [
-  { text: 'Swapping a shift still means three emails and a phone call.', topicId: 'shift' },
-  { text: 'My manager actually listens when I raise something.', topicId: 'managers' },
-  { text: 'Getting a swap approved takes days if my supervisor is away.', topicId: 'shift' },
-  { text: 'Overtime on my payslip never matches what I worked.', topicId: 'pay' },
-  { text: 'First week was great, but nobody showed me the HR system.', topicId: 'onboarding' },
-  { text: 'Payroll answers my emails, but the numbers are still wrong.', topicId: 'pay' },
-  { text: 'Swaps are fine if your manager is in, slow if they are on leave.', topicId: 'shift' },
-  { text: 'The buddy system made my first month much easier.', topicId: 'onboarding' },
-  { text: 'Nobody has ever explained how overtime is rounded.', topicId: 'pay' },
-  { text: 'My supervisor checks in every week. It helps more than I expected.', topicId: 'managers' },
-  { text: 'Our team lead jokes about which of us are "too old" to learn the new system.', topicId: 'remarks' },
-  { text: 'I gave up asking for swaps and just work sick now.', topicId: 'shift' },
-  { text: 'Training was rushed; I learned the system from a colleague.', topicId: 'onboarding' },
-  { text: 'Night shift overtime is paid a month late.', topicId: 'pay' },
-  { text: 'When I raised the rota problem, my manager fixed it the same day.', topicId: 'managers' },
-]
+const themes = rawThemes as unknown as FormThemeAnalytics
+const trend = rawTrend as unknown as FormTrendAnalytics
 
 export type LandingTopic = {
   id: string
@@ -33,252 +19,61 @@ export type LandingTopic = {
   hasViolation?: boolean
 }
 
-const WORKPLACE_TOPICS: LandingTopic[] = [
-  { id: 'shift', label: 'Shift swaps take too long', negative: 31, neutral: 8, positive: 3, percentOfTotal: 22 },
-  { id: 'pay', label: 'Overtime pay is unclear', negative: 24, neutral: 10, positive: 4, percentOfTotal: 19 },
-  { id: 'managers', label: 'Supportive line managers', negative: 4, neutral: 9, positive: 27, percentOfTotal: 18 },
-  { id: 'onboarding', label: 'Onboarding for new hires', negative: 9, neutral: 12, positive: 11, percentOfTotal: 15 },
-  {
-    id: 'remarks',
-    label: 'Remarks from a team lead',
-    negative: 7,
-    neutral: 2,
-    positive: 0,
-    percentOfTotal: 4,
-    hasViolation: true,
-  },
-]
-
-const WORKPLACE_WHAT_CHANGED: WhatChanged = {
-  currentLabel: 'October',
-  previousLabel: 'September',
-  rows: [
-    {
-      id: 'shift',
-      label: 'Shift swaps take too long',
-      kind: 'worse',
-      share: { previous: 14, current: 22 },
-      complaints: { previous: 52, current: 74 },
-      complaintCounts: { previous: { negative: 13, total: 25 }, current: { negative: 31, total: 42 } },
-      violations: 0,
-      quote: 'Swapping a shift still means three emails and a phone call.',
-    },
-    {
-      id: 'parking',
-      label: 'Parking at the new site',
-      kind: 'new',
-      share: { previous: 0, current: 6 },
-      complaints: { previous: 0, current: 69 },
-      complaintCounts: { previous: { negative: 0, total: 0 }, current: { negative: 9, total: 13 } },
-      violations: 0,
-      quote: 'There are 40 spaces for 120 people on the morning shift.',
-    },
-    {
-      id: 'remarks',
-      label: 'Remarks from a team lead',
-      kind: null,
-      share: { previous: 4, current: 4 },
-      complaints: { previous: 70, current: 78 },
-      complaintCounts: { previous: { negative: 7, total: 10 }, current: { negative: 7, total: 9 } },
-      violations: 3,
-      quote: null,
-    },
-    {
-      id: 'onboarding',
-      label: 'Onboarding for new hires',
-      kind: 'better',
-      share: { previous: 17, current: 15 },
-      complaints: { previous: 55, current: 28 },
-      complaintCounts: { previous: { negative: 18, total: 33 }, current: { negative: 9, total: 32 } },
-      violations: 0,
-      quote: 'The buddy system made my first month much easier.',
-    },
-  ],
-}
-
-const point = (
-  id: string,
-  sentiment: FeedbackSentiment,
-  quote: string,
-  originalFeedback: string,
-  department: string,
-  extra: Partial<FeedbackPoint> = {},
-): FeedbackPoint => ({
-  id,
-  sentiment,
-  quote,
-  originalFeedback,
-  submittedAt: '2026-10-14T09:30:00.000Z',
-  demographics: [{ label: 'Department', value: department }],
-  ...extra,
-})
-
-const WORKPLACE_DRILL = {
-  label: 'Shift swaps take too long',
-  summary:
-    'Staff say swapping a shift needs several approvals by email and can take days, so many give up or work while unwell.',
-  points: [
-    point(
-      'swap-1',
-      'negative',
-      'Swapping a shift still means three emails and a phone call.',
-      'Swapping a shift still means three emails and a phone call. Most of us just stopped asking.',
-      'Warehouse',
-    ),
-    point(
-      'swap-2',
-      'negative',
-      'I waited four days for a swap to be approved.',
-      'I waited four days for a swap to be approved and ended up working the shift anyway.',
-      'Customer service',
-    ),
-    point(
-      'swap-3',
-      'neutral',
-      'Swaps are fine if your manager is in, slow if they are on leave.',
-      'Swaps are fine if your manager is in, slow if they are on leave. There is no backup approver.',
-      'Warehouse',
-    ),
-  ],
-}
-
-const WORKPLACE_FLAGGED_POINT = point(
-  'remarks-1',
-  'negative',
-  'Our team lead jokes about which of us are "too old" to learn the new system.',
-  'Our team lead jokes about which of us are "too old" to learn the new system. It happens in front of everyone.',
-  'Finance',
-  { violation: true, violationStatus: 'possible', violationType: 'ethics' },
-)
-
-type TrendTopic = { id: string; label: string; negative: number[]; neutral: number[]; positive: number[] }
-
-const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
-
-/** The Trend tab's series from per-bucket sentiment counts, so totals always agree with the topics. */
-function buildTrend(
-  buckets: string[],
-  topics: TrendTopic[],
-  responseCounts: number[],
-  timelineEvents: FormTrendAnalytics['timelineEvents'],
-): LandingSample['trend'] {
-  const bucketCounts = (t: TrendTopic, w: number) => ({
-    negative: t.negative[w]!,
-    neutral: t.neutral[w]!,
-    positive: t.positive[w]!,
-  })
-  return {
-    topicVolumeSeries: topics.map(({ id, label }) => ({ id, label })),
-    volumeSeries: buckets.map((label, w) => ({
-      label,
-      ...Object.fromEntries(topics.map((t) => [t.id, t.negative[w]! + t.neutral[w]! + t.positive[w]!])),
-    })),
-    topicSentimentSeries: Object.fromEntries(topics.map((t) => [t.id, buckets.map((_, w) => bucketCounts(t, w))])),
-    topicSummaries: topics.map((t) => {
-      const counts = { negative: sum(t.negative), neutral: sum(t.neutral), positive: sum(t.positive) }
-      return { id: t.id, mentions: counts.negative + counts.neutral + counts.positive, ...counts }
-    }),
-    sentimentSeries: buckets.map((label, w) => {
-      const counts = { negative: 0, neutral: 0, positive: 0 }
-      for (const t of topics) {
-        counts.negative += t.negative[w]!
-        counts.neutral += t.neutral[w]!
-        counts.positive += t.positive[w]!
-      }
-      const total = counts.negative + counts.neutral + counts.positive
-      const negative = Math.round((counts.negative / total) * 100)
-      const positive = Math.round((counts.positive / total) * 100)
-      return { label, negative, neutral: 100 - negative - positive, positive, counts }
-    }),
-    responseCounts,
-    timelineEvents,
-  }
-}
-
-// Per week: negative / neutral / positive mentions. Totals match WORKPLACE_TOPICS.
-const WORKPLACE_TREND = buildTrend(
-  ['1 Sep', '8 Sep', '15 Sep', '22 Sep', '29 Sep', '6 Oct', '13 Oct', '20 Oct'],
-  [
-    {
-      id: 'shift',
-      label: 'Shift swaps take too long',
-      negative: [2, 2, 3, 3, 4, 5, 6, 6],
-      neutral: [1, 1, 1, 1, 1, 1, 1, 1],
-      positive: [0, 0, 0, 1, 0, 0, 1, 1],
-    },
-    {
-      id: 'pay',
-      label: 'Overtime pay is unclear',
-      negative: [3, 3, 3, 3, 3, 3, 3, 3],
-      neutral: [1, 2, 0, 2, 1, 1, 1, 2],
-      positive: [1, 0, 1, 0, 1, 0, 1, 0],
-    },
-    {
-      id: 'managers',
-      label: 'Supportive line managers',
-      negative: [1, 0, 1, 0, 1, 0, 1, 0],
-      neutral: [0, 2, 1, 2, 1, 1, 1, 1],
-      positive: [3, 3, 3, 3, 3, 4, 4, 4],
-    },
-    {
-      id: 'onboarding',
-      label: 'Onboarding for new hires',
-      negative: [2, 2, 1, 1, 1, 1, 1, 0],
-      neutral: [3, 2, 2, 2, 1, 0, 1, 1],
-      positive: [1, 1, 2, 1, 1, 2, 1, 2],
-    },
-  ],
-  // Steady turnout while shift-swap mentions climb: the rise isn't just more people answering.
-  [27, 26, 28, 26, 27, 27, 26, 27],
-  [{ id: 'shift-spike', date: '2026-10-13T00:00:00.000Z', topicId: 'shift', bucketIndex: 6, count: 8, usual: 4 }],
-)
-
 export type LandingSample = {
   /** The sample form's name, as the dashboard heads it. */
   formTitle: string
   responseCount: number
+  /** Answers with the topic the AI filed them under, taking turns across topics so the first few differ. */
   comments: { text: string; topicId: string }[]
   topics: LandingTopic[]
   whatChanged: WhatChanged
-  drill: { label: string; summary: string; points: FeedbackPoint[] }
   flaggedTopic: string
   flaggedPoint: FeedbackPoint
-  trend: Pick<
-    FormTrendAnalytics,
-    | 'topicVolumeSeries'
-    | 'volumeSeries'
-    | 'topicSentimentSeries'
-    | 'topicSummaries'
-    | 'sentimentSeries'
-    | 'responseCounts'
-    | 'timelineEvents'
-  >
-  /** Pinned on the trend chart to start with: the topic that's getting worse. */
-  pinnedTopic: string
-  /** The AI's one-line summary per topic (What changed's new topics included), shown when a topic is opened. */
+  /** Flagged mentions across every topic, and those still to confirm or dismiss, as the dashboard counts them. */
+  violationMentions: number
+  reviewCount: number
+  /** The AI's one-line summary per topic, shown when a topic is opened. */
   topicSummaries: Record<string, string>
 }
 
-/** Made-up results for the signed-out landing page, shown under a "Sample data" label. */
-export const LANDING_SAMPLES: Record<"workplace", LandingSample> = {
+const QUOTES_PER_TOPIC = 3
+
+// In the dashboard's default Priority order.
+const topics = sortTopics(themes.aiDiscoveredTopics, 'priority')
+const points = topics.flatMap((topic) => topic.feedbackSegment)
+// Flagged answers first, so the violation is what a visitor sees under its topic.
+const quotesOf = (topic: (typeof topics)[number]) =>
+  [...topic.feedbackSegment].sort((a, b) => Number(Boolean(b.violation)) - Number(Boolean(a.violation)))
+const comments = Array.from({ length: QUOTES_PER_TOPIC }, (_, i) =>
+  topics.flatMap((topic) => {
+    const point = quotesOf(topic)[i]
+    return point ? [{ text: point.quote, topicId: topic.id }] : []
+  }),
+).flat()
+
+const flaggedTopic = themes.violationTopics.find((topic) => topic.feedbackSegment.some((point) => point.violation))!
+
+/** Real results for the signed-out landing page, shown under a "Sample data" label. */
+export const LANDING_SAMPLES: Record<'workplace', LandingSample> = {
   workplace: {
     formTitle: 'Staff pulse survey',
-    responseCount: WORKPLACE_RESPONSE_COUNT,
-    comments: WORKPLACE_COMMENTS,
-    topics: WORKPLACE_TOPICS,
-    whatChanged: WORKPLACE_WHAT_CHANGED,
-    drill: WORKPLACE_DRILL,
-    flaggedTopic: 'Remarks from a team lead',
-    flaggedPoint: WORKPLACE_FLAGGED_POINT,
-    trend: WORKPLACE_TREND,
-    pinnedTopic: 'shift',
-    topicSummaries: {
-      shift: WORKPLACE_DRILL.summary,
-      pay: "Overtime on payslips often doesn't match the hours worked, and nobody has explained how it is calculated.",
-      managers: 'Many feel their line manager listens and acts quickly when they raise a problem.',
-      onboarding: 'New starters like the buddy system but say training on the HR system was rushed.',
-      remarks: 'Reports that a team lead mocks older colleagues in front of others. Flagged as a possible ethics violation.',
-      parking: 'New this month: not enough parking at the new site for the morning shift.',
-    },
+    responseCount: responses.totalResponses,
+    comments,
+    topics: topics.map(({ id, label, negative, neutral, positive, percentOfTotal, hasViolation }) => ({
+      id,
+      label,
+      negative,
+      neutral,
+      positive,
+      percentOfTotal,
+      hasViolation,
+    })),
+    whatChanged: trend.whatChanged!,
+    flaggedTopic: flaggedTopic.label,
+    flaggedPoint: flaggedTopic.feedbackSegment.find((point) => point.violation)!,
+    violationMentions: points.filter((point) => point.violation).length,
+    // Shown as if the owner already confirmed the rest: one left reads as a task, not a backlog.
+    reviewCount: Math.min(1, points.filter(needsReview).length),
+    topicSummaries: Object.fromEntries(topics.map((topic) => [topic.id, topic.aiSummary])),
   },
 }

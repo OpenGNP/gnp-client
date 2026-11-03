@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TriangleAlert,
   UserCheck,
+  Users,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
@@ -22,12 +23,12 @@ import { SENTIMENT_COLORS } from '../components/dashboard/sentimentColors'
 import { WhatChangedCard } from '../components/dashboard/TrendView'
 import { ViolationTooltip } from '../components/dashboard/ViolationTooltip'
 import { ChangeTag } from '../components/dashboard/TopicSentimentCard'
+import { StatCard } from '../components/dashboard/StatCard'
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
 import { LANDING_SAMPLES, type LandingSample, type LandingTopic } from '../data/landingSample'
-import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
 import { EditFormPage } from './EditFormPage'
 import { FormDashboardPage } from './FormDashboardPage'
 import { showAlert } from '../lib/alertDialog'
@@ -142,11 +143,8 @@ function dashboardRows(sample: LandingSample): DashboardRow[] {
       change: 'new',
     })
   }
-  // The dashboard's default Priority order: flagged first, then most negative (topicSort.ts).
-  const priority = TOPIC_SORT_OPTIONS.find((option) => option.value === 'priority')!.compare
-  return rows.sort(
-    (a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || priority(a, b),
-  )
+  // sample.topics is already in the dashboard's Priority order.
+  return rows
 }
 
 /** The app's window, as every demo on this page shows it: chrome, the form's name, its view tabs. */
@@ -353,32 +351,48 @@ function DashboardPicture({
   )
   const allMentions = totals.negative + totals.neutral + totals.positive
   const share = (n: number) => `${(n / allMentions) * 100}%`
-  const flagged = sample.whatChanged.rows.reduce((sum, row) => sum + row.violations, 0)
+  const violationTopics = sample.topics.filter((topic) => topic.hasViolation).length
   return (
     <AppFrame sample={sample}>
-      <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
-        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
-          <p className="m-0 mt-1 text-[20px] font-bold text-[#14181f] tabular-nums">{sample.responseCount}</p>
-        </div>
-        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
-          <div
-            aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
-            className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
-            role="img"
-          >
-            <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
-            <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
-            <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+      {/* The dashboard's own cards; @container lets them rearrange in a narrow frame as they do there. */}
+      <div className="@container">
+        <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
+          <StatCard
+            deltaClassName="text-[#0b842d]"
+            icon={<Users className="text-[#1e55c5]" size={31} strokeWidth={1.8} />}
+            iconBgClassName="bg-[#edf2fd]"
+            label="Total responses"
+            value={sample.responseCount}
+          />
+          <div className="flex h-29.5 min-w-0 flex-col rounded-[10px] border border-[#e9eaed] px-3.75 pt-4">
+            <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
+            <div
+              aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
+              className="mt-auto mb-auto flex h-2.5 gap-0.5 overflow-hidden rounded-full"
+              role="img"
+            >
+              <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
+              <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
+              <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+            </div>
           </div>
-        </div>
-        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Violation mentions</p>
-          <p className="m-0 mt-1 flex items-baseline gap-2">
-            <span className="text-[20px] font-bold text-[#14181f] tabular-nums">{flagged}</span>
-            <span className="text-[12px] font-semibold text-[#c2365f]">{flagged} to review</span>
-          </p>
+          <StatCard
+            deltaClassName="text-[#881921]"
+            footer={
+              sample.reviewCount > 0 ? (
+                <span className="font-semibold whitespace-nowrap text-[#c2365f]">
+                  {sample.reviewCount} to review
+                </span>
+              ) : (
+                <span className="whitespace-nowrap text-[#726f6f]">All reviewed</span>
+              )
+            }
+            icon={<TriangleAlert className="text-[#e0507a]" size={28} strokeWidth={1.8} />}
+            iconBgClassName="bg-[#ffeaeb]"
+            label="Violation mentions"
+            note={`in ${violationTopics} ${violationTopics === 1 ? 'topic' : 'topics'}`}
+            value={sample.violationMentions}
+          />
         </div>
       </div>
       <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
@@ -850,8 +864,8 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
             </div>
           }
         >
-          Each month is compared with the last. Only the topics that clearly got worse, got better, or are new
-          are called out, so you know where to look first.
+          Each week is compared with the one before. Only the topics that clearly got worse, got better, or
+          are new are called out, so you know where to look first.
         </SellingPoint>
         <SellingPoint
           title="Catch serious complaints early. You make the call."

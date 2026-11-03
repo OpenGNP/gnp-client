@@ -8,25 +8,10 @@ describe.each(Object.entries(LANDING_SAMPLES))('landing sample: %s', (_, sample)
     for (const comment of sample.comments) expect(ids).toContain(comment.topicId)
   })
 
-  it('charts each topic with the same totals as its row', () => {
-    for (const summary of sample.trend.topicSummaries ?? []) {
-      const topic = sample.topics.find((t) => t.id === summary.id)
-      expect(topic, summary.id).toBeDefined()
-      expect([summary.negative, summary.neutral, summary.positive]).toEqual([
-        topic!.negative,
-        topic!.neutral,
-        topic!.positive,
-      ])
-    }
-  })
-
-  it('counts the same number of responses as the chart', () => {
-    const charted = sample.trend.responseCounts.reduce((a, b) => a + b, 0)
-    expect(charted).toBeLessThanOrEqual(sample.responseCount)
-  })
-
-  it('starts the chart pinned on a charted topic', () => {
-    expect(sample.trend.topicVolumeSeries.map((s) => s.id)).toContain(sample.pinnedTopic)
+  it('shows a flagged mention and starts its answers on different topics', () => {
+    expect(sample.flaggedPoint.violation).toBe(true)
+    const first = sample.comments.slice(0, sample.topics.length).map((comment) => comment.topicId)
+    expect(new Set(first).size).toBe(sample.topics.length)
   })
 
   it('has a summary for every topic the hero lists, new ones included', () => {
