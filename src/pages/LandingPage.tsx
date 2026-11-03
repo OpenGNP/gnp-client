@@ -26,11 +26,7 @@ import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
-import {
-  LANDING_SAMPLES,
-  type LandingSample,
-  type LandingTopic,
-} from '../data/landingSample'
+import { LANDING_SAMPLES, type LandingSample, type LandingTopic } from '../data/landingSample'
 import { TOPIC_SORT_OPTIONS } from '../components/dashboard/topicSort'
 import { EditFormPage } from './EditFormPage'
 import { FormDashboardPage } from './FormDashboardPage'
@@ -43,6 +39,9 @@ import { cn } from '../lib/utils'
 import askMascot from '../assets/step3-mascot.png'
 import shareMascot from '../assets/step2-mascot.png'
 import readMascot from '../assets/step1-mascot.png'
+import penguinMascot from '../assets/card1-mascot.png'
+import monkeyMascot from '../assets/card2-mascot.png'
+import slothMascot from '../assets/card3-mascot.png'
 
 // Largest sample topic (42 points) rounded up to a step of 10, as the dashboard's axis does.
 const AXIS_MAX = 50
@@ -97,11 +96,21 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
       ) : null}
       <p className={`m-0 text-[12px] leading-4.5 ${tone === 'blue' ? 'text-[#dbe6ff]' : 'text-[#726f6f]'}`}>
         By signing in, you agree to the{' '}
-        <Link className={tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass} to="/terms">
+        <Link
+          className={
+            tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass
+          }
+          to="/terms"
+        >
           Terms of Use
         </Link>{' '}
         and acknowledge the{' '}
-        <Link className={tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass} to="/privacy">
+        <Link
+          className={
+            tone === 'blue' ? cn(linkClass, 'text-white underline focus-visible:outline-white') : linkClass
+          }
+          to="/privacy"
+        >
           Privacy Notice
         </Link>
         .
@@ -135,7 +144,9 @@ function dashboardRows(sample: LandingSample): DashboardRow[] {
   }
   // The dashboard's default Priority order: flagged first, then most negative (topicSort.ts).
   const priority = TOPIC_SORT_OPTIONS.find((option) => option.value === 'priority')!.compare
-  return rows.sort((a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || priority(a, b))
+  return rows.sort(
+    (a, b) => Number(Boolean(b.hasViolation)) - Number(Boolean(a.hasViolation)) || priority(a, b),
+  )
 }
 
 /** The app's window, as every demo on this page shows it: chrome, the form's name, its view tabs. */
@@ -154,7 +165,10 @@ function AppFrame({
       className={`mx-auto w-full max-w-224 min-w-0 overflow-hidden rounded-[15px] border border-[#e3e7f0] bg-white shadow-[0_24px_60px_rgba(20,40,90,0.12)] ${className}`}
       role="group"
     >
-      <div aria-hidden="true" className="flex h-9 items-center gap-1.5 border-b border-[#eef0f4] bg-[#f7f8fb] px-3.5">
+      <div
+        aria-hidden="true"
+        className="flex h-9 items-center gap-1.5 border-b border-[#eef0f4] bg-[#f7f8fb] px-3.5"
+      >
         <span className="size-2.5 rounded-full bg-[#d9dde6]" />
         <span className="size-2.5 rounded-full bg-[#d9dde6]" />
         <span className="size-2.5 rounded-full bg-[#d9dde6]" />
@@ -217,7 +231,9 @@ function TopicRows({
         const highlighted = highlightId === row.id && !open
         const panelId = `topic-${row.id}-details`
         // The answers filed under this topic; a new topic only has What changed's quote.
-        const quotes = sample.comments.filter((comment) => comment.topicId === row.id).map((comment) => comment.text)
+        const quotes = sample.comments
+          .filter((comment) => comment.topicId === row.id)
+          .map((comment) => comment.text)
         const fallback = sample.whatChanged.rows.find((changed) => changed.id === row.id)?.quote
         const shown = (quotes.length > 0 ? quotes : fallback ? [fallback] : []).slice(0, 3)
         return (
@@ -283,7 +299,12 @@ function TopicRows({
             {open ? (
               <div className="flex flex-col gap-3 px-4 pt-1 pb-4" id={panelId}>
                 <p className="m-0 flex gap-2.5 rounded-[10px] bg-[#edf2fd] p-3.5 text-[13px] leading-5 text-[#1f3d7a] animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none">
-                  <Sparkles aria-hidden className="mt-0.5 shrink-0 text-[#1e55c5]" fill="currentColor" size={15} />
+                  <Sparkles
+                    aria-hidden
+                    className="mt-0.5 shrink-0 text-[#1e55c5]"
+                    fill="currentColor"
+                    size={15}
+                  />
                   <span>
                     <span className="font-semibold">AI summary: </span>
                     {sample.topicSummaries[row.id]}
@@ -323,7 +344,11 @@ function DashboardPicture({
 }) {
   const rows = dashboardRows(sample)
   const totals = rows.reduce(
-    (sum, row) => ({ negative: sum.negative + row.negative, neutral: sum.neutral + row.neutral, positive: sum.positive + row.positive }),
+    (sum, row) => ({
+      negative: sum.negative + row.negative,
+      neutral: sum.neutral + row.neutral,
+      positive: sum.positive + row.positive,
+    }),
     { negative: 0, neutral: 0, positive: 0 },
   )
   const allMentions = totals.negative + totals.neutral + totals.positive
@@ -331,43 +356,49 @@ function DashboardPicture({
   const flagged = sample.whatChanged.rows.reduce((sum, row) => sum + row.violations, 0)
   return (
     <AppFrame sample={sample}>
-          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
-            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
-              <p className="m-0 mt-1 text-[20px] font-bold text-[#14181f] tabular-nums">{sample.responseCount}</p>
-            </div>
-            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
-              <div
-                aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
-                className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
-                role="img"
-              >
-                <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
-                <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
-                <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
-              </div>
-            </div>
-            <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
-              <p className="m-0 text-[12px] font-medium text-[#726f6f]">Violation mentions</p>
-              <p className="m-0 mt-1 flex items-baseline gap-2">
-                <span className="text-[20px] font-bold text-[#14181f] tabular-nums">{flagged}</span>
-                <span className="text-[12px] font-semibold text-[#c2365f]">{flagged} to review</span>
-              </p>
-            </div>
+      <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 max-[700px]:grid-cols-1">
+        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Total responses</p>
+          <p className="m-0 mt-1 text-[20px] font-bold text-[#14181f] tabular-nums">{sample.responseCount}</p>
+        </div>
+        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
+          <div
+            aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
+            className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
+            role="img"
+          >
+            <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
+            <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
+            <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
           </div>
-          <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
-            <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                Topics found by AI ({rows.length})
-                <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to read it</span>
-              </span>
-              {/* Over the share column: the chevron column and its gap sit to its right. */}
-              <span className="mr-8 font-medium text-[#726f6f]">Share</span>
-            </div>
-            {/* Keyed: switching sample closes any open topic. */}
-            <TopicRows highlightId={highlightId} key={sample.formTitle} onOpenChange={onOpenChange} rows={rows} sample={sample} />
-          </div>
+        </div>
+        <div className="rounded-[10px] border border-[#e9eaed] px-3.5 py-3">
+          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Violation mentions</p>
+          <p className="m-0 mt-1 flex items-baseline gap-2">
+            <span className="text-[20px] font-bold text-[#14181f] tabular-nums">{flagged}</span>
+            <span className="text-[12px] font-semibold text-[#c2365f]">{flagged} to review</span>
+          </p>
+        </div>
+      </div>
+      <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
+        <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            Topics found by AI ({rows.length})
+            <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to read it</span>
+          </span>
+          {/* Over the share column: the chevron column and its gap sit to its right. */}
+          <span className="mr-8 font-medium text-[#726f6f]">Share</span>
+        </div>
+        {/* Keyed: switching sample closes any open topic. */}
+        <TopicRows
+          highlightId={highlightId}
+          key={sample.formTitle}
+          onOpenChange={onOpenChange}
+          rows={rows}
+          sample={sample}
+        />
+      </div>
     </AppFrame>
   )
 }
@@ -467,8 +498,8 @@ function Hero({
         {/* The first thing HR asks about grievance data, answered next to the action. */}
         <p className="m-0 flex max-w-150 items-start gap-2 text-left text-[13px] leading-5 text-[#3f4045]">
           <ShieldCheck aria-hidden className="mt-0.5 shrink-0 text-[#1e55c5]" size={16} />
-          Analysis runs on KMUTT's own servers. People you share results with don't see respondents' names unless
-          you allow it.
+          Analysis runs on KMUTT's own servers. People you share results with don't see respondents' names
+          unless you allow it.
         </p>
       </div>
       <div className="relative flex flex-col gap-5">
@@ -505,59 +536,65 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
       <ol className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
         <li>
           <Reveal className={step} delay={0}>
-          <img alt="" className={art} src={askMascot} />
-          <h3 className={label}>
-            <span className={num}>1</span>
-            Ask
-          </h3>
-          <p className={text}>Build a form with open questions, choices and optional details like department.</p>
-          <div className={mock} aria-hidden="true">
-            <p className="m-0 text-[13px] font-medium text-[#14181f]">What's one thing we should change?</p>
-            <div className="mt-2.5 h-8 rounded-[8px] border border-[#d2d8e5] bg-[#fafbfe]" />
-          </div>
+            <img alt="" className={art} src={askMascot} />
+            <h3 className={label}>
+              <span className={num}>1</span>
+              Ask
+            </h3>
+            <p className={text}>
+              Build a form with open questions, choices and optional details like department.
+            </p>
+            <div className={mock} aria-hidden="true">
+              <p className="m-0 text-[13px] font-medium text-[#14181f]">What's one thing we should change?</p>
+              <div className="mt-2.5 h-8 rounded-[8px] border border-[#d2d8e5] bg-[#fafbfe]" />
+            </div>
           </Reveal>
         </li>
         <li>
           <Reveal className={step} delay={110}>
-          <img alt="" className={art} src={shareMascot} />
-          <h3 className={label}>
-            <span className={num}>2</span>
-            Share
-          </h3>
-          <p className={text}>Send the link. People answer from their phone or laptop in a couple of minutes.</p>
-          <div className={`${mock} flex items-center justify-between gap-3`} aria-hidden="true">
-            <span className="flex min-w-0 items-center gap-2 text-[13px] text-[#1e55c5]">
-              <LinkIcon className="shrink-0" size={14} />
-              <span className="truncate">opengnp.sit.kmutt.ac.th/f/…</span>
-            </span>
-            <span className="shrink-0 text-[13px] font-semibold text-[#14181f] tabular-nums">
-              {sample.responseCount} <span className="font-normal text-[#726f6f]">responses</span>
-            </span>
-          </div>
+            <img alt="" className={art} src={shareMascot} />
+            <h3 className={label}>
+              <span className={num}>2</span>
+              Share
+            </h3>
+            <p className={text}>
+              Send the link. People answer from their phone or laptop in a couple of minutes.
+            </p>
+            <div className={`${mock} flex items-center justify-between gap-3`} aria-hidden="true">
+              <span className="flex min-w-0 items-center gap-2 text-[13px] text-[#1e55c5]">
+                <LinkIcon className="shrink-0" size={14} />
+                <span className="truncate">opengnp.sit.kmutt.ac.th/f/…</span>
+              </span>
+              <span className="shrink-0 text-[13px] font-semibold text-[#14181f] tabular-nums">
+                {sample.responseCount} <span className="font-normal text-[#726f6f]">responses</span>
+              </span>
+            </div>
           </Reveal>
         </li>
         <li>
           <Reveal className={step} delay={220}>
-          <img alt="" className={art} src={readMascot} />
-          <h3 className={label}>
-            <span className={num}>3</span>
-            Read
-          </h3>
-          <p className={text}>AI groups every answer into topics and shows how people feel and what changed.</p>
-          <div className={`${mock} flex flex-col gap-2`} aria-hidden="true">
-            <span className="flex items-center justify-between gap-3 text-[13px] text-[#14181f]">
-              <span className="min-w-0 truncate">{worse.label}</span>
-              <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#e12b0c]">
-                <TrendingUp size={13} />
-                Getting worse
+            <img alt="" className={art} src={readMascot} />
+            <h3 className={label}>
+              <span className={num}>3</span>
+              Read
+            </h3>
+            <p className={text}>
+              AI groups every answer into topics and shows how people feel and what changed.
+            </p>
+            <div className={`${mock} flex flex-col gap-2`} aria-hidden="true">
+              <span className="flex items-center justify-between gap-3 text-[13px] text-[#14181f]">
+                <span className="min-w-0 truncate">{worse.label}</span>
+                <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#e12b0c]">
+                  <TrendingUp size={13} />
+                  Getting worse
+                </span>
               </span>
-            </span>
-            <span className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-              <span style={{ width: share(worse.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
-              <span style={{ width: share(worse.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
-              <span style={{ width: share(worse.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
-            </span>
-          </div>
+              <span className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
+                <span style={{ width: share(worse.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
+                <span style={{ width: share(worse.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
+                <span style={{ width: share(worse.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+              </span>
+            </div>
           </Reveal>
         </li>
       </ol>
@@ -572,7 +609,11 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const signedIn = useAuth().status === 'ready'
   return (
     <header className="mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
-      <Link aria-label={`${brand.name} overview`} className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]" to="/about">
+      <Link
+        aria-label={`${brand.name} overview`}
+        className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
+        to="/about"
+      >
         <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
       </Link>
       <nav aria-label="Site" className="flex items-center gap-1">
@@ -603,8 +644,8 @@ function ClosingBand({ demoLink = false, trustLine = true }: { demoLink?: boolea
         {trustLine ? (
           <p className="m-0 flex items-start gap-2.5 text-left text-[16px] leading-6.5 text-[#dbe6ff]">
             <ShieldCheck className="mt-1 shrink-0 text-white" size={18} />
-            {brand.name}'s AI runs on KMUTT's own servers. Responses are never sent to outside AI services such as
-            ChatGPT or Gemini.
+            {brand.name}'s AI runs on KMUTT's own servers. Responses are never sent to outside AI services
+            such as ChatGPT or Gemini.
           </p>
         ) : null}
         <div className="flex w-full justify-center">
@@ -628,7 +669,9 @@ function SiteFooter() {
   return (
     <footer className="mx-auto flex max-w-300 flex-wrap items-center justify-between gap-3 px-6 py-8 text-[12px] text-[#726f6f] max-[560px]:px-4">
       <span className="flex flex-wrap gap-x-4 gap-y-1">
-        <span>© {new Date().getFullYear()} {brand.name}</span>
+        <span>
+          © {new Date().getFullYear()} {brand.name}
+        </span>
         <span>School of Information Technology, KMUTT</span>
       </span>
       <span className="flex gap-4">
@@ -645,8 +688,8 @@ function SiteFooter() {
 
 const HERO_INTRO = (
   <>
-    Send one form. {brand.name} reads every open answer and sorts it into topics, sentiment and what changed since
-    last time, so you know where to act first.
+    Send one form. {brand.name} reads every open answer and sorts it into topics, sentiment and what changed
+    since last time, so you know where to act first.
   </>
 )
 
@@ -683,7 +726,11 @@ function Reveal({
     return () => observer.disconnect()
   }, [shown])
   const hidden =
-    from === 'left' ? 'motion-safe:-translate-x-8' : from === 'right' ? 'motion-safe:translate-x-8' : 'motion-safe:translate-y-6'
+    from === 'left'
+      ? 'motion-safe:-translate-x-8'
+      : from === 'right'
+        ? 'motion-safe:translate-x-8'
+        : 'motion-safe:translate-y-6'
   return (
     <div
       className={cn(
@@ -716,8 +763,13 @@ function SellingPoint({
 }) {
   return (
     <div className="grid grid-cols-2 items-center gap-14 max-[900px]:grid-cols-1 max-[900px]:gap-8">
-      <Reveal className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`} from={flip ? 'right' : 'left'}>
-        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">{title}</h2>
+      <Reveal
+        className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`}
+        from={flip ? 'right' : 'left'}
+      >
+        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
+          {title}
+        </h2>
         <p className="m-0 text-[16px] leading-7 text-[#3f4045]">{children}</p>
       </Reveal>
       {stillVisual ? (
@@ -748,71 +800,88 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
   return (
     // Clipped at the screen edge, not the section's: the slide-ins mustn't scroll a phone sideways, and the cards' glow needs the room.
     <div className="overflow-x-clip">
-      <section aria-label="What you get" className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16">
+      <section
+        aria-label="What you get"
+        className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16"
+      >
         <SellingPoint
           stillVisual
           title="Stop reading every answer one by one."
           visual={
-            <div className={`${card} spot-card flex flex-col gap-2.5 p-5 [--glow:rgb(30_85_197/0.2)]`}>
-              <div className="flex items-center justify-between gap-3 pb-1">
-                <span className="text-[13px] font-semibold text-[#14181f]">
-                  {sample.responseCount} answers in, {rows.length} topics out
-                </span>
+            // Mascots behind a card come before it, those in front come after: the card is positioned, so DOM order sets the stacking.
+            <div className="spot-card relative max-[900px]:mt-8 [--glow:rgb(30_85_197/0.2)]">
+              <img alt="" className="absolute -top-[60px] right-8 w-35" src={penguinMascot} />
+              <div className={`${card} relative flex flex-col gap-2.5 p-5`}>
+                <div className="flex items-center justify-between gap-3 pb-1">
+                  <span className="text-[13px] font-semibold text-[#14181f]">
+                    {sample.responseCount} answers in, {rows.length} topics out
+                  </span>
+                </div>
+                <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                  {sample.comments.slice(0, 4).map((comment) => (
+                    <li
+                      className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3"
+                      key={comment.text}
+                    >
+                      <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
+                      <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
+                        <ArrowRight aria-hidden size={12} />
+                        Filed under {rows.find((row) => row.id === comment.topicId)?.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                {sample.comments.slice(0, 4).map((comment) => (
-                  <li className="flex flex-col gap-1.5 rounded-[10px] bg-[#f7f8fb] px-3.5 py-3" key={comment.text}>
-                    <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
-                    <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
-                      <ArrowRight aria-hidden size={12} />
-                      Filed under {rows.find((row) => row.id === comment.topicId)?.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
           }
         >
-          {brand.name} reads every open answer and groups it into topics, with how people feel about each. Hundreds of
-          comments become one short list you can take in at a glance.
+          {brand.name} reads every open answer and groups it into topics, with how people feel about each.
+          Hundreds of comments become one short list you can take in at a glance.
         </SellingPoint>
         <SellingPoint
           flip
           title="Know what got worse before it becomes a problem."
           visual={
-            <div className="spot-card [--glow:rgb(196_40_11/0.22)]">
-              <WhatChangedCard data={sample.whatChanged} />
+            <div className="spot-card relative max-[900px]:mt-22 [--glow:rgb(196_40_11/0.22)]">
+              <img alt="" className="absolute -top-[114px] left-8 w-26" src={monkeyMascot} />
+              <div className="relative">
+                <WhatChangedCard data={sample.whatChanged} />
+              </div>
             </div>
           }
         >
-          Each month is compared with the last. Only the topics that clearly got worse, got better, or are new are
-          called out, so you know where to look first.
+          Each month is compared with the last. Only the topics that clearly got worse, got better, or are new
+          are called out, so you know where to look first.
         </SellingPoint>
         <SellingPoint
           title="Catch serious complaints early. You make the call."
           visual={
-            <div className={`${card} spot-card flex flex-col gap-3 p-5 [--glow:rgb(224_80_122/0.26)]`}>
-              <div className="flex items-center justify-between gap-3">
-                <p className="m-0 flex items-center gap-2 text-[16px] font-semibold text-[#14181f]">
-                  {sample.flaggedTopic}
-                  {point.violation ? (
-                    <ViolationTooltip scope="topic">
-                      <TriangleAlert
-                        aria-label="Contains possible violations"
-                        className="shrink-0 text-[#e0507a]"
-                        role="img"
-                        size={16}
-                      />
-                    </ViolationTooltip>
-                  ) : null}
-                </p>
+            <div className="spot-card relative max-[900px]:mt-9 [--glow:rgb(224_80_122/0.26)]">
+              <div className={`${card} relative flex flex-col gap-3 p-5`}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="m-0 flex items-center gap-2 text-[16px] font-semibold text-[#14181f]">
+                    {sample.flaggedTopic}
+                    {point.violation ? (
+                      <ViolationTooltip scope="topic">
+                        <TriangleAlert
+                          aria-label="Contains possible violations"
+                          className="shrink-0 text-[#e0507a]"
+                          role="img"
+                          size={16}
+                        />
+                      </ViolationTooltip>
+                    ) : null}
+                  </p>
+                </div>
+                <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
               </div>
-              <FeedbackPointCard onReview={review} point={point} query="" showName={false} />
+              <img alt="" className="absolute -top-[64px] right-6 w-32" src={slothMascot} />
             </div>
           }
         >
-          Comments that may break the law or your organisation's values are flagged for you. The AI can be wrong, so
-          you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it here.
+          Comments that may break the law or your organisation's values are flagged for you. The AI can be
+          wrong, so you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it
+          here.
         </SellingPoint>
       </section>
     </div>
@@ -935,7 +1004,13 @@ export function DemoPage() {
             Sign in
           </Link>
         </div>
-        {editing ? <EditFormPage onMove={() => void showAlert(demoSaveError().message, { title: 'Sign in to move forms' })} /> : <FormDashboardPage />}
+        {editing ? (
+          <EditFormPage
+            onMove={() => void showAlert(demoSaveError().message, { title: 'Sign in to move forms' })}
+          />
+        ) : (
+          <FormDashboardPage />
+        )}
       </div>
     </DemoContext.Provider>
   )
