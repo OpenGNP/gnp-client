@@ -135,7 +135,7 @@ function SidebarHeader({
       <img
         src={brand.logo}
         alt={brand.name}
-        className="h-5 w-9.5 object-cover object-center"
+        className="h-9 w-19 object-cover object-center"
       />
       <Button
         className="size-10 text-[#3f4045]"

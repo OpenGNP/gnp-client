@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import type { ViolationReview } from '../api/analytics'
 import { FeedbackPointCard } from '../components/dashboard/FeedbackSegmentSection'
@@ -54,6 +54,12 @@ const linkClass =
 function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
   const [error, setError] = useState('')
   const signedIn = useAuth().status === 'ready'
+  const navigate = useNavigate()
+  // Only a sign-in started here goes Home; someone already signed in can stay on /about.
+  const signingIn = useRef(false)
+  useEffect(() => {
+    if (signedIn && signingIn.current) void navigate('/', { replace: true })
+  }, [signedIn, navigate])
   if (signedIn) {
     return (
       <Button
@@ -73,7 +79,9 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
     <div className="flex w-full max-w-80 flex-col gap-3">
       {msalInstance ? (
         <MicrosoftSignInButton
-          onBusyChange={() => {}}
+          onBusyChange={(busy) => {
+            if (busy) signingIn.current = true
+          }}
           onError={setError}
           // On the blue band the white button already stands out; on the light hero it takes the blue.
           variant={tone === 'blue' ? 'default' : 'primary'}
