@@ -140,14 +140,14 @@ function Shell({ children, wide = false }: { children: React.ReactNode; wide?: b
   const width = wide ? "max-w-[978px]" : "max-w-105";
   return (
     <div className="min-h-screen bg-[#f5f9ff] font-['Inter_Variable']">
-      <div className="sticky top-0 z-10 flex justify-center bg-[#f5f9ff] px-3 pt-6 pb-3 sm:px-4 sm:pt-10">
+      <div className="sticky top-0 z-10 flex justify-center bg-[#f5f9ff] px-6 pt-6 pb-3 sm:pt-10">
         <div className={cn("w-full", width)}>
           <Link aria-label={`${brand.name} home`} className="inline-block" to="/">
             <img alt={brand.name} className="h-8 w-15.25 object-cover object-center" src={brand.logo} />
           </Link>
         </div>
       </div>
-      <div className="flex justify-center px-3 pb-6 sm:px-4 sm:pb-10">
+      <div className="flex justify-center px-6 pb-6 sm:pb-10">
         <div className={cn("w-full", width)}>
           {wide ? children : <div className="overflow-hidden rounded-2xl bg-white shadow-sm">{children}</div>}
         </div>
