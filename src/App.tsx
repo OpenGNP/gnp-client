@@ -41,6 +41,7 @@ import {
   getFolderPath,
   uniqueName,
 } from './utils/projectTree'
+import { randomId } from './lib/randomId'
 
 const SIDEBAR_COLLAPSED_KEY = 'gnp.sidebar.collapsed'
 
@@ -310,7 +311,7 @@ function App() {
     const label = uniqueName(projects, desired, { parentFolderId, type: 'folder' })
     // Shown straight away (dimmed, not clickable) — otherwise it vanishes for the
     // round trip between the name being committed and the server answering.
-    const pendingId = `pending-${crypto.randomUUID()}`
+    const pendingId = `pending-${randomId()}`
     // Dated now, so a date sort places it at once rather than after the next reload.
     const now = new Date().toISOString()
     addFolder({ id: pendingId, label, type: 'folder', pending: true, createdAt: now, updatedAt: now }, parentFolderId)
