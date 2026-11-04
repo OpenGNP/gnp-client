@@ -35,7 +35,7 @@ export function SortControls({
             type="button"
           >
             <ArrowUpDown className="text-[#5f6368]" size={14} />
-            <span className="text-[#8b8e98]">Sort:</span>
+            <span className="text-[#6e717b]">Sort:</span>
             {SORT_LABELS[sortKey]}
             <ChevronDown className="text-[#5f6368]" size={14} />
           </button>

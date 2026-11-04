@@ -164,7 +164,7 @@ export function SaveDraftModal({
           ))}
         </>
       ) : (
-        <p className="m-0 flex h-full min-h-16 items-center justify-center px-3 text-center text-[13px] text-[#8b8e98]">
+        <p className="m-0 flex h-full min-h-16 items-center justify-center px-3 text-center text-[13px] text-[#6e717b]">
           {onCreateFolder ? 'No folders here. Right-click to create one.' : 'No folders here'}
         </p>
       )}

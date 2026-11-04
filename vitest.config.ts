@@ -14,5 +14,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./qa-testing/setup.ts"],
     globals: true,
+    // e2e/ holds the Playwright browser journeys (bun run test:e2e), not Vitest tests.
+    exclude: ["**/node_modules/**", "e2e/**"],
   },
 })

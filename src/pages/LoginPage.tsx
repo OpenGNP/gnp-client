@@ -33,7 +33,7 @@ function LoginCard({ subtitle, busy = false, children }: { subtitle: string; bus
           <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
           <div>
             <h1 className="m-0 text-[18px] font-semibold text-[#14181f]">Sign in</h1>
-            <p className="m-0 mt-1 text-[13px] text-[#8b8e98]">{subtitle}</p>
+            <p className="m-0 mt-1 text-[13px] text-[#6e717b]">{subtitle}</p>
           </div>
         </div>
         {children}
@@ -64,7 +64,7 @@ export function LoginPage() {
       <MicrosoftSignInButton onBusyChange={setMicrosoftBusy} onError={setError} />
       <ErrorNote message={error} />
       {/* New tab, so reading them doesn't lose the sign-in in progress. */}
-      <p className="m-0 mt-5 text-center text-[12px] leading-4.5 text-[#8b8e98]">
+      <p className="m-0 mt-5 text-center text-[12px] leading-4.5 text-[#6e717b]">
         By signing in, you agree to the{' '}
         <Link className="text-[#1e55c5] hover:underline" rel="noopener" target="_blank" to="/terms">
           Terms of Use
@@ -140,7 +140,7 @@ export function EmailLoginPage() {
               <button
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 aria-pressed={showPassword}
-                className="absolute right-3 flex cursor-pointer items-center text-[#8b8e98] transition-colors hover:text-[#3f4045]"
+                className="absolute right-3 flex cursor-pointer items-center text-[#6e717b] transition-colors hover:text-[#3f4045]"
                 onClick={() => setShowPassword((value) => !value)}
                 tabIndex={-1}
                 type="button"
@@ -169,7 +169,7 @@ export function EmailLoginPage() {
           </Button>
         </form>
       {msalInstance ? (
-        <p className="m-0 mt-5 text-center text-[12px] text-[#8b8e98]">
+        <p className="m-0 mt-5 text-center text-[12px] text-[#6e717b]">
           Not an administrator?{' '}
           <Link className="font-medium text-[#1e55c5] hover:underline" state={location.state} to="/login">
             Sign in with Microsoft

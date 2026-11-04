@@ -331,7 +331,7 @@ function SidebarRail({
             <DropdownMenuContent align="end" className="min-w-50" side="right">
               <div className="px-2 py-1.5">
                 <p className="m-0 truncate text-[13px] font-semibold text-[#3f4045]">{user.name}</p>
-                <p className="m-0 truncate text-[12px] text-[#888683]">{user.email}</p>
+                <p className="m-0 truncate text-[12px] text-[#6f6d6a]">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onGoProfile}>
@@ -928,7 +928,7 @@ function UserProfile({
         <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[16px] font-semibold tracking-[0.16px] text-[#3f4045]">
           {user.name}
         </strong>
-        <span className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium tracking-[0.12px] text-[#888683]">
+        <span className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium tracking-[0.12px] text-[#6f6d6a]">
           {user.email}
         </span>
       </div>

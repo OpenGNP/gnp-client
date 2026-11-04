@@ -104,7 +104,7 @@ export function SpecificPeopleField({ emails, onChange }: SpecificPeopleFieldPro
           ))}
         </ul>
       ) : (
-        <span className="text-[12px] text-[#8b8e98]">
+        <span className="text-[12px] text-[#6e717b]">
           No one added yet. Enter an email, or paste a list (one per line or comma-separated).
         </span>
       )}

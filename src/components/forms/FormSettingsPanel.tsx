@@ -74,7 +74,7 @@ function RadioOption({
             {title}
           </span>
           {description ? (
-            <span className="mt-1 block text-[12px] leading-4 tracking-[0.12px] text-[#8b8e98]">
+            <span className="mt-1 block text-[12px] leading-4 tracking-[0.12px] text-[#6e717b]">
               {description}
             </span>
           ) : null}
@@ -156,7 +156,7 @@ function DateCheckboxField({
             value={toDatetimeLocalValue(value)}
           />
           {value ? (
-            <span className="ml-7.5 text-[11px] leading-4 text-[#8b8e98]">{formatRelativeTime(value)}</span>
+            <span className="ml-7.5 text-[11px] leading-4 text-[#6e717b]">{formatRelativeTime(value)}</span>
           ) : null}
           {error ? (
             <span className="ml-7.5 text-[11px] leading-4 text-[#e0507a]">{error}</span>
@@ -312,7 +312,7 @@ export function FormSettingsPanel({
         title="Response window"
       >
         <div className="flex flex-col gap-3">
-          <p className="m-0 text-[12px] leading-4 tracking-[0.12px] text-[#8b8e98]">
+          <p className="m-0 text-[12px] leading-4 tracking-[0.12px] text-[#6e717b]">
             Optional. With neither set, the form accepts responses until you pause it. Times are in
             your timezone{LOCAL_TIMEZONE ? ` (${LOCAL_TIMEZONE})` : ""}.
           </p>

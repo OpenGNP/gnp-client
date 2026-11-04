@@ -60,7 +60,9 @@ export function FormDetailTabs({
         value={isDashboardActive ? 'dashboard' : 'edit'}
       >
         <TabsList aria-label="Form detail" className="h-full">
+          {/* These tabs navigate between pages; there is no tab panel for aria-controls to name. */}
           <TabsTrigger
+            aria-controls={undefined}
             className={cn(
               'flex h-full w-32.25 cursor-pointer items-center justify-center border-0 border-b-2 bg-transparent text-[16px] tracking-[0.16px]',
               isDashboardActive ? 'border-transparent text-[#726f6f] hover:text-black' : SELECTED_TAB,
@@ -73,6 +75,7 @@ export function FormDetailTabs({
             Edit form
           </TabsTrigger>
           <TabsTrigger
+            aria-controls={undefined}
             className={cn(
               'flex h-full w-32.25 items-center justify-center border-0 border-b-2 bg-transparent text-[16px] tracking-[0.16px]',
               hasDashboardData

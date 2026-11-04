@@ -335,7 +335,7 @@ export function TopicDetailPanel({
                 <Bar
                   dataKey={key}
                   // Off: every segment the same neutral, so the stack reads as one bar.
-                  fill={key === 'unsplit' || !showSentiment ? '#8b8e98' : SENTIMENT_COLORS[key]}
+                  fill={key === 'unsplit' || !showSentiment ? '#6e717b' : SENTIMENT_COLORS[key]}
                   isAnimationActive={false}
                   key={key}
                   stackId="volume"

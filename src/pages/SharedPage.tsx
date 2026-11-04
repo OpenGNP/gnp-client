@@ -59,7 +59,7 @@ export function SharedPage() {
             sortKey={sortKey}
           />
         </div>
-        <p className="m-0 px-1.5 text-[13px] text-[#8b8e98]">
+        <p className="m-0 px-1.5 text-[13px] text-[#6e717b]">
           Dashboards others have shared with you. You can view and export them, but not edit.
         </p>
 
@@ -83,7 +83,7 @@ export function SharedPage() {
               </button>
             </div>
           ) : shared.data.length === 0 ? (
-            <p className="m-0 text-[14px] text-[#8b8e98]">Nothing has been shared with you yet</p>
+            <p className="m-0 text-[14px] text-[#6e717b]">Nothing has been shared with you yet</p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(235px,100%),235px))] gap-x-8 gap-y-5.25 max-[560px]:grid-cols-1">
               {sortShared(shared.data, sortKey, sortDir).map((form) => (
@@ -98,7 +98,7 @@ export function SharedPage() {
                   {form.ownerName ? (
                     <Tooltip delayDuration={200}>
                       <TooltipTrigger asChild>
-                        <p className="m-0 w-fit max-w-full truncate px-1 text-[12px] text-[#8b8e98]">
+                        <p className="m-0 w-fit max-w-full truncate px-1 text-[12px] text-[#6e717b]">
                           Shared by {form.ownerName}
                         </p>
                       </TooltipTrigger>

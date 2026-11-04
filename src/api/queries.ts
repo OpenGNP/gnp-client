@@ -47,6 +47,9 @@ export const formRefQuery = (ref: string) =>
     queryFn: () => resolveFormRef(ref),
     staleTime: Infinity,
     retry: false,
+    // A failed lookup (deleted form, bad link) stays failed until "Try again". Refetching
+    // whenever another component starts reading it looped: the error view mounts one.
+    retryOnMount: false,
   })
 
 export const sharedFormsQuery = () =>
