@@ -49,3 +49,10 @@ export function createQuestion(type: QuestionTypeValue, id: string): Question {
     required: true,
   }
 }
+
+/** What happens to a question's answers: [long, short] copy per section and type; null shows nothing. */
+export const QUESTION_USE = {
+  feedback: { text: ['AI groups answers into topics', 'AI topics'], choice: null },
+  // Explained once by the section's ⓘ (SectionInfo in CreateFormCard) instead.
+  demographic: { text: null, choice: null },
+} as const

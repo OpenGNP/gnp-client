@@ -1,7 +1,7 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
-import { Circle, Sparkles, Square } from 'lucide-react'
+import { Circle, Square } from 'lucide-react'
 
-import { MoveHandle } from './QuestionCardControls'
+import { MoveHandle, QuestionUseLabel } from './QuestionCardControls'
 import type { Question } from './question-types'
 
 /**
@@ -10,12 +10,14 @@ import type { Question } from './question-types'
  */
 export function QuestionPreviewCard({
   question,
+  number,
   showAiAnalyze = false,
   onActivate,
   dragHandleAttributes,
   dragHandleListeners,
 }: {
   question: Question
+  number: number
   showAiAnalyze?: boolean
   onActivate: () => void
   dragHandleAttributes?: DraggableAttributes
@@ -33,6 +35,7 @@ export function QuestionPreviewCard({
         className="cursor-pointer border-0 bg-transparent p-0 text-left text-[16px] tracking-[0.16px] text-black focus-visible:rounded-[4px] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
         type="button"
       >
+        <span className="mr-2 text-[14px] font-medium text-[#726f6f]">Q{number}</span>
         {question.question.trim() || <span className="text-[#bdbdbd]">Untitled question</span>}
         {question.required ? <span className="ml-1 text-[#e0507a]">*</span> : null}
       </button>
@@ -64,18 +67,11 @@ export function QuestionPreviewCard({
         <span className="justify-self-center" onClick={(event) => event.stopPropagation()}>
           <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
         </span>
-        {showAiAnalyze ? (
-          question.type === 'text' ? (
-            <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px] text-[#1e55c5]">
-              <Sparkles size={13} />
-              AI Analyze
-            </span>
-          ) : (
-            <span className="justify-self-end text-[12px] text-[#726f6f]">Not analysed by AI</span>
-          )
-        ) : (
-          <span aria-hidden="true" />
-        )}
+        <QuestionUseLabel
+          analysed={showAiAnalyze}
+          className="gap-1.5 justify-self-end text-[12px] font-normal"
+          type={question.type}
+        />
       </div>
     </div>
   )

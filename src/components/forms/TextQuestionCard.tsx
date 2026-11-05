@@ -1,14 +1,15 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
-import { Asterisk, MessageSquareText } from 'lucide-react'
+import { Asterisk } from 'lucide-react'
 
 import { cn } from '../../lib/utils'
 import {
-  AiAnalyzeLabel,
   LabeledToggle,
   MoveHandle,
   QuestionCardFooter,
   QuestionCardShell,
   QuestionTitleField,
+  QuestionUseLabel,
+  SegmentedToggle,
 } from './QuestionCardControls'
 import type { TextQuestion } from './question-types'
 
@@ -16,6 +17,8 @@ export type TextQuestionCardProps = {
   question: TextQuestion
   onChange: (question: TextQuestion) => void
   onDelete: () => void
+  /** Position in its section, from 1. */
+  number: number
   showAiAnalyze?: boolean
   dragHandleAttributes?: DraggableAttributes
   dragHandleListeners?: DraggableSyntheticListeners
@@ -25,6 +28,7 @@ export function TextQuestionCard({
   question,
   onChange,
   onDelete,
+  number,
   showAiAnalyze = false,
   dragHandleAttributes,
   dragHandleListeners,
@@ -35,6 +39,7 @@ export function TextQuestionCard({
     <QuestionCardShell>
       <QuestionTitleField
         onChange={(value) => onChange({ ...question, question: value })}
+        number={number}
         onDelete={onDelete}
         value={question.question}
       />
@@ -49,15 +54,14 @@ export function TextQuestionCard({
       </div>
 
       <QuestionCardFooter>
-        <LabeledToggle
-          checked={isLong}
-          chipClassName="bg-[#e8eeff] text-[#1e55c5]"
-          className="w-[203px]"
-          icon={<MessageSquareText size={15} />}
-          label={isLong ? 'Long answer' : 'Short answer'}
-          onCheckedChange={(checked) =>
-            onChange({ ...question, answerLength: checked ? 'long' : 'short' })
-          }
+        <SegmentedToggle
+          label="Answer length"
+          onChange={(answerLength) => onChange({ ...question, answerLength })}
+          options={[
+            { value: 'short', label: 'Short answer' },
+            { value: 'long', label: 'Long answer' },
+          ]}
+          value={question.answerLength}
         />
         <LabeledToggle
           checked={question.required}
@@ -69,19 +73,15 @@ export function TextQuestionCard({
         />
       </QuestionCardFooter>
 
-      {showAiAnalyze ? (
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
-          <span aria-hidden="true" />
-          <MoveHandle
-            attributes={dragHandleAttributes}
-            className="justify-self-center"
-            listeners={dragHandleListeners}
-          />
-          <AiAnalyzeLabel className="justify-self-end" />
-        </div>
-      ) : (
-        <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
-      )}
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+        <span aria-hidden="true" />
+        <MoveHandle
+          attributes={dragHandleAttributes}
+          className="justify-self-center"
+          listeners={dragHandleListeners}
+        />
+        <QuestionUseLabel analysed={showAiAnalyze} className="justify-self-end" type="text" />
+      </div>
     </QuestionCardShell>
   )
 }

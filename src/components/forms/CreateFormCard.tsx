@@ -13,10 +13,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Circle, Type } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { Circle, Info, Type } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
+import { ActiveFilterBar } from "../dashboard/ActiveFilterBar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { AddQuestionButton } from "./AddQuestionButton";
 import { CoverImageField } from "./CoverImageField";
 import {
@@ -37,11 +39,15 @@ import type {
 import { SortableQuestionCard } from "./SortableQuestionCard";
 
 type FormSectionProps = {
+  id: string;
   title: string;
   /** Why the section exists, under its title. */
   description: string;
   questionTypes: QuestionTypeOption[];
   showAiAnalyze?: boolean;
+  optional?: boolean;
+  /** Shown behind an ⓘ next to the title. */
+  info?: ReactNode;
   questions: Question[];
   onQuestionsChange: (questions: Question[]) => void;
   /** The question open for editing, across both sections; the rest show as previews. */
@@ -93,10 +99,13 @@ const questionTypes: QuestionTypeOption[] = [
 ];
 
 function FormSection({
+  id,
   title,
   description,
   questionTypes,
   showAiAnalyze = false,
+  optional = false,
+  info,
   questions,
   onQuestionsChange,
   activeQuestionId,
@@ -144,9 +153,30 @@ function FormSection({
   };
 
   return (
-    <section className="flex flex-col gap-4" aria-labelledby={`${title}-title`}>
-      <FormSectionTitle id={`${title}-title`}>{title}</FormSectionTitle>
-      <p className="m-0 -mt-1 text-[13px] text-[#726f6f]">{description}</p>
+    <section className="flex flex-col gap-4" aria-labelledby={`${id}-title`}>
+      <div className="flex items-baseline gap-2.5">
+        <FormSectionTitle id={`${id}-title`}>{title}</FormSectionTitle>
+        {optional ? <span className="text-[14px] text-[#726f6f]">Optional</span> : null}
+        {info ? (
+          <Tooltip>
+            <TooltipTrigger
+              aria-label={`About ${title}`}
+              className="inline-flex size-6 cursor-pointer items-center justify-center self-center rounded-full border-0 bg-transparent text-[#726f6f] hover:text-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+            >
+              <Info size={16} />
+            </TooltipTrigger>
+            <TooltipContent
+              align="start"
+              className="flex w-80 flex-col gap-3 rounded-[10px] p-4 text-[13px] leading-5 whitespace-normal text-[#3f4045]"
+              side="bottom"
+              sideOffset={8}
+            >
+              {info}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
+      </div>
+      <p className="m-0 -mt-1 text-[14px] leading-5 text-[#726f6f]">{description}</p>
 
       {questions.length > 0 ? (
         <DndContext
@@ -159,10 +189,11 @@ function FormSection({
             strategy={verticalListSortingStrategy}
           >
             <div className="flex w-full flex-col gap-7.5">
-              {questions.map((question) => (
+              {questions.map((question, index) => (
                 <SortableQuestionCard
                   isActive={question.id === activeQuestionId}
                   key={question.id}
+                  number={index + 1}
                   onActivate={() => onActivateQuestion(question.id)}
                   onChange={updateQuestion}
                   onDelete={() => removeQuestion(question.id)}
@@ -176,6 +207,7 @@ function FormSection({
       ) : null}
 
       <AddQuestionButton
+        analysed={showAiAnalyze}
         onAddQuestion={addQuestion}
         questionTypes={questionTypes}
       />
@@ -289,9 +321,27 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             onChange({ demographic: questions })
           }
           questions={value.demographic}
-          description="Who's answering, e.g. year or program. Used to filter and compare results."
+          description="Questions about the people answering, like their year, name or food allergies."
+          optional
+          info={
+            <>
+              <p className="m-0">
+                Choice questions here become filters on your dashboard, so you can see results for one group
+                at a time.
+              </p>
+              {/* The dashboard's own chips, look-only. */}
+              <div className="rounded-[8px] bg-[#f5f9ff] p-3" inert>
+                <ActiveFilterBar
+                  chips={[{ id: "year", group: "Year", value: "Year 1", onRemove: () => {} }]}
+                  onClearAll={() => {}}
+                />
+              </div>
+              <p className="m-0 text-[#726f6f]">Text answers are kept with each response. AI doesn't read them.</p>
+            </>
+          }
+          id="demographic"
           questionTypes={questionTypes}
-          title="Demographic"
+          title="About your respondents"
         />
 
         <div className={FORM_DIVIDER_CLASS} />
@@ -302,9 +352,10 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
           onQuestionsChange={(questions) => onChange({ feedback: questions })}
           questions={value.feedback}
           questionTypes={questionTypes}
-          description="What you want to learn. AI groups written answers into topics; choice answers are only counted."
+          description="Your main questions, like what people liked or what should improve."
+          id="feedback"
           showAiAnalyze
-          title="Feedback"
+          title="Your questions"
         />
       </div>
     </FormPaper>

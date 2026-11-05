@@ -666,13 +666,13 @@ export function PublicFormPage() {
             <div className="flex flex-col gap-5">
               <div className={FORM_DIVIDER_CLASS} />
               <FormSectionTitle>Feedback</FormSectionTitle>
-              {feedbackFields.map((field) => {
+              {feedbackFields.map((field, index) => {
                 const answer = answers[field.id];
                 const text = answer?.kind === "text" ? answer.value : "";
                 return (
                   <div className="flex flex-col gap-2" key={field.id}>
                     <p className="text-sm font-semibold text-foreground">
-                      {field.fieldLabel ?? "Untitled question"}
+                      {index + 1}. {field.fieldLabel ?? "Untitled question"}
                       {field.isRequired ? (
                         <span className="ml-1 text-destructive">*</span>
                       ) : null}
