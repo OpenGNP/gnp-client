@@ -47,9 +47,6 @@ function toggleInSet<T>(set: Set<T>, value: T) {
 }
 
 
-/** gnp-ai's violation_type → the adjective in the tag. */
-const VIOLATION_KIND: Record<string, string> = { legal: 'legal', moral: 'moral', ethics: 'ethical' }
-
 const REVIEW_BUTTON =
   'inline-flex cursor-pointer items-center gap-1 rounded-[6px] border-0 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-[#5f6368] hover:bg-[#f2f4f7] hover:text-[#14181f] disabled:cursor-default disabled:opacity-50'
 
@@ -121,9 +118,7 @@ function ViolationReviewRow({
   )
 
   const possible = point.violationStatus === 'possible'
-  const kind = VIOLATION_KIND[point.violationType ?? ''] ?? null
-  // "Possible moral violation", "Legal violation", or plain "Violation" when the AI gave no category.
-  const label = [possible ? 'Possible' : null, kind, 'violation'].filter(Boolean).join(' ')
+  const label = possible ? 'Possible violation' : 'Violation'
 
   // Owner only: the tag is gone, but the call can still be undone.
   const body = point.dismissed ? (
@@ -145,7 +140,7 @@ function ViolationReviewRow({
           )}
         >
           <AlertTriangle size={11} />
-          {label[0]!.toUpperCase() + label.slice(1)}
+          {label}
         </span>
       </ViolationTooltip>
       {point.violationStatus === 'confirmed' ? (
