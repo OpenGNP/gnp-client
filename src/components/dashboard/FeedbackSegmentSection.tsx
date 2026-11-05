@@ -277,7 +277,7 @@ export function FeedbackPointCard({
               {point.demographics.map((demo) => (
                 <span
                   className="rounded-full border border-[#e9eaed] bg-white px-2 py-0.5 text-[11px] text-[#3f4045]"
-                  key={demo.label}
+                  key={`${demo.label}:${demo.value}`}
                 >
                   {demo.label}: {demo.value}
                 </span>
@@ -430,8 +430,8 @@ export function FeedbackSegmentSection({
       }
       for (const [label, selected] of Object.entries(selectedDemos)) {
         if (selected.size === 0) continue
-        const demo = point.demographics.find((entry) => entry.label === label)
-        if (!demo || !selected.has(demo.value)) return false
+        // Multi-choice questions give several entries per label; any one may match.
+        if (!point.demographics.some((entry) => entry.label === label && selected.has(entry.value))) return false
       }
       return true
     })
