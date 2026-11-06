@@ -533,17 +533,16 @@ function Hero({
           <SignInAction />
         </div>
         {secondary}
-        {/* The first thing HR asks about grievance data, answered next to the action. */}
-        <p className="m-0 flex max-w-150 items-start gap-2 text-left text-[13px] leading-5 text-[#3f4045]">
-          <ShieldCheck aria-hidden className="mt-0.5 shrink-0 text-[#1e55c5]" size={16} />
-          Analysis runs on KMUTT's own servers. People you share results with don't see respondents' names
-          unless you allow it.
-        </p>
       </div>
       <div className="relative flex flex-col gap-5">
         <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
         {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
         {/* As wide as the frame only: full width, it would cover the floating answers in the gutters. */}
+        {/* Says what the dashboard is before the eye reaches it. */}
+        <p className="m-0 text-center text-[14px] leading-5.5 text-[#3f4045]">
+          Example: {sample.responseCount} staff answered a pulse survey. Here's what {brand.name} found in their
+          answers.
+        </p>
         <div className="hero-rise relative z-10 mx-auto w-full max-w-224">
           <DashboardPicture highlightId={hoverTopic} onOpenChange={setOpenTopic} sample={sample} />
         </div>
@@ -726,8 +725,8 @@ function SiteFooter() {
 
 const HERO_INTRO = (
   <>
-    Send one form. {brand.name} reads every open answer and sorts it into topics, sentiment and what changed
-    since last time, so you know where to act first.
+    Send one form. {brand.name} reads the answers and sorts them into topics, sentiment and what changed since
+    last time, so you know where to act first.
   </>
 )
 
@@ -991,13 +990,13 @@ export function LandingPage() {
               <ArrowRight size={16} />
             </Link>
           }
-          title="Know what your people are really telling you."
+          title="Turn every open answer into a short list of what to fix."
         />
         <div className="border-t border-[#e8eaf1]">
-          <SellingPoints sample={sample} />
+          <HowItWorks sample={sample} />
         </div>
         <div className="border-t border-[#e8eaf1]">
-          <HowItWorks sample={sample} />
+          <SellingPoints sample={sample} />
         </div>
         <div className="border-t border-[#e8eaf1]">
           <TrustSection />
