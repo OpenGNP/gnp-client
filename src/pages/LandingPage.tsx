@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  Check,
   ChevronDown,
   EyeOff,
   Link as LinkIcon,
@@ -136,7 +137,10 @@ function dashboardRows(sample: LandingSample): DashboardRow[] {
   for (const row of sample.whatChanged.rows) {
     if (row.kind === 'worse' || row.kind === 'new') changes.set(row.id, row.kind)
   }
-  const rows: DashboardRow[] = sample.topics.map((topic) => ({ ...topic, change: changes.get(topic.id) }))
+  const rows: DashboardRow[] = sample.topics.map((topic) => ({
+    ...topic,
+    change: changes.get(topic.id),
+  }))
   // A new topic What changed found but the topic list doesn't hold yet.
   for (const row of sample.whatChanged.rows) {
     if (row.kind !== 'new' || rows.some((topic) => topic.id === row.id)) continue
@@ -193,18 +197,6 @@ function AppFrame({
         {/* Themes only, and no tabs: the hero makes one point, and tabs here would invite clicks. */}
         {children}
       </div>
-    </div>
-  )
-}
-
-/** A section's centred heading and one line on what to look at. */
-function SectionIntro({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
-      <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance" id={id}>
-        {title}
-      </h2>
-      <p className="m-0 text-[16px] leading-6.5 text-[#3f4045]">{children}</p>
     </div>
   )
 }
@@ -338,7 +330,11 @@ function TopicRows({
                             />
                           </ViolationTooltip>
                         ) : (
-                          <MessageSquareText aria-hidden className="mt-0.5 shrink-0 text-[#726f6f]" size={14} />
+                          <MessageSquareText
+                            aria-hidden
+                            className="mt-0.5 shrink-0 text-[#726f6f]"
+                            size={14}
+                          />
                         )}
                         “{quote.text}”
                       </li>
@@ -395,9 +391,24 @@ function DashboardPicture({
               className="mt-auto mb-auto flex h-2.5 gap-0.5 overflow-hidden rounded-full"
               role="img"
             >
-              <span style={{ width: share(totals.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
-              <span style={{ width: share(totals.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
-              <span style={{ width: share(totals.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+              <span
+                style={{
+                  width: share(totals.negative),
+                  backgroundColor: SENTIMENT_COLORS.negative,
+                }}
+              />
+              <span
+                style={{
+                  width: share(totals.neutral),
+                  backgroundColor: SENTIMENT_COLORS.neutral,
+                }}
+              />
+              <span
+                style={{
+                  width: share(totals.positive),
+                  backgroundColor: SENTIMENT_COLORS.positive,
+                }}
+              />
             </div>
           </div>
           <StatCard
@@ -447,12 +458,54 @@ function DashboardPicture({
 // Answers start spread up the hero and drop to land beside the dashboard; higher ones drop further, so none passes another.
 // Then they rise, higher ones faster, so the stack spreads apart.
 const FLOATING_SPOTS = [
-  { side: 'left', top: '-380px', gap: '2rem', drop: '420px', lift: '260px', tilt: '-3deg' },
-  { side: 'left', top: '20px', gap: '3rem', drop: '240px', lift: '180px', tilt: '2deg' },
-  { side: 'left', top: '470px', gap: '1.5rem', drop: '10px', lift: '100px', tilt: '-1.5deg' },
-  { side: 'right', top: '-320px', gap: '2.5rem', drop: '420px', lift: '240px', tilt: '2.5deg' },
-  { side: 'right', top: '110px', gap: '1.5rem', drop: '210px', lift: '160px', tilt: '-2deg' },
-  { side: 'right', top: '520px', gap: '3rem', drop: '20px', lift: '90px', tilt: '1.5deg' },
+  {
+    side: 'left',
+    top: '-380px',
+    gap: '2rem',
+    drop: '420px',
+    lift: '260px',
+    tilt: '-3deg',
+  },
+  {
+    side: 'left',
+    top: '20px',
+    gap: '3rem',
+    drop: '240px',
+    lift: '180px',
+    tilt: '2deg',
+  },
+  {
+    side: 'left',
+    top: '470px',
+    gap: '1.5rem',
+    drop: '10px',
+    lift: '100px',
+    tilt: '-1.5deg',
+  },
+  {
+    side: 'right',
+    top: '-320px',
+    gap: '2.5rem',
+    drop: '420px',
+    lift: '240px',
+    tilt: '2.5deg',
+  },
+  {
+    side: 'right',
+    top: '110px',
+    gap: '1.5rem',
+    drop: '210px',
+    lift: '160px',
+    tilt: '-2deg',
+  },
+  {
+    side: 'right',
+    top: '520px',
+    gap: '3rem',
+    drop: '20px',
+    lift: '90px',
+    tilt: '1.5deg',
+  },
 ] as const
 
 /**
@@ -522,16 +575,24 @@ function Hero({
   const [hoverTopic, setHoverTopic] = useState<string | null>(null)
   // The topic opened in the dashboard: its floating answers stay lit while it's open.
   const [openTopic, setOpenTopic] = useState<string | null>(null)
+  // Signed in, the header already offers "Go to home": the hero keeps to the headline and the proof.
+  const signedIn = useAuth().status === 'ready'
   return (
     <section className="mx-auto flex max-w-360 flex-col gap-14 px-6 pt-10 pb-24 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
       <div className="flex flex-col items-center gap-6 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cfdcf7] bg-white/70 px-3 py-1 text-[12px] font-semibold text-[#1e55c5] backdrop-blur-sm">
+          <Sparkles aria-hidden fill="currentColor" size={13} />
+          AI feedback analysis for Organization
+        </span>
         <h1 className="m-0 max-w-208 text-[52px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[38px]">
           {title}
         </h1>
-        <p className="m-0 max-w-160 text-[16px] leading-7 text-[#3f4045]">{intro}</p>
-        <div className="flex w-full justify-center">
-          <SignInAction />
-        </div>
+        <p className="m-0 max-w-160 text-[18px] leading-7 text-[#3f4045]">{intro}</p>
+        {signedIn ? null : (
+          <div className="flex w-full justify-center">
+            <SignInAction />
+          </div>
+        )}
         {secondary}
       </div>
       <div className="relative flex flex-col gap-5">
@@ -539,9 +600,8 @@ function Hero({
         {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
         {/* As wide as the frame only: full width, it would cover the floating answers in the gutters. */}
         {/* Says what the dashboard is before the eye reaches it. */}
-        <p className="m-0 text-center text-[14px] leading-5.5 text-[#3f4045]">
-          Example: {sample.responseCount} staff answered a pulse survey. Here's what {brand.name} found in their
-          answers.
+        <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] uppercase">
+          Sample: {sample.responseCount} staff answers
         </p>
         <div className="hero-rise relative z-10 mx-auto w-full max-w-224">
           <DashboardPicture highlightId={hoverTopic} onOpenChange={setOpenTopic} sample={sample} />
@@ -551,53 +611,135 @@ function Hero({
   )
 }
 
+/** One step of How it works: a tinted stage for its mascot, then what happens, then the slice of product it involves. */
+function HowStep({
+  n,
+  title,
+  text,
+  art,
+  stage,
+  delay,
+  children,
+}: {
+  n: number
+  title: string
+  text: string
+  art: string
+  /** The stage's tint, light to lighter. */
+  stage: string
+  delay: number
+  children: React.ReactNode
+}) {
+  return (
+    <li className="relative">
+      <Reveal
+        className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-[#e3e7f0] bg-white shadow-[0_12px_32px_rgba(20,40,90,0.08)] transition-[translate,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(20,40,90,0.14)] motion-reduce:hover:translate-y-0"
+        delay={delay}
+      >
+        <div className={`relative flex h-44 items-end justify-center overflow-hidden ${stage}`}>
+          {/* The step's number, big and faint behind the mascot. */}
+          <span
+            aria-hidden="true"
+            className="absolute -top-4 left-4 text-[120px] leading-none font-bold tracking-[-0.04em] text-white/70 select-none"
+          >
+            {n}
+          </span>
+          <img
+            alt=""
+            className="relative h-36 w-auto translate-y-1 transition-transform duration-300 group-hover:-translate-y-1 motion-reduce:transition-none"
+            src={art}
+          />
+        </div>
+        <div className="flex flex-1 flex-col gap-2 p-5">
+          <h3 className="m-0 flex items-center gap-2.5 text-[18px] font-semibold text-[#14181f]">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1e55c5] text-[12px] font-semibold text-white">
+              {n}
+            </span>
+            {title}
+          </h3>
+          <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{text}</p>
+          <div
+            aria-hidden="true"
+            className="mt-auto rounded-[10px] border border-[#e8eaf1] bg-[#fafbfe] p-3.5"
+          >
+            {children}
+          </div>
+        </div>
+      </Reveal>
+      {/* Arrow to the next step, on the gap between cards (wide screens only). */}
+      {n < 3 ? (
+        <span
+          aria-hidden="true"
+          className="absolute top-22 -right-5.5 z-10 flex size-9 items-center justify-center rounded-full border border-[#dbe4f6] bg-white text-[#1e55c5] shadow-[0_4px_12px_rgba(20,40,90,0.12)] max-[900px]:hidden"
+        >
+          <ArrowRight size={16} />
+        </span>
+      ) : null}
+    </li>
+  )
+}
+
 /** The whole flow in three steps, each shown as the small piece of product it involves. */
 function HowItWorks({ sample }: { sample: LandingSample }) {
-  const step = 'flex flex-col gap-3'
-  const label = 'm-0 flex items-center gap-2.5 text-[16px] font-semibold text-[#14181f]'
-  const num =
-    'flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1e55c5] text-[12px] font-semibold text-white'
-  const text = 'm-0 text-[14px] leading-5.5 text-[#3f4045]'
-  const art = 'h-30 w-auto self-start max-[900px]:h-24'
-  const mock = 'rounded-[10px] border border-[#e8eaf1] bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)]'
   // Step 3 shows the sample's topic that's getting worse, with its real sentiment split.
   const worseId = sample.whatChanged.rows.find((row) => row.kind === 'worse')?.id
   const worse = sample.topics.find((topic) => topic.id === worseId) ?? sample.topics[0]!
   const total = worse.negative + worse.neutral + worse.positive
   const share = (n: number) => `${(n / total) * 100}%`
   return (
-    <section aria-labelledby="how-title" className={SECTION}>
-      <SectionIntro id="how-title" title="How it works">
-        From one form to a short list of what to act on, in three steps.
-      </SectionIntro>
-      <ol className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-8 p-0 max-[900px]:grid-cols-1">
-        <li>
-          <Reveal className={step} delay={0}>
-            <img alt="" className={art} src={askMascot} />
-            <h3 className={label}>
-              <span className={num}>1</span>
-              Ask
-            </h3>
-            <p className={text}>
-              Build a form with open questions, choices and optional details like department.
-            </p>
-            <div className={mock} aria-hidden="true">
-              <p className="m-0 text-[13px] font-medium text-[#14181f]">What's one thing we should change?</p>
-              <div className="mt-2.5 h-8 rounded-[8px] border border-[#d2d8e5] bg-[#fafbfe]" />
-            </div>
-          </Reveal>
-        </li>
-        <li>
-          <Reveal className={step} delay={110}>
-            <img alt="" className={art} src={shareMascot} />
-            <h3 className={label}>
-              <span className={num}>2</span>
-              Share
-            </h3>
-            <p className={text}>
-              Send the link. People answer from their phone or laptop in a couple of minutes.
-            </p>
-            <div className={`${mock} flex items-center justify-between gap-3`} aria-hidden="true">
+    <section aria-labelledby="how-title" className="relative overflow-hidden bg-white">
+      {/* Soft colour blobs in the step tints, so the section isn't a flat white sheet. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(28rem_20rem_at_12%_30%,#e3ecff,transparent_70%),radial-gradient(26rem_18rem_at_50%_95%,#fff1d6,transparent_70%),radial-gradient(28rem_20rem_at_90%_40%,#dcf5e8,transparent_70%)]"
+      />
+      <div className={`relative ${SECTION}`}>
+        <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#1e55c5] px-3.5 py-1 text-[12px] font-semibold tracking-[0.08em] text-white uppercase shadow-[0_6px_16px_rgb(30_85_197/0.35)]">
+            Ask · Share · Read
+          </span>
+          <h2
+            className="m-0 text-[56px] leading-[1.02] font-bold tracking-[-0.03em] text-balance max-[560px]:text-[40px]"
+            id="how-title"
+          >
+            How it{' '}
+            <span className="bg-linear-to-r from-[#1e55c5] via-[#3b74e8] to-[#18a06a] bg-clip-text text-transparent">
+              works
+            </span>
+          </h2>
+          <p className="m-0 text-[20px] leading-7 font-medium text-[#3f4045] max-[560px]:text-[17px]">
+            Three steps from{' '}
+            <span className="text-[#14181f] underline decoration-[#ffc94d] decoration-4 underline-offset-4">
+              form
+            </span>{' '}
+            to{' '}
+            <span className="text-[#14181f] underline decoration-[#5fd39a] decoration-4 underline-offset-4">
+              findings
+            </span>
+            
+          </p>
+        </div>
+        <ol className="m-0 mx-auto grid w-full max-w-240 list-none grid-cols-3 gap-8 p-0 max-[900px]:max-w-110 max-[900px]:grid-cols-1">
+          <HowStep
+            art={askMascot}
+            delay={0}
+            n={1}
+            stage="bg-linear-to-b from-[#d6e4ff] to-[#eef3ff]"
+            text="Write your open questions."
+            title="Ask"
+          >
+            <p className="m-0 text-[13px] font-medium text-[#14181f]">What's one thing we should change?</p>
+            <div className="mt-2.5 h-8 rounded-[8px] border border-[#d2d8e5] bg-white" />
+          </HowStep>
+          <HowStep
+            art={shareMascot}
+            delay={110}
+            n={2}
+            stage="bg-linear-to-b from-[#ffe6b8] to-[#fff6e3]"
+            text="Send one link. People answer in minutes."
+            title="Share"
+          >
+            <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2 text-[13px] text-[#1e55c5]">
                 <LinkIcon className="shrink-0" size={14} />
                 <span className="truncate">opengnp.sit.kmutt.ac.th/f/…</span>
@@ -606,19 +748,16 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
                 {sample.responseCount} <span className="font-normal text-[#726f6f]">responses</span>
               </span>
             </div>
-          </Reveal>
-        </li>
-        <li>
-          <Reveal className={step} delay={220}>
-            <img alt="" className={art} src={readMascot} />
-            <h3 className={label}>
-              <span className={num}>3</span>
-              Read
-            </h3>
-            <p className={text}>
-              AI groups every answer into topics and shows how people feel and what changed.
-            </p>
-            <div className={`${mock} flex flex-col gap-2`} aria-hidden="true">
+          </HowStep>
+          <HowStep
+            art={readMascot}
+            delay={220}
+            n={3}
+            stage="bg-linear-to-b from-[#ccf0dc] to-[#ecfaf2]"
+            text="AI sorts answers into topics and trends."
+            title="Read"
+          >
+            <div className="flex flex-col gap-2">
               <span className="flex items-center justify-between gap-3 text-[13px] text-[#14181f]">
                 <span className="min-w-0 truncate">{worse.label}</span>
                 <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#e12b0c]">
@@ -627,14 +766,29 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
                 </span>
               </span>
               <span className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-                <span style={{ width: share(worse.negative), backgroundColor: SENTIMENT_COLORS.negative }} />
-                <span style={{ width: share(worse.neutral), backgroundColor: SENTIMENT_COLORS.neutral }} />
-                <span style={{ width: share(worse.positive), backgroundColor: SENTIMENT_COLORS.positive }} />
+                <span
+                  style={{
+                    width: share(worse.negative),
+                    backgroundColor: SENTIMENT_COLORS.negative,
+                  }}
+                />
+                <span
+                  style={{
+                    width: share(worse.neutral),
+                    backgroundColor: SENTIMENT_COLORS.neutral,
+                  }}
+                />
+                <span
+                  style={{
+                    width: share(worse.positive),
+                    backgroundColor: SENTIMENT_COLORS.positive,
+                  }}
+                />
               </span>
             </div>
-          </Reveal>
-        </li>
-      </ol>
+          </HowStep>
+        </ol>
+      </div>
     </section>
   )
 }
@@ -645,7 +799,7 @@ const NAV_LINK =
 function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const signedIn = useAuth().status === 'ready'
   return (
-    <header className="mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
+    <header className="relative mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
       <Link
         aria-label={`${brand.name} overview`}
         className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
@@ -671,37 +825,6 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   )
 }
 
-function ClosingBand({ demoLink = false, trustLine = true }: { demoLink?: boolean; trustLine?: boolean }) {
-  return (
-    <section className="bg-[#1e55c5] text-white">
-      <div className="mx-auto flex max-w-180 flex-col items-center gap-6 px-6 py-20 text-center max-[560px]:px-4 max-[560px]:py-16">
-        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
-          Ask your first question today.
-        </h2>
-        {trustLine ? (
-          <p className="m-0 flex items-start gap-2.5 text-left text-[16px] leading-6.5 text-[#dbe6ff]">
-            <ShieldCheck className="mt-1 shrink-0 text-white" size={18} />
-            {brand.name}'s AI runs on KMUTT's own servers. Responses are never sent to outside AI services
-            such as ChatGPT or Gemini.
-          </p>
-        ) : null}
-        <div className="flex w-full justify-center">
-          <SignInAction tone="blue" />
-        </div>
-        {demoLink ? (
-          <Link
-            className="inline-flex items-center gap-1.5 rounded-[6px] text-[14px] font-semibold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            to="/demo"
-          >
-            Or see the full demo first
-            <ArrowRight size={16} />
-          </Link>
-        ) : null}
-      </div>
-    </section>
-  )
-}
-
 function SiteFooter() {
   return (
     <footer className="mx-auto flex max-w-300 flex-wrap items-center justify-between gap-3 px-6 py-8 text-[12px] text-[#726f6f] max-[560px]:px-4">
@@ -723,12 +846,7 @@ function SiteFooter() {
   )
 }
 
-const HERO_INTRO = (
-  <>
-    Send one form. {brand.name} reads the answers and sorts them into topics, sentiment and what changed since
-    last time, so you know where to act first.
-  </>
-)
+const HERO_INTRO = <>Send one form. See what to fix first.</>
 
 /**
  * Eases its content in the first time it scrolls into view, from below or from a side.
@@ -783,31 +901,95 @@ function Reveal({
   )
 }
 
+const ACCENTS = {
+  blue: {
+    tag: 'bg-[#e3ecff] text-[#1e55c5]',
+    num: 'bg-[#1e55c5]',
+    mark: 'from-[#cfdfff] to-[#cfdfff]',
+    check: 'bg-[#1e55c5]',
+  },
+  red: {
+    tag: 'bg-[#ffe7e0] text-[#c4280b]',
+    num: 'bg-[#e0461f]',
+    mark: 'from-[#ffd5c8] to-[#ffd5c8]',
+    check: 'bg-[#e0461f]',
+  },
+  pink: {
+    tag: 'bg-[#ffe4ec] text-[#c2365f]',
+    num: 'bg-[#e0507a]',
+    mark: 'from-[#ffd0de] to-[#ffd0de]',
+    check: 'bg-[#e0507a]',
+  },
+} as const
+
+/** A title's key words, marked like a highlighter in the point's colour. */
+function Mark({ accent, children }: { accent: keyof typeof ACCENTS; children: React.ReactNode }) {
+  return (
+    <span
+      className={`bg-linear-to-r ${ACCENTS[accent].mark} box-decoration-clone bg-[length:100%_0.42em] bg-bottom bg-no-repeat px-0.5`}
+    >
+      {children}
+    </span>
+  )
+}
+
 /** One selling point: what the visitor gains, beside the slice of the app that delivers it. */
 function SellingPoint({
+  n,
+  tag,
+  icon: Icon,
+  accent,
   title,
-  children,
+  points,
   visual,
   flip = false,
   stillVisual = false,
 }: {
-  title: string
-  children: React.ReactNode
+  n: number
+  tag: string
+  icon: React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>
+  accent: keyof typeof ACCENTS
+  title: React.ReactNode
+  /** Two or three short facts, read at a glance. */
+  points: React.ReactNode[]
   visual: React.ReactNode
   flip?: boolean
   /** The visual has its own scroll-driven motion, so it doesn't slide in too. */
   stillVisual?: boolean
 }) {
+  const colors = ACCENTS[accent]
   return (
-    <div className="grid grid-cols-2 items-center gap-14 max-[900px]:grid-cols-1 max-[900px]:gap-8">
+    <div className="grid grid-cols-2 items-center gap-16 max-[900px]:grid-cols-1 max-[900px]:gap-8">
       <Reveal
-        className={`flex flex-col gap-4 ${flip ? 'min-[901px]:order-2' : ''}`}
+        className={`flex flex-col items-start gap-5 ${flip ? 'min-[901px]:order-2' : ''}`}
         from={flip ? 'right' : 'left'}
       >
-        <h2 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.01em] text-balance">
+        <span
+          className={`inline-flex items-center gap-2 rounded-full py-1 pr-3.5 pl-1 text-[13px] font-semibold ${colors.tag}`}
+        >
+          <span
+            className={`flex size-6 items-center justify-center rounded-full text-[12px] text-white ${colors.num}`}
+          >
+            {n}
+          </span>
+          <Icon aria-hidden size={14} />
+          {tag}
+        </span>
+        <h2 className="m-0 text-[40px] leading-[1.1] font-bold tracking-[-0.025em] text-balance text-[#14181f] max-[560px]:text-[30px]">
           {title}
         </h2>
-        <p className="m-0 text-[16px] leading-7 text-[#3f4045]">{children}</p>
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          {points.map((point, i) => (
+            <li className="flex items-center gap-3 text-[17px] leading-6 font-medium text-[#3f4045]" key={i}>
+              <span
+                className={`flex size-5.5 shrink-0 items-center justify-center rounded-full text-white ${colors.check}`}
+              >
+                <Check aria-hidden size={13} strokeWidth={3} />
+              </span>
+              {point}
+            </li>
+          ))}
+        </ul>
       </Reveal>
       {stillVisual ? (
         <div className="min-w-0">{visual}</div>
@@ -842,8 +1024,17 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
         className="mx-auto flex max-w-300 flex-col gap-24 px-6 py-24 max-[560px]:gap-16 max-[560px]:px-4 max-[560px]:py-16"
       >
         <SellingPoint
+          accent="blue"
+          icon={Sparkles}
+          n={1}
+          points={['AI sorts answers into topics', 'See how people feel about each']}
           stillVisual
-          title="Stop reading every answer one by one."
+          tag="Auto-sort"
+          title={
+            <>
+              Stop reading every answer <Mark accent="blue">one by one</Mark>
+            </>
+          }
           visual={
             // Mascots behind a card come before it, those in front come after: the card is positioned, so DOM order sets the stacking.
             <div className="spot-card relative max-[900px]:mt-8 [--glow:rgb(30_85_197/0.2)]">
@@ -871,13 +1062,19 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
               </div>
             </div>
           }
-        >
-          {brand.name} reads every open answer and groups it into topics, with how people feel about each.
-          Hundreds of comments become one short list you can take in at a glance.
-        </SellingPoint>
+        />
         <SellingPoint
+          accent="red"
           flip
-          title="Know what got worse before it becomes a problem."
+          icon={TrendingUp}
+          n={2}
+          points={['Compared with last week, automatically', 'Only real changes are called out']}
+          tag="Trends"
+          title={
+            <>
+              Know what got <Mark accent="red">worse</Mark> before it becomes a problem
+            </>
+          }
           visual={
             <div className="spot-card relative max-[900px]:mt-22 [--glow:rgb(196_40_11/0.22)]">
               <img alt="" className="absolute -top-[114px] left-8 w-26" src={monkeyMascot} />
@@ -886,12 +1083,18 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
               </div>
             </div>
           }
-        >
-          Each week is compared with the one before. Only the topics that clearly got worse, got better, or
-          are new are called out, so you know where to look first.
-        </SellingPoint>
+        />
         <SellingPoint
-          title="Catch serious complaints early. You make the call."
+          accent="pink"
+          icon={TriangleAlert}
+          n={3}
+          points={['Possible violations flagged for you', 'You confirm or dismiss. Try it →']}
+          tag="Safety flags"
+          title={
+            <>
+              Catch serious complaints <Mark accent="pink">early.</Mark> You make the call.
+            </>
+          }
           visual={
             <div className="spot-card relative max-[900px]:mt-9 [--glow:rgb(224_80_122/0.26)]">
               <div className={`${card} relative flex flex-col gap-3 p-5`}>
@@ -915,11 +1118,7 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
               <img alt="" className="absolute -top-[64px] right-6 w-32" src={slothMascot} />
             </div>
           }
-        >
-          Comments that may break the law or your organisation's values are flagged for you. The AI can be
-          wrong, so you confirm or dismiss each flag, and a dismissed one drops out of every count. Try it
-          here.
-        </SellingPoint>
+        />
       </section>
     </div>
   )
@@ -929,42 +1128,75 @@ const TRUST = [
   {
     icon: Server,
     title: 'Stays at KMUTT',
-    text: "Analysis runs on KMUTT's own servers. Responses are never sent to outside AI services such as ChatGPT or Gemini.",
+    text: 'AI runs on KMUTT servers. Never sent to ChatGPT or Gemini.',
   },
   {
     icon: EyeOff,
     title: 'Names stay private',
-    text: "People you share results with don't see respondents' names unless you allow it.",
+    text: "Shared viewers don't see who answered unless you allow it.",
   },
   {
     icon: UserCheck,
-    title: 'You stay in charge',
-    text: 'The AI suggests and you decide. Every flag can be confirmed or dismissed, and every number opens to the comments behind it.',
+    title: 'You make the call',
+    text: 'The AI suggests. You confirm or dismiss every flag.',
   },
 ]
 
-function TrustSection() {
+/** The page's finale: why it's safe, then the one action. Dark, so the page ends on a clear peak. */
+function Finale() {
   return (
-    <section aria-labelledby="trust-title" className={SECTION}>
-      <SectionIntro id="trust-title" title="Built for sensitive feedback.">
-        Grievances and honest feedback need care. This is how {brand.name} handles them.
-      </SectionIntro>
-      <ul className="m-0 mx-auto grid w-full max-w-224 list-none grid-cols-3 gap-10 p-0 max-[900px]:grid-cols-1 max-[900px]:gap-8">
-        {TRUST.map(({ icon: Icon, title, text }, i) => (
-          <li className="border-t border-[#d2d8e5] pt-5" key={title}>
-            <Reveal className="flex flex-col gap-2.5" delay={i * 110}>
-              <Icon aria-hidden className="text-[#1e55c5]" size={22} />
-              <p className="m-0 text-[16px] font-semibold text-[#14181f]">{title}</p>
-              <p className="m-0 text-[14px] leading-5.5 text-[#3f4045]">{text}</p>
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+    <section
+      aria-labelledby="trust-title"
+      className="relative overflow-hidden bg-[#0d1b3e] text-white bg-[radial-gradient(60rem_30rem_at_50%_-10%,rgb(30_85_197/0.55),transparent_70%),radial-gradient(30rem_20rem_at_100%_100%,rgb(224_80_122/0.18),transparent_70%)]"
+    >
+      {/* Faint grid, fading out toward the bottom. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.07] bg-[linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] bg-size-[48px_48px] mask-[linear-gradient(to_bottom,black,transparent_75%)]"
+      />
+      <div className="relative mx-auto flex max-w-300 flex-col items-center gap-14 px-6 py-28 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:py-20">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-semibold text-[#dbe6ff]">
+            <ShieldCheck aria-hidden size={13} />
+            Private by design
+          </span>
+          <h2
+            className="m-0 text-[44px] leading-[1.08] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[32px]"
+            id="trust-title"
+          >
+            Built for sensitive feedback
+          </h2>
+        </div>
+        <ul className="m-0 grid w-full max-w-224 list-none grid-cols-3 gap-5 p-0 max-[900px]:grid-cols-1">
+          {TRUST.map(({ icon: Icon, title, text }, i) => (
+            <li key={title}>
+              <Reveal
+                className="flex h-full flex-col gap-3 rounded-[15px] border border-white/12 bg-white/6 p-6 backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-white/9"
+                delay={i * 110}
+              >
+                <span className="flex size-11 items-center justify-center rounded-[12px] bg-linear-to-br from-[#3b74e8] to-[#1e55c5] shadow-[0_8px_20px_rgb(30_85_197/0.45)]">
+                  <Icon aria-hidden className="text-white" size={22} />
+                </span>
+                <p className="m-0 text-[18px] font-semibold">{title}</p>
+                <p className="m-0 text-[14px] leading-5.5 text-[#b9c8ea]">{text}</p>
+              </Reveal>
+            </li>
+          ))}
+        </ul>
+        <div className="flex w-full flex-col items-center gap-5 border-t border-white/12 pt-14 text-center max-[560px]:pt-10">
+          <p className="m-0 text-[24px] font-semibold tracking-[-0.01em]">Ask your first question today!</p>
+          <SignInAction tone="blue" />
+        </div>
+      </div>
     </section>
   )
 }
 
-const PAGE = 'min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]'
+// A soft blue glow and faint dot grid behind the hero, so the page doesn't open on a flat fill.
+const HERO_BG =
+  'pointer-events-none absolute inset-x-0 top-0 h-[900px] bg-[radial-gradient(70rem_36rem_at_50%_-8rem,#d6e4ff,transparent_70%),radial-gradient(#c3d2f0_1.3px,transparent_1px)] bg-size-[auto,22px_22px] mask-[linear-gradient(to_bottom,black_45%,transparent)]'
+
+const PAGE = 'relative min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]'
 
 /** "/" for signed-out visitors, and /about for anyone: why to use it, proved with sample data, and the sign-in. */
 export function LandingPage() {
@@ -979,30 +1211,21 @@ export function LandingPage() {
   }, [queryClient])
   return (
     <div className={PAGE}>
+      {/* Behind the header and headline; fades out before the dashboard so it sits on calm ground. */}
+      <div aria-hidden="true" className={HERO_BG} />
       <SiteHeader page="landing" />
-      <main>
+      <main className="relative">
         <Hero
           intro={HERO_INTRO}
           sample={sample}
-          secondary={
-            <Link className={`${NAV_LINK} inline-flex items-center gap-1.5`} to="/demo">
-              See the full demo
-              <ArrowRight size={16} />
-            </Link>
-          }
-          title="Turn every open answer into a short list of what to fix."
+          title="Turn every open answer into a short list of what to fix"
         />
-        <div className="border-t border-[#e8eaf1]">
+        {/* White band between the tinted hero and selling points, so each section reads as its own block. */}
+        <div className="border-y border-[#e8eaf1]">
           <HowItWorks sample={sample} />
         </div>
-        <div className="border-t border-[#e8eaf1]">
-          <SellingPoints sample={sample} />
-        </div>
-        <div className="border-t border-[#e8eaf1]">
-          <TrustSection />
-        </div>
-        {/* The trust section just said it; the band only asks. */}
-        <ClosingBand demoLink trustLine={false} />
+        <SellingPoints sample={sample} />
+        <Finale />
       </main>
       <SiteFooter />
     </div>
@@ -1043,7 +1266,11 @@ export function DemoPage() {
         </div>
         {editing ? (
           <EditFormPage
-            onMove={() => void showAlert(demoSaveError().message, { title: 'Sign in to move forms' })}
+            onMove={() =>
+              void showAlert(demoSaveError().message, {
+                title: 'Sign in to move forms',
+              })
+            }
           />
         ) : (
           <FormDashboardPage />
