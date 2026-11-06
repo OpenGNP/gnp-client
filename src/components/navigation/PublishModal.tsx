@@ -183,7 +183,7 @@ export function PublishModal({
           </div>
 
           <div className="flex items-start gap-1.5 rounded-[6px] bg-[#f7f8fb] px-2.5 py-2">
-            <CalendarClock className="mt-px shrink-0 text-[#8b8e98]" size={13} />
+            <CalendarClock className="mt-px shrink-0 text-[#6e717b]" size={13} />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="text-[11px] leading-4 text-[#616161]">
                 {scheduleSummary(saved)}

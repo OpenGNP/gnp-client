@@ -44,23 +44,31 @@ describe('What changed', () => {
   it('reads each row as a sentence, with the violation badge and a quote', () => {
     render(<TrendView onPinnedChange={noop} pinned={null} trend={base} />)
     expect(screen.getByText('Aug 2026 compared with Jul 2026')).toBeInTheDocument()
-    expect(screen.getAllByText('40% → 75%')).toHaveLength(2) // under each complaints dumbbell
-    expect(screen.getByText('2 possible violations')).toBeInTheDocument()
+    // Under the complaints dumbbell: the counts (the dots already show the %).
+    expect(screen.getByText('2 of 5 → 3 of 4')).toBeInTheDocument()
+    expect(screen.getAllByText('2 possible violations').length).toBeGreaterThan(0)
     expect(screen.getByText('“Quote 1”')).toBeInTheDocument()
     expect(screen.queryByText('“Quote 2”')).not.toBeInTheDocument()
   })
 
   it("hovering the complaints dumbbell shows the counts behind the %", async () => {
     render(<TrendView onPinnedChange={noop} pinned={null} trend={base} />)
-    await userEvent.hover(screen.getAllByText('40% → 75%')[0]!)
+    await userEvent.hover(screen.getByText('2 of 5 → 3 of 4'))
     expect((await screen.findAllByText('Now: 3 of 4 mentions (75%)')).length).toBeGreaterThan(0)
   })
 
   it('clicking a row selects that topic', async () => {
     const onTopicSelect = vi.fn()
     render(<TrendView onPinnedChange={noop} onTopicSelect={onTopicSelect} pinned={null} trend={base} />)
-    await userEvent.click(screen.getByText('Topic 2'))
-    expect(onTopicSelect).toHaveBeenCalledWith('2')
+    await userEvent.click(screen.getByText('Topic 1'))
+    expect(onTopicSelect).toHaveBeenCalledWith('1')
+  })
+
+  it('Improving starts folded; opening it shows its topics', async () => {
+    render(<TrendView onPinnedChange={noop} pinned={null} trend={base} />)
+    expect(screen.queryByText('Topic 2')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByText('Improving'))
+    expect(screen.getByText('Topic 2')).toBeInTheDocument()
   })
 
   it('"View feedback" opens the topic instead of charting it', async () => {
@@ -82,10 +90,9 @@ describe('What changed', () => {
     expect(screen.getByText('Topic 7')).toBeInTheDocument()
   })
 
-  it('groups rows by what to act on, with a summary line', () => {
+  it('groups rows by what to act on, in a fixed order', () => {
     const rows = [row('b', 'better'), row('n', 'new'), row('w', 'worse'), row('s', null, 1)]
     render(<TrendView onPinnedChange={noop} pinned={null} trend={{ ...base, whatChanged: { ...base.whatChanged!, rows } }} />)
-    expect(screen.getByText('Complaints rise for 1 topic and fall for 1 topic. 1 new topic.')).toBeInTheDocument()
     const headings = screen.getAllByText(/^(Getting worse|New topics|Improving|Flagged, no clear change)$/)
     expect(headings.map((h) => h.textContent?.replace(/\d+$/, ''))).toEqual(['Getting worse', 'New topics', 'Improving', 'Flagged, no clear change'])
   })

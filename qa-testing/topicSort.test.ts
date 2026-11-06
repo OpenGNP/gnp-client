@@ -4,7 +4,15 @@ import type { TopicSentiment } from '../src/data/dashboardAnalytics'
 import { sortTopics } from '../src/components/dashboard/topicSort'
 
 const topic = (id: string, negative: number, positive: number, hasViolation = false) =>
-  ({ id, negative, neutral: 0, positive, hasViolation }) as unknown as TopicSentiment
+  ({
+    id,
+    negative,
+    neutral: 0,
+    positive,
+    hasViolation,
+    // sortTopics ranks violation topics by how many violation points they hold.
+    feedbackSegment: hasViolation ? [{ violation: true }] : [],
+  }) as unknown as TopicSentiment
 
 const topics = [
   topic('uncategorised', 50, 50),

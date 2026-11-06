@@ -34,7 +34,7 @@ function LegalPage({ title, children }: { title: string; children: ReactNode }) 
           </Link>
         </div>
         <h1 className="m-0 mt-5 text-[24px] font-semibold text-[#14181f]">{title}</h1>
-        <p className="m-0 mt-1 text-[13px] text-[#8b8e98]">Last updated {UPDATED}</p>
+        <p className="m-0 mt-1 text-[13px] text-[#6e717b]">Last updated {UPDATED}</p>
         <div className="mt-6 flex flex-col gap-5 text-[14px] leading-6 [&_h2]:m-0 [&_h2]:mb-1.5 [&_h2]:text-[16px] [&_h2]:font-semibold [&_h2]:text-[#14181f] [&_li]:mt-1 [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-5">
           {children}
         </div>

@@ -1,9 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppGate } from '../src/components/AppGate'
 import { LandingPage } from '../src/pages/LandingPage'
 import { AuthContext, postSignInPath, type AuthContextValue, type AuthUser } from '../src/lib/auth'
+
+// The landing page loads its sample dashboard through React Query.
+const withQueryClient = (ui: ReactNode) => (
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>
+)
 
 function LoginProbe() {
   const state = useLocation().state as { from?: string; forUserId?: number | null } | null
@@ -28,14 +35,16 @@ function renderSignedOutAt(path: string, signedOut: boolean) {
     signedOut,
   }
   render(
-    <AuthContext.Provider value={auth}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/login" element={<LoginProbe />} />
-          <Route path="*" element={<AppGate><p>app</p></AppGate>} />
-        </Routes>
-      </MemoryRouter>
-    </AuthContext.Provider>,
+    withQueryClient(
+      <AuthContext.Provider value={auth}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/login" element={<LoginProbe />} />
+            <Route path="*" element={<AppGate><p>app</p></AppGate>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    ),
   )
 }
 
@@ -56,11 +65,13 @@ describe('AppGate sign-in redirect', () => {
   it('offers Home instead of sign-in on /about when signed in', () => {
     const auth = { status: 'ready', user: null, signedOut: false } as unknown as AuthContextValue
     render(
-      <AuthContext.Provider value={auth}>
-        <MemoryRouter initialEntries={['/about']}>
-          <LandingPage />
-        </MemoryRouter>
-      </AuthContext.Provider>,
+      withQueryClient(
+        <AuthContext.Provider value={auth}>
+          <MemoryRouter initialEntries={['/about']}>
+            <LandingPage />
+          </MemoryRouter>
+        </AuthContext.Provider>,
+      ),
     )
     expect(screen.getAllByRole('link', { name: /go to home/i }).length).toBeGreaterThan(0)
     expect(screen.queryByText(/sign in with microsoft/i)).not.toBeInTheDocument()

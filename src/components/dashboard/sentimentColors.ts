@@ -17,5 +17,5 @@ export const SENTIMENT_DOT_COLORS = {
 export const SENTIMENT_BADGE_CLASSES: Record<FeedbackSentiment, string> = {
   negative: 'bg-[#f9eaea] text-[#e12b0c]',
   neutral: 'bg-[#fdf3e0] text-[#b7791f]',
-  positive: 'bg-[#eaf9ec] text-[#08882c]',
+  positive: 'bg-[#eaf9ec] text-[#067a27]',
 }

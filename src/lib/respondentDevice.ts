@@ -1,3 +1,5 @@
+import { randomId } from './randomId'
+
 const STORAGE_KEY = 'gnp.respondent.deviceId'
 
 /**
@@ -15,7 +17,7 @@ export function getRespondentDeviceId(): string | null {
     if (existing) {
       return existing
     }
-    const created = crypto.randomUUID()
+    const created = randomId()
     window.localStorage.setItem(STORAGE_KEY, created)
     return created
   } catch {

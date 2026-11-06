@@ -13,7 +13,17 @@ env:
   IMAGE: ghcr.io/opengnp/gnp-client
 
 jobs:
+  # A failing test stops the deploy: build-and-push needs this job.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -593,14 +593,14 @@ export function PublicFormPage() {
         ) : null}
 
         {/* Before the questions: whether answers carry a name changes what people write. */}
-        <p className="flex gap-1.5 text-xs leading-5 text-[#8b8e98]">
+        <p className="flex gap-1.5 text-xs leading-5 text-[#6e717b]">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
           <span>
             {form.recordName
               ? "Your name will be recorded with your answers. Only the form's owner and people they share results with can see it."
               : "Your answers are anonymous. Your name isn't recorded."}{" "}
             <Link
-              className="text-[#1e55c5] hover:underline"
+              className="text-[#1e55c5] underline"
               rel="noopener"
               target="_blank"
               to={`/privacy?from=${encodeURIComponent(`/f/${token ?? ""}`)}`}

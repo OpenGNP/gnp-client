@@ -37,6 +37,7 @@ import type {
   QuestionTypeValue,
 } from "./question-types";
 import { SortableQuestionCard } from "./SortableQuestionCard";
+import { randomId } from "../../lib/randomId";
 
 type FormSectionProps = {
   id: string;
@@ -120,7 +121,7 @@ function FormSection({
 
   // A new question opens straight away, ready to type into.
   const addQuestion = (type: QuestionTypeValue) => {
-    const question = createQuestion(type, crypto.randomUUID());
+    const question = createQuestion(type, randomId());
     onQuestionsChange([...questions, question]);
     onActivateQuestion(question.id);
   };

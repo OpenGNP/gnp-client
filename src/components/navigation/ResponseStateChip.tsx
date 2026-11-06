@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils'
 // rounded-full, h-8.5, text-[14px] font-semibold. A per-state icon leads the label.
 const TONE: Record<ResponseStateBadge['tone'], string> = {
   neutral: 'bg-[#eef0f4] text-[#5f6368]',
-  positive: 'bg-[#eaf9ec] text-[#08882c]',
+  positive: 'bg-[#eaf9ec] text-[#067a27]',
   warning: 'bg-[#fff4e5] text-[#b7791f]',
   danger: 'bg-[#fcecef] text-[#c02b47]',
 }
