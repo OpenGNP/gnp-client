@@ -58,7 +58,7 @@ describe('AppGate sign-in redirect', () => {
 
   it('shows the landing page at / instead of redirecting', () => {
     renderSignedOutAt('/', false)
-    expect(screen.getByRole('heading', { level: 1, name: /know what your people/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: /turn every open answer into a short list of what to fix/i })).toBeInTheDocument()
     expect(screen.queryByText(/^login from=/)).not.toBeInTheDocument()
   })
 
