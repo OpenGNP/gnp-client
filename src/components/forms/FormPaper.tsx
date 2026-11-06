@@ -45,7 +45,7 @@ export const FORM_TITLE_CLASS = 'm-0 text-[32px] font-bold tracking-[0.32px] tex
 export const FORM_DIVIDER_CLASS = 'h-px w-full bg-[#e8eaf1]'
 export const FORM_DESCRIPTION_CLASS = 'm-0 text-[16px] leading-6 tracking-[0.16px] text-[#616161]'
 
-/** "Demographic" / "Feedback": brand blue, a step below the form title. */
+/** Section headings (editor and respondent page): brand blue, a step below the form title. */
 export function FormSectionTitle({ className, ...props }: ComponentProps<'h2'>) {
   return (
     <h2

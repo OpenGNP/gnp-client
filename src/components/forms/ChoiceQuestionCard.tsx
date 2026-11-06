@@ -1,13 +1,14 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
-import { Asterisk, Circle, MessageSquareText, Plus, Square, X } from 'lucide-react'
+import { Asterisk, Circle, Plus, Square, X } from 'lucide-react'
 
 import {
-  AiAnalyzeLabel,
   LabeledToggle,
   MoveHandle,
   QuestionCardFooter,
   QuestionCardShell,
   QuestionTitleField,
+  QuestionUseLabel,
+  SegmentedToggle,
 } from './QuestionCardControls'
 import type { ChoiceQuestion } from './question-types'
 
@@ -15,6 +16,8 @@ export type ChoiceQuestionCardProps = {
   question: ChoiceQuestion
   onChange: (question: ChoiceQuestion) => void
   onDelete: () => void
+  /** Position in its section, from 1. */
+  number: number
   dragHandleAttributes?: DraggableAttributes
   dragHandleListeners?: DraggableSyntheticListeners
   /** In Feedback: say this one isn't sent to the AI. */
@@ -25,6 +28,7 @@ export function ChoiceQuestionCard({
   question,
   onChange,
   onDelete,
+  number,
   dragHandleAttributes,
   dragHandleListeners,
   showAiAnalyze = false,
@@ -52,6 +56,7 @@ export function ChoiceQuestionCard({
     <QuestionCardShell>
       <QuestionTitleField
         onChange={(value) => onChange({ ...question, question: value })}
+        number={number}
         onDelete={onDelete}
         value={question.question}
       />
@@ -129,13 +134,14 @@ export function ChoiceQuestionCard({
       </div>
 
       <QuestionCardFooter>
-        <LabeledToggle
-          checked={question.allowMultiple}
-          chipClassName="bg-[#e8eeff] text-[#1e55c5]"
-          className="w-[243px]"
-          icon={<MessageSquareText size={15} />}
-          label={question.allowMultiple ? 'Multiple answers' : 'Single answer'}
-          onCheckedChange={(checked) => onChange({ ...question, allowMultiple: checked })}
+        <SegmentedToggle
+          label="Answers allowed"
+          onChange={(allowed) => onChange({ ...question, allowMultiple: allowed === 'multiple' })}
+          options={[
+            { value: 'single', label: 'Single answer' },
+            { value: 'multiple', label: 'Multiple answers' },
+          ]}
+          value={question.allowMultiple ? 'multiple' : 'single'}
         />
         <LabeledToggle
           checked={question.required}
@@ -147,19 +153,15 @@ export function ChoiceQuestionCard({
         />
       </QuestionCardFooter>
 
-      {showAiAnalyze ? (
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
-          <span aria-hidden="true" />
-          <MoveHandle
-            attributes={dragHandleAttributes}
-            className="justify-self-center"
-            listeners={dragHandleListeners}
-          />
-          <AiAnalyzeLabel className="justify-self-end" off />
-        </div>
-      ) : (
-        <MoveHandle attributes={dragHandleAttributes} listeners={dragHandleListeners} />
-      )}
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+        <span aria-hidden="true" />
+        <MoveHandle
+          attributes={dragHandleAttributes}
+          className="justify-self-center"
+          listeners={dragHandleListeners}
+        />
+        <QuestionUseLabel analysed={showAiAnalyze} className="justify-self-end" type="choice" />
+      </div>
     </QuestionCardShell>
   )
 }

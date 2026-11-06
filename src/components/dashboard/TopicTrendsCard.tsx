@@ -3,7 +3,6 @@ import { useState } from 'react'
 import {
   Area,
   AreaChart,
-  Bar,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -43,7 +42,6 @@ const CHART_MARGIN = { top: 12, right: 18, bottom: 0, left: 4 }
 const Y_AXIS_WIDTH = 36
 
 // Not a topic id (those are numeric), so it can't collide with a line's dataKey.
-const RESPONSES_KEY = 'responses'
 
 const totalOf = (counts: SentimentCounts) => counts.negative + counts.neutral + counts.positive
 
@@ -124,7 +122,7 @@ export function TopicTrendsCard({
   onPinnedTopicChange: (id: string | null) => void
   /** Unusual spikes — each gets a dot on its line. */
   spikes?: TrendTimelineEvent[]
-  /** Responses per bucket, drawn as faint bars behind the lines. */
+  /** Responses per bucket: the side panel's response count. */
   responses?: number[]
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
@@ -196,9 +194,7 @@ export function TopicTrendsCard({
               </button>
             </TooltipTrigger>
             <TooltipContent className="max-w-72 whitespace-normal leading-4.5 text-[#3f4045]" side="top">
-              Lines show mentions per period; grey bars behind them show how many responses came in, so
-              a rise you see in every line may just be more people answering. The band below shows
-              sentiment. Hover a date or a
+              Lines show mentions per period; the band below shows sentiment. Hover a date or a
               topic to see its numbers, click a topic to pin it.
             </TooltipContent>
           </HoverTooltip>
@@ -217,23 +213,10 @@ export function TopicTrendsCard({
           className="flex min-w-0 flex-col [&_*:focus:not(:focus-visible)]:outline-none"
           onMouseLeave={() => setHoveredTopic(null)}
         >
-          {/* Says what the bars are (all responses, not a topic) and that the left axis is the lines'. */}
-          {responses.length === data.length ? (
-            <div className="flex items-center gap-4 pl-10 text-[11px] font-medium text-[#726f6f]">
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden="true" className="h-0.5 w-3.5 rounded-full bg-[#726f6f]" />
-                Mentions per topic
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden="true" className="h-2.5 w-2 rounded-t-[2px] bg-[#e3e7ef]" />
-                Responses
-              </span>
-            </div>
-          ) : null}
           <div className="h-56 w-full">
             <ResponsiveContainer height="100%" width="100%">
               <ComposedChart
-                data={responses.length === data.length ? data.map((p, i) => ({ ...p, [RESPONSES_KEY]: responses[i] })) : data}
+                data={data}
                 margin={CHART_MARGIN}
                 onMouseLeave={() => {
                   setHoverIndex(null)
@@ -257,23 +240,6 @@ export function TopicTrendsCard({
                   tickLine={false}
                   width={Y_AXIS_WIDTH}
                 />
-                {/* Own hidden axis, so the bars never stretch the mentions scale; topped at
-                    ~40% of the height so they stay a backdrop. */}
-                {responses.length === data.length ? (
-                  <>
-                    <YAxis domain={[0, (max: number) => Math.max(1, max) * 2.5]} hide yAxisId="responses" />
-                    <Bar
-                      dataKey={RESPONSES_KEY}
-                      fill="#eef1f6"
-                      isAnimationActive={false}
-                      legendType="none"
-                      maxBarSize={28}
-                      radius={[4, 4, 0, 0]}
-                      tooltipType="none"
-                      yAxisId="responses"
-                    />
-                  </>
-                ) : null}
                 {/* Only the vertical cursor — the details live in the side panel. */}
                 <Tooltip content={() => null} cursor={{ stroke: '#c9cfdb', strokeWidth: 1 }} />
                 {series.map((entry) => {

@@ -28,7 +28,7 @@ export const DASHBOARD_TOUR: TourStep[] = [
   {
     target: '[data-tour="dashboard-filters"]',
     title: 'Narrow it down',
-    text: 'Pick a date range or a group of respondents (year, program…). Themes and Trend both follow it.',
+    text: 'Pick a date range or a group of respondents. The groups come from the choice questions in your form\'s "About your respondents" section. Themes and Trend both follow it.',
   },
   {
     target: '#topic-list',

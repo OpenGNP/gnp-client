@@ -12,6 +12,7 @@ export type SortableQuestionCardProps = {
   question: Question
   onChange: (question: Question) => void
   onDelete: () => void
+  number: number
   showAiAnalyze?: boolean
   /** Being edited: the full card. Otherwise a compact preview that opens it on click. */
   isActive: boolean
@@ -22,6 +23,7 @@ export function SortableQuestionCard({
   question,
   onChange,
   onDelete,
+  number,
   showAiAnalyze = false,
   isActive,
   onActivate,
@@ -44,6 +46,7 @@ export function SortableQuestionCard({
             <QuestionPreviewCard
               dragHandleAttributes={attributes}
               dragHandleListeners={listeners}
+              number={number}
               onActivate={onActivate}
               question={question}
               showAiAnalyze={showAiAnalyze}
@@ -52,6 +55,7 @@ export function SortableQuestionCard({
             <TextQuestionCard
               dragHandleAttributes={attributes}
               dragHandleListeners={listeners}
+              number={number}
               onChange={onChange}
               onDelete={onDelete}
               question={question}
@@ -61,6 +65,7 @@ export function SortableQuestionCard({
             <ChoiceQuestionCard
               dragHandleAttributes={attributes}
               dragHandleListeners={listeners}
+              number={number}
               onChange={onChange}
               onDelete={onDelete}
               question={question}
