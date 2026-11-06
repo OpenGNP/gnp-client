@@ -23,7 +23,7 @@ describe('question cards', () => {
   it('start as compact previews, with no editing fields', () => {
     render(<Harness />)
     expect(questionInputs()).toHaveLength(0)
-    expect(screen.getByRole('button', { name: /^What went well\?/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /what went well\?/i })).toBeInTheDocument()
     expect(screen.getByText('Long answer')).toBeInTheDocument()
     expect(screen.getByText('Other')).toBeInTheDocument()
   })
@@ -31,41 +31,38 @@ describe('question cards', () => {
   it('open one at a time when clicked', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    await user.click(screen.getByRole('button', { name: /^What went well\?/ }))
+    await user.click(screen.getByRole('button', { name: /what went well\?/i }))
     expect(questionInputs().map((input) => (input as HTMLInputElement).value)).toEqual(['What went well?'])
 
-    await user.click(screen.getByRole('button', { name: 'Pick one' }))
+    await user.click(screen.getByRole('button', { name: /pick one/i }))
     expect(questionInputs().map((input) => (input as HTMLInputElement).value)).toEqual(['Pick one'])
   })
 
   it('closes the open card on a click outside it', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    await user.click(screen.getByRole('button', { name: /^What went well\?/ }))
+    await user.click(screen.getByRole('button', { name: /what went well\?/i }))
     expect(questionInputs()).toHaveLength(1)
-    await user.click(screen.getByRole('heading', { name: 'Feedback' }))
+    await user.click(screen.getByRole('heading', { name: 'Your questions' }))
     expect(questionInputs()).toHaveLength(0)
   })
 
   it('opens a newly added question straight away', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    const feedback = screen.getByRole('region', { name: 'Feedback' })
-    await user.click(within(feedback).getByRole('button', { name: 'Add new question' }))
-    await user.click(within(feedback).getByRole('menuitem', { name: 'Text' }))
+    const feedback = screen.getByRole('region', { name: 'Your questions' })
+    await user.click(within(feedback).getByRole('button', { name: /^Text/i }))
     expect(questionInputs().map((input) => (input as HTMLInputElement).value)).toEqual([''])
   })
 
-  it('lets Feedback add a choice question, marked as not analysed by AI', async () => {
+  it('lets Your questions add a choice question and opens it for editing', async () => {
     const user = userEvent.setup()
     render(<Harness />)
-    // The existing Feedback choice question says so; the text one keeps the AI label.
-    expect(screen.getByText('Not analysed by AI')).toBeInTheDocument()
-    expect(screen.getByText('AI Analyze')).toBeInTheDocument()
 
-    const feedback = screen.getByRole('region', { name: 'Feedback' })
-    await user.click(within(feedback).getByRole('button', { name: 'Add new question' }))
-    await user.click(within(feedback).getByRole('menuitem', { name: 'Choice' }))
-    expect(within(feedback).getAllByText('Not analysed by AI')).toHaveLength(2)
+    const feedback = screen.getByRole('region', { name: 'Your questions' })
+    await user.click(within(feedback).getByRole('button', { name: 'Choice' }))
+    expect(questionInputs().map((input) => (input as HTMLInputElement).value)).toEqual([''])
+    expect(screen.getByPlaceholderText('Option 1')).toBeInTheDocument()
+    expect(within(feedback).getAllByRole('button', { name: 'Drag to reorder question' })).toHaveLength(3)
   })
 })
