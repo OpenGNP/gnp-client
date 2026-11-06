@@ -447,7 +447,7 @@ function DashboardPicture({
 // Answers start spread up the hero and drop to land beside the dashboard; higher ones drop further, so none passes another.
 // Then they rise, higher ones faster, so the stack spreads apart.
 const FLOATING_SPOTS = [
-  { side: 'left', top: '-440px', gap: '2rem', drop: '480px', lift: '260px', tilt: '-3deg' },
+  { side: 'left', top: '-380px', gap: '2rem', drop: '420px', lift: '260px', tilt: '-3deg' },
   { side: 'left', top: '20px', gap: '3rem', drop: '240px', lift: '180px', tilt: '2deg' },
   { side: 'left', top: '470px', gap: '1.5rem', drop: '10px', lift: '100px', tilt: '-1.5deg' },
   { side: 'right', top: '-320px', gap: '2.5rem', drop: '420px', lift: '240px', tilt: '2.5deg' },
