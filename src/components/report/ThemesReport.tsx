@@ -3,7 +3,7 @@ import type { FeedbackPoint, TopicSentiment } from '../../data/dashboardAnalytic
 import { SentimentGauge } from '../dashboard/SentimentGauge'
 import { INSIGHT_STYLES, keyInsights, percent, SORT_FOCUS, UNCATEGORISED_ID } from './keyInsights'
 import { SENTIMENT_COLORS } from '../dashboard/sentimentColors'
-import { sortTopics, TOPIC_SORT_OPTIONS, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
+import { sortTopics, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
 
 const TOP_TOPICS = 5
 const QUOTES_PER_TOPIC = 3
@@ -71,7 +71,6 @@ export function ThemesReport({
   const topTitle = `${top.length === 1 ? 'Top topic' : `Top ${top.length} topics`} by ${topicSortLabel(sort).toLowerCase()}`
   const violations = topics.reduce((sum, topic) => sum + topic.feedbackSegment.filter((p) => p.violation).length, 0)
   const insights = keyInsights(themes)
-  const sortHint = TOPIC_SORT_OPTIONS.find((option) => option.value === sort)?.hint
 
   return (
     <article className="text-[12px] leading-[1.5] text-[#14181f]">
@@ -136,7 +135,6 @@ export function ThemesReport({
       </div>
 
       <Section title={`Topics, sorted by ${topicSortLabel(sort)}`}>
-        {sortHint ? <p className="m-0 mb-2 text-[11px] text-[#726f6f]">{sortHint}.</p> : null}
         <table className="w-full border-collapse">
           <thead>
             <tr className="text-left text-[10px] text-[#726f6f] uppercase">

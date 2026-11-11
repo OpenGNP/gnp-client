@@ -81,6 +81,6 @@ describe('ThemesReport', () => {
   it('names the sort order on the topics table', () => {
     render(<ThemesReport formTitle="Canteen survey" scope={[]} sort="priority" themes={themes} />)
     expect(screen.getByRole('heading', { name: 'Topics, sorted by Priority' })).toBeInTheDocument()
-    expect(screen.getByText('Most violations, then most negative feedback.')).toBeInTheDocument()
+    expect(screen.getByText('Violations first, then the most negative feedback.')).toBeInTheDocument()
   })
 })
