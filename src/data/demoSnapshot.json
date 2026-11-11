@@ -41,7 +41,7 @@
         "negative": 9,
         "neutral": 21,
         "positive": 11,
-        "percentOfTotal": 20,
+        "percentOfTotal": 20.0,
         "hasViolation": true,
         "aiSummary": "Issues with supervisor availability, shift swaps process, and resolution of problems",
         "keywords": [
@@ -1218,7 +1218,7 @@
         "negative": 3,
         "neutral": 9,
         "positive": 7,
-        "percentOfTotal": 93,
+        "percentOfTotal": 9.3,
         "hasViolation": true,
         "aiSummary": "Students express concerns about the team lead's communication style in meetings, perceived as personal, tense, blunt, and potentially disrespectful towards older colleagues",
         "keywords": [
@@ -1813,7 +1813,7 @@
         "negative": 17,
         "neutral": 20,
         "positive": 5,
-        "percentOfTotal": 205,
+        "percentOfTotal": 20.5,
         "hasViolation": false,
         "aiSummary": "Students are experiencing discrepancies between worked overtime hours and the corresponding pay on their payslips",
         "keywords": [
@@ -3016,7 +3016,7 @@
         "negative": 11,
         "neutral": 23,
         "positive": 6,
-        "percentOfTotal": 195,
+        "percentOfTotal": 19.5,
         "hasViolation": false,
         "aiSummary": "Students are experiencing delays in the approval of their shift swaps, with some waiting for days without a response",
         "keywords": [
@@ -4155,7 +4155,7 @@
         "negative": 10,
         "neutral": 3,
         "positive": 1,
-        "percentOfTotal": 68,
+        "percentOfTotal": 6.8,
         "hasViolation": false,
         "aiSummary": "Students are expressing concerns about not being shown or instructed on how to use the HR system, including booking leave and picking up uniforms and ID badges",
         "keywords": [
@@ -4618,7 +4618,7 @@
         "negative": 9,
         "neutral": 21,
         "positive": 11,
-        "percentOfTotal": 20,
+        "percentOfTotal": 20.0,
         "hasViolation": true,
         "aiSummary": "Issues with supervisor availability, shift swaps process, and resolution of problems",
         "keywords": [
@@ -5795,7 +5795,7 @@
         "negative": 8,
         "neutral": 12,
         "positive": 10,
-        "percentOfTotal": 146,
+        "percentOfTotal": 14.6,
         "hasViolation": false,
         "aiSummary": "Complaints about manager availability during night shifts, parking issues, canteen hours, and suggestions for improved facilities for shift workers",
         "keywords": [
@@ -6674,7 +6674,7 @@
         "negative": 4,
         "neutral": 3,
         "positive": 2,
-        "percentOfTotal": 44,
+        "percentOfTotal": 4.4,
         "hasViolation": false,
         "aiSummary": "Complaints about the rushed pace of training and the unavailability of trainers during the initial days",
         "keywords": [
@@ -7007,7 +7007,7 @@
         "negative": 3,
         "neutral": 9,
         "positive": 7,
-        "percentOfTotal": 93,
+        "percentOfTotal": 9.3,
         "hasViolation": true,
         "aiSummary": "Students express concerns about the team lead's communication style in meetings, perceived as personal, tense, blunt, and potentially disrespectful towards older colleagues",
         "keywords": [
@@ -7600,7 +7600,7 @@
         "negative": 1,
         "neutral": 4,
         "positive": 5,
-        "percentOfTotal": 49,
+        "percentOfTotal": 4.9,
         "hasViolation": false,
         "aiSummary": "Students praise the helpfulness of the buddy system during their first week, but express concern about lack of check-ins after the first day",
         "keywords": [

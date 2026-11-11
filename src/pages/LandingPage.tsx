@@ -262,7 +262,7 @@ function TopicRows({
                   <ViolationTooltip focusable={false} scope="topic">
                     <TriangleAlert
                       aria-label="Contains possible violations"
-                      className="flag-pulse shrink-0 text-[#e0507a]"
+                      className="shrink-0 text-[#e0507a]"
                       role="img"
                       size={15}
                     />
@@ -437,8 +437,8 @@ function DashboardPicture({
             Topics found by AI ({rows.length})
             <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to drill down</span>
           </span>
-          {/* Over the share column: the chevron column and its gap sit to its right. */}
-          <span className="mr-8 font-medium text-[#726f6f]">Share</span>
+          {/* Over the weight column: the chevron column and its gap sit to its right. */}
+          <span className="mr-8 font-medium text-[#726f6f]">Weight</span>
         </div>
         {/* Keyed: switching sample closes any open topic. */}
         <TopicRows
@@ -453,68 +453,127 @@ function DashboardPicture({
   )
 }
 
-// Where each loose answer rests in the pile under the hero text: across from the pile's left edge, up
-// from its bottom, how far it drifts down as the page scrolls, how far it then rises, tilt.
-// Higher ones drift further and rise faster, so the pile spreads apart as the page scrolls on.
-const FLOATING_SPOTS = [
-  { left: '0%', bottom: '64px', drop: '40px', lift: '90px', tilt: '-3deg' },
-  { left: '25%', bottom: '0px', drop: '24px', lift: '60px', tilt: '2deg' },
-  { left: '53%', bottom: '76px', drop: '48px', lift: '100px', tilt: '-1.5deg' },
-  { left: '74%', bottom: '12px', drop: '30px', lift: '70px', tilt: '2.5deg' },
-] as const
+const TILTS = [-1.2, 0.8, -0.4, 1, -0.8]
 
-/**
- * Loose sample answers in a pile under the hero text, beside the dashboard, always in view; with
- * motion welcome they drift as the page scrolls (index.css). Hovering one lights the topic it was
- * filed under. Decorative repeats of the sample, so hidden from assistive tech, and only drawn when
- * the hero is split in two (from 1200px wide).
- */
-function FloatingAnswers({
-  sample,
-  activeTopic,
-  onHoverTopic,
-}: {
-  sample: LandingSample
-  activeTopic: string | null
-  onHoverTopic: (topicId: string | null) => void
-}) {
+/** Raw answers on the left, the topics AI filed them under on the right; steps through them until pointed at. */
+function RawToRead({ sample }: { sample: LandingSample }) {
+  const comments = sample.comments.slice(0, TILTS.length)
+  const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const activeTopic = comments[active]?.topicId
+  // Only the topics these answers were filed under, so the card stays about as tall as the list.
+  const topics = sample.topics.filter((topic) => comments.some((comment) => comment.topicId === topic.id))
+
+  useEffect(() => {
+    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const timer = window.setInterval(() => setActive((i) => (i + 1) % comments.length), 2600)
+    return () => window.clearInterval(timer)
+  }, [paused, comments.length])
+
+  const pick = (i: number) => {
+    setActive(i)
+    setPaused(true)
+  }
+
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-      {FLOATING_SPOTS.map((spot, i) => {
-        const comment = sample.comments[i]
-        if (!comment) return null
-        return (
-          <p
-            className={`parallax-answer pointer-events-auto absolute m-0 w-48 cursor-default items-start gap-2 rounded-[10px] border bg-white px-3 py-2.5 text-[12px] leading-4.5 text-[#3f4045] transition-[border-color,box-shadow] duration-200 ${
-              activeTopic === comment.topicId
-                ? 'border-[#1e55c5] shadow-[0_10px_28px_rgba(30,85,197,0.18)]'
-                : 'border-[#e8eaf1] shadow-[0_8px_24px_rgba(20,40,90,0.08)]'
-            }`}
+    <div className="grid grid-cols-[minmax(0,13rem)_auto_minmax(0,1fr)] items-center gap-3 max-[1000px]:grid-cols-1">
+      <ul
+        aria-label="Raw feedback: point at one to see its topic"
+        className="m-0 flex list-none flex-col gap-2.5 p-0 max-[1000px]:hidden"
+        onMouseLeave={() => setPaused(false)}
+      >
+        {comments.map((comment, i) => (
+          <li
+            className="animate-in fade-in slide-in-from-left-4 fill-mode-both duration-700 ease-out motion-reduce:animate-none"
             key={comment.text}
-            onMouseEnter={() => onHoverTopic(comment.topicId)}
-            onMouseLeave={() => onHoverTopic(null)}
-            style={
-              {
-                left: spot.left,
-                bottom: spot.bottom,
-                // The lower a card sits, the nearer the front of the pile; all under the dashboard (z-10).
-                zIndex: Math.round((100 - parseInt(spot.bottom)) / 25),
-                rotate: spot.tilt,
-                '--drop': spot.drop,
-                '--lift': spot.lift,
-                '--tilt': spot.tilt,
-              } as React.CSSProperties
-            }
+            style={{ animationDelay: `${i * 90}ms`, rotate: i === active ? '0deg' : `${TILTS[i]}deg` }}
           >
-            <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={13} />“{comment.text}”
-          </p>
-        )
-      })}
+            <button
+              aria-pressed={i === active}
+              className={`flex w-full cursor-pointer items-start gap-2 rounded-[10px] border px-3 py-2.5 text-left text-[13px] leading-4.75 transition-[border-color,background-color,box-shadow,translate] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5] ${
+                i === active
+                  ? 'translate-x-1.5 border-[#1e55c5] bg-[#f5f8ff] text-[#14181f] shadow-[0_6px_16px_rgba(30,85,197,0.16)]'
+                  : 'border-[#e8eaf1] bg-white text-[#3f4045] shadow-[0_2px_8px_rgba(15,23,42,0.05)]'
+              }`}
+              onBlur={() => setPaused(false)}
+              onFocus={() => pick(i)}
+              onMouseEnter={() => pick(i)}
+              type="button"
+            >
+              <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={14} />
+              <span>“{comment.text}”</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <ArrowRight
+        aria-hidden="true"
+        className="text-[#8fc9ff] animate-in fade-in fill-mode-both delay-500 duration-500 motion-reduce:animate-none max-[1000px]:hidden"
+        size={28}
+      />
+
+      {/* Narrow screens have no room for the list, so the current comment sits above the card. */}
+      <p
+        className="m-0 hidden items-start gap-2 rounded-[10px] border border-[#1e55c5] bg-[#f5f8ff] px-3 py-2.5 text-[13px] leading-4.75 text-[#14181f] max-[1000px]:flex"
+        key={active}
+      >
+        <MessageSquareText className="mt-0.5 shrink-0 text-[#1e55c5]" size={14} />
+        <span className="animate-in fade-in duration-500 motion-reduce:animate-none">“{comments[active]?.text}”</span>
+      </p>
+
+      <section
+        aria-label="Topics found in the sample feedback"
+        className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-5 pb-3 shadow-[0_16px_40px_rgba(30,85,197,0.10)] animate-in fade-in slide-in-from-right-4 fill-mode-both delay-500 duration-700 ease-out motion-reduce:animate-none"
+      >
+        <div className="flex items-center justify-between gap-3 px-5 pb-3">
+          <h3 className="m-0 flex items-center gap-2 text-[14px] font-semibold text-black">
+            <Sparkles className="text-[#1e55c5]" fill="currentColor" size={15} />
+            Topics
+            <span className="font-medium text-[#726f6f]">{sample.responseCount} responses</span>
+          </h3>
+          <span className="rounded-full bg-[#f2f3f6] px-2 py-0.5 text-[11px] font-medium text-[#726f6f]">Sample</span>
+        </div>
+        <ul className="m-0 flex list-none flex-col p-0">
+          {topics.map((topic) => {
+            const isActive = topic.id === activeTopic
+            return (
+              <li
+                className={`flex flex-col gap-1.5 border-l-[3px] py-2.5 pr-5 pl-4.25 transition-colors duration-300 ${
+                  isActive ? 'border-[#1e55c5] bg-[#f7f8fb]' : topic.hasViolation ? 'border-transparent bg-[#fff7f8]' : 'border-transparent'
+                }`}
+                key={topic.id}
+              >
+                <span className="flex min-w-0 flex-1 items-center gap-2 text-[14px] text-[#14181f]">
+                  <span className={`truncate ${isActive ? 'font-medium' : ''}`}>{topic.label}</span>
+                  {topic.hasViolation ? (
+                    <TriangleAlert aria-label="Contains possible violations" className="shrink-0 text-[#e0507a]" size={15} />
+                  ) : null}
+                  {isActive ? (
+                    <span className="ml-auto shrink-0 text-[11px] font-semibold text-[#1e55c5]">Filed here</span>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-3">
+                  <SentimentBar
+                    className="min-w-0 flex-1"
+                    maxValue={AXIS_MAX}
+                    negative={topic.negative}
+                    neutral={topic.neutral}
+                    positive={topic.positive}
+                    title={topic.label}
+                  />
+                  <span className="w-12 text-right text-[14px] text-[#14181f] tabular-nums">{topic.percentOfTotal}%</span>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
     </div>
   )
 }
 
-/** The opening: the headline and sign-in, then the app itself with what to notice. */
+/** The opening: the headline and sign-in, then raw answers turning into topics. */
 function Hero({
   title,
   intro,
@@ -527,28 +586,22 @@ function Hero({
   secondary?: React.ReactNode
   sample: LandingSample
 }) {
-  // A floating answer under the pointer, and so the topic to light in the dashboard.
-  const [hoverTopic, setHoverTopic] = useState<string | null>(null)
-  // The topic opened in the dashboard: its floating answers stay lit while it's open.
-  const [openTopic, setOpenTopic] = useState<string | null>(null)
   // Signed in, the header already offers "Go to home": the hero keeps to the headline and the proof.
   const signedIn = useAuth().status === 'ready'
-  // Wide screens: text on the left, the dashboard on the right. Narrower: stacked and centred.
+  // Wide screens: text on the left, the demo on the right. Narrower: stacked and centred.
   return (
-    <section className="mx-auto grid max-w-360 grid-cols-1 items-center gap-14 px-6 pt-6 pb-24 min-[1200px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] min-[1200px]:gap-16 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
-      {/* Split, the text and the pile of answers under it centre together against the dashboard. */}
-      <div className="flex flex-col gap-10">
-        <div className="flex flex-col items-center gap-6 text-center min-[1200px]:items-start min-[1200px]:text-left">
+    <section className="mx-auto grid max-w-300 grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:gap-12 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
+      <div className="flex flex-col items-center gap-6 text-center min-[1200px]:items-start min-[1200px]:text-left">
           {/* Three levels, each a step apart in size and contrast: eyebrow, headline, intro. */}
           {/* The eyebrow sits closer to the headline than the intro does, so the two read as one unit. */}
           <p className="m-0 -mb-3 flex items-center gap-2 text-[15px] font-medium text-[#1e55c5]">
             <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-[#1e55c5]" />
             Feedback analytics for your organization
           </p>
-          <h1 className="m-0 max-w-208 text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-balance text-[#14181f] min-[1200px]:text-[clamp(36px,2.9vw,52px)] max-[560px]:text-[38px]">
+          <h1 className="m-0 max-w-208 text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-balance text-[#14181f] min-[1200px]:text-[40px] max-[560px]:text-[38px]">
             {title}
           </h1>
-          <p className="m-0 max-w-160 text-[18px] leading-7 text-[#3f4045] min-[1200px]:whitespace-nowrap">
+          <p className="m-0 max-w-160 text-[18px] leading-7 text-balance text-[#3f4045]">
             {intro}
           </p>
           {signedIn ? null : (
@@ -557,22 +610,9 @@ function Hero({
             </div>
           )}
           {secondary}
-        </div>
-        {/* The pile's room; the answers are only drawn when the hero is split (index.css). */}
-        <div className="relative hidden h-48 min-[1200px]:block">
-          <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
-        </div>
       </div>
-      {/* Smaller beside the text than when stacked; the label is as wide as the frame, so it centres over it. */}
-      <div className="relative mx-auto flex w-full max-w-224 min-w-0 flex-col min-[1200px]:max-w-180">
-        {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
-        <div className="hero-rise relative z-10 w-full">
-          <DashboardPicture highlightId={hoverTopic} onOpenChange={setOpenTopic} sample={sample} />
-        </div>
-        {/* Says what the dashboard shows: sample data. */}
-        <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] lowercase">
-          Sample from {sample.responseCount} staff feedback responses
-        </p>
+      <div className="mx-auto w-full max-w-224 min-w-0">
+        <RawToRead sample={sample} />
       </div>
     </section>
   )
@@ -658,7 +698,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
       {/* Soft colour blobs in the step tints, so the section isn't a flat white sheet. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(28rem_20rem_at_12%_30%,#e3ecff,transparent_70%),radial-gradient(26rem_18rem_at_50%_95%,#fff1d6,transparent_70%),radial-gradient(28rem_20rem_at_90%_40%,#dcf5e8,transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(28rem_20rem_at_12%_30%,#e3ecff,transparent_70%),radial-gradient(28rem_20rem_at_90%_40%,#dcf5e8,transparent_70%)]"
       />
       <div className={`relative ${SECTION}`}>
         <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
@@ -686,7 +726,13 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             </span>
           </p>
         </div>
-        <ol className="m-0 mx-auto grid w-full max-w-240 list-none grid-cols-3 gap-8 p-0 max-[900px]:max-w-110 max-[900px]:grid-cols-1">
+        <div className="relative">
+          {/* Yellow glow under the Collect card, in its stage's tint. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -bottom-28 h-64 bg-[radial-gradient(26rem_14rem_at_50%_60%,#fff1d6,transparent_70%)] max-[900px]:hidden"
+          />
+        <ol className="relative m-0 mx-auto grid w-full max-w-240 list-none grid-cols-3 gap-8 p-0 max-[900px]:max-w-110 max-[900px]:grid-cols-1">
           <HowStep
             art={askMascot}
             delay={0}
@@ -755,6 +801,13 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             </div>
           </HowStep>
         </ol>
+        </div>
+        <div className="relative z-10 flex flex-col gap-3">
+          <DashboardPicture sample={sample} />
+          <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] lowercase">
+            Sample from {sample.responseCount} staff feedback responses
+          </p>
+        </div>
       </div>
     </section>
   )

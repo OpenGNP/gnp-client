@@ -252,29 +252,11 @@ button {
    to scroll and motion is welcome; elsewhere everything simply shows in its final state. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    /* The hero's dashboard leans back and straightens as it scrolls up into view. */
-    /* Timed by page scroll, not the frame's own view: opening a topic makes the frame
-       taller, and that must not change its tilt. */
-    .hero-rise {
-      transform-origin: 50% 0;
-      animation: hero-rise linear both;
-      animation-timeline: scroll(root);
-      animation-range: 0 55vh;
-    }
-
     /* Selling-point cards scroll faster than their text and glow in their colour (--glow) as they
        cross the middle of the screen. */
     .spot-card {
       animation: spot-card linear both;
       animation-timeline: view();
-    }
-
-    /* The hero's violation icon pulses once as the frame settles flat (.hero-rise ends at 55vh). */
-    .flag-pulse {
-      transform-origin: center;
-      animation: flag-pulse linear both;
-      animation-timeline: scroll(root);
-      animation-range: 40vh 60vh;
     }
 
     /* Each answer's "Filed under" lands as that answer reaches the middle of the screen. */
@@ -283,22 +265,6 @@ button {
       animation-timeline: view();
       animation-range: cover 30% cover 45%;
     }
-  }
-}
-
-@keyframes hero-rise {
-  from {
-    transform: perspective(1800px) rotateX(16deg) scale(0.9);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes flag-pulse {
-  50% {
-    transform: scale(1.6);
-    filter: drop-shadow(0 0 4px rgb(224 80 122 / 0.6));
   }
 }
 
@@ -328,30 +294,3 @@ button {
   }
 }
 
-/* Landing hero parallax (LandingPage FloatingAnswers): loose answers drop to gather beside the
-   dashboard as the page scrolls, landing as it straightens (.hero-rise ends at 55vh), then rise at
-   their own speed as the dashboard scrolls on. Only with scroll timelines and motion welcome; otherwise not drawn. */
-.parallax-answer {
-  display: none;
-}
-
-@supports (animation-timeline: scroll()) {
-  @media (prefers-reduced-motion: no-preference) and (min-width: 1440px) {
-    .parallax-answer {
-      display: flex;
-      animation: parallax-drift linear both;
-      animation-timeline: scroll(root);
-      animation-range: 0 120vh;
-    }
-  }
-}
-
-/* 46% of 120vh = 55vh, where the dashboard is level. */
-@keyframes parallax-drift {
-  46% {
-    transform: translateY(var(--drop)) rotate(var(--tilt));
-  }
-  to {
-    transform: translateY(calc(var(--drop) - var(--lift))) rotate(var(--tilt));
-  }
-}

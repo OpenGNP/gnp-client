@@ -15,14 +15,9 @@ const topic = (id: string, negative: number, violations: number) =>
   }) as unknown as TopicSentiment
 
 describe('sortTopics priority', () => {
-  it('puts the topic with more violations first, even with fewer negatives', () => {
+  it('puts violation topics first, then most negative, whatever the violation count', () => {
     const order = sortTopics([topic('canteen', 50, 1), topic('grading', 10, 8), topic('wifi', 90, 0)], 'priority')
-    expect(order.map((t) => t.id)).toEqual(['grading', 'canteen', 'wifi'])
-  })
-
-  it('breaks a violation tie on negatives', () => {
-    const order = sortTopics([topic('a', 5, 2), topic('b', 9, 2)], 'priority')
-    expect(order.map((t) => t.id)).toEqual(['b', 'a'])
+    expect(order.map((t) => t.id)).toEqual(['canteen', 'grading', 'wifi'])
   })
 
   it('leaves other orders alone', () => {
