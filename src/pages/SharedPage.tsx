@@ -13,7 +13,7 @@ import { SkeletonRegion } from '../components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
-import { placeholderFormImage } from '../lib/formCardImage'
+import { formCardImage } from '../lib/formCardImage'
 
 function sortShared(forms: ApiSharedForm[], sortKey: SortKey, sortDir: SortDir) {
   const flip = sortDir === 'asc' ? 1 : -1
@@ -89,7 +89,7 @@ export function SharedPage() {
               {sortShared(shared.data, sortKey, sortDir).map((form) => (
                 <div className="flex flex-col gap-1.5" key={form.id}>
                   <FormCard
-                    image={placeholderFormImage(form.id)}
+                    image={formCardImage(form.coverImageUrl)}
                     onOpen={() => navigate(formPath(form.urlId, 'dashboard'))}
                     title={form.formTitle ?? 'Untitled form'}
                     timeLabel={cardTime(form, sortKey).label}

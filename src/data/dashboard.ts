@@ -23,6 +23,8 @@ export type ProjectTreeItem = {
   lastOpenedAt?: string | null
   /** Documents only: responses collected so far. */
   submissionCount?: number
+  /** Documents only: the gated cover-image URL, null when there's none. */
+  coverImageUrl?: string | null
   /** Shown before the server has confirmed it (a temporary id) — not interactive yet. */
   pending?: boolean
 }

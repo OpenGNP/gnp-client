@@ -27,6 +27,8 @@ export type ApiForm = {
   urlId: string;
   formTitle: string | null;
   formDescription: string | null;
+  /** The gated cover-image URL, or null when the form has no cover. */
+  coverImageUrl: string | null;
   status: string | null;
   accessType: string | null;
   folderId: number | null;
@@ -196,14 +198,18 @@ export async function listForms(folderId?: number): Promise<ApiForm[]> {
   });
   // Normalise the DB timestamps to strict ISO so "last updated" / date sorts use
   // the right instant (see asUtcIso).
-  return forms.map((form) => ({
-    ...form,
-    createdAt: asUtcIso(form.createdAt),
-    updatedAt: asUtcIso(form.updatedAt),
-    lastOpenedAt: asUtcIso(form.lastOpenedAt),
-    startDate: asUtcIso(form.startDate),
-    endDate: asUtcIso(form.endDate),
-  }));
+  return forms.map((form) => {
+    const updatedAt = asUtcIso(form.updatedAt);
+    return {
+      ...form,
+      createdAt: asUtcIso(form.createdAt),
+      updatedAt,
+      lastOpenedAt: asUtcIso(form.lastOpenedAt),
+      startDate: asUtcIso(form.startDate),
+      endDate: asUtcIso(form.endDate),
+      coverImageUrl: form.coverImageUrl ? coverImageSrc(`/forms/${form.id}/cover-image`, updatedAt) : null,
+    };
+  });
 }
 
 export async function getForm(id: number): Promise<ApiFormDetail> {
@@ -254,6 +260,8 @@ export type ApiSharedForm = {
   id: number;
   urlId: string;
   formTitle: string | null;
+  /** The gated cover-image URL, or null when the form has no cover. */
+  coverImageUrl: string | null;
   status: string | null;
   updatedAt: string | null;
   ownerName: string | null;
@@ -264,12 +272,16 @@ export type ApiSharedForm = {
 
 export async function listSharedForms(): Promise<ApiSharedForm[]> {
   const forms = await apiGet<ApiSharedForm[]>("/forms/shared");
-  return forms.map((form) => ({
-    ...form,
-    updatedAt: asUtcIso(form.updatedAt),
-    sharedAt: asUtcIso(form.sharedAt),
-    lastOpenedAt: asUtcIso(form.lastOpenedAt),
-  }));
+  return forms.map((form) => {
+    const updatedAt = asUtcIso(form.updatedAt);
+    return {
+      ...form,
+      updatedAt,
+      sharedAt: asUtcIso(form.sharedAt),
+      lastOpenedAt: asUtcIso(form.lastOpenedAt),
+      coverImageUrl: form.coverImageUrl ? coverImageSrc(`/forms/${form.id}/cover-image`, updatedAt) : null,
+    };
+  });
 }
 
 /** Notes that I opened the form — drives "Date opened" sorting. Fire and forget. */

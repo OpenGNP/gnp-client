@@ -27,7 +27,7 @@ import type { ProjectTreeItem } from '../data/dashboard'
 import { showConfirm } from '../lib/alertDialog'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { formPath } from '../lib/formPath'
-import { placeholderFormImage } from '../lib/formCardImage'
+import { formCardImage } from '../lib/formCardImage'
 import { cn } from '../lib/utils'
 import { folderContents, getFolderPath } from '../utils/projectTree'
 
@@ -339,7 +339,7 @@ export function FilesPage({
                         <div key={file.id} onContextMenu={stopContextMenu}>
                           <FormCard
                             dragId={file.id}
-                            image={placeholderFormImage(Number(file.formId ?? file.id))}
+                            image={formCardImage(file.coverImageUrl)}
                             onDelete={() => void deleteItem(file)}
                             onDragEnd={endDrag}
                             onDragStart={setDraggingId}

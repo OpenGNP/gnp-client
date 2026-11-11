@@ -15,7 +15,7 @@ import { useAuth } from '../lib/auth'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import { recency, recentTime } from '../lib/recentTime'
 import { formPath } from '../lib/formPath'
-import { placeholderFormImage } from '../lib/formCardImage'
+import { formCardImage } from '../lib/formCardImage'
 import { findProjectById, formNodeId } from '../utils/projectTree'
 
 function firstName(user: { fullName: string | null; email: string } | null): string {
@@ -128,7 +128,7 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem, onC
               item.kind === 'own' ? (
                 <FormCard
                   key={`own-${item.form.id}`}
-                  image={placeholderFormImage(item.form.id)}
+                  image={formCardImage(item.form.coverImageUrl)}
                   title={item.form.formTitle ?? 'Untitled form'}
                   timeLabel={recentTime(item.form).label}
                   updatedAt={formatRelativeTime(recentTime(item.form).at)}
@@ -142,7 +142,7 @@ export function HomePage({ projects, onMoveItem, onRenameItem, onDeleteItem, onC
                 <FormCard
                   badge="Shared"
                   key={`shared-${item.form.id}`}
-                  image={placeholderFormImage(item.form.id)}
+                  image={formCardImage(item.form.coverImageUrl)}
                   title={item.form.formTitle ?? 'Untitled form'}
                   // In Recent because I opened it, so that's the time it shows.
                   timeLabel="Opened"
