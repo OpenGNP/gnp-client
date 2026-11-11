@@ -2,9 +2,12 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  CornerDownRight,
   EyeOff,
   Heart,
+  Home,
   Link as LinkIcon,
+  LogOut,
   MessageSquareText,
   Server,
   ShieldCheck,
@@ -12,6 +15,7 @@ import {
   TrendingUp,
   TriangleAlert,
   UserCheck,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -29,6 +33,14 @@ import { ViolationTooltip } from '../components/dashboard/ViolationTooltip'
 import { ChangeTag } from '../components/dashboard/TopicSentimentCard'
 import { StatCard } from '../components/dashboard/StatCard'
 import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu'
+import { UserAvatar } from '../components/UserAvatar'
 import { Button } from '../components/ui/button'
 import { brand } from '../data/dashboard'
 import type { FeedbackPoint } from '../data/dashboardAnalytics'
@@ -38,7 +50,7 @@ import { FormDashboardPage } from './FormDashboardPage'
 import { showAlert } from '../lib/alertDialog'
 import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { DEMO_FORM_ID, DemoContext, demoSaveError } from '../lib/demo'
-import { useAuth } from '../lib/auth'
+import { useAuth, type AuthUser } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 import { cn } from '../lib/utils'
 import askMascot from '../assets/step3-mascot.png'
@@ -68,14 +80,14 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
     return (
       <Button
         asChild
-        className={`h-10.5 w-full max-w-80 justify-center rounded-[10px] text-[14px] font-semibold ${
-          tone === 'blue' ? 'bg-white text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white' : ''
+        // As tall as the sign-in button it replaces: primary (48px) on the light hero, default on the blue band.
+        className={`w-full max-w-80 justify-center rounded-[10px] font-semibold ${
+          tone === 'blue'
+            ? 'h-10.5 bg-white text-[14px] text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white'
+            : 'h-12 text-[16px]'
         }`}
       >
-        <Link to="/">
-          Go to home
-          <ArrowRight size={16} />
-        </Link>
+        <Link to="/">Go to home</Link>
       </Button>
     )
   }
@@ -577,8 +589,6 @@ function Hero({
   secondary?: React.ReactNode
   sample: LandingSample
 }) {
-  // Signed in, the header already offers "Go to home": the hero keeps to the headline and the proof.
-  const signedIn = useAuth().status === 'ready'
   // Wide screens: text on the left, the demo on the right. Narrower: stacked and centred.
   return (
     <section className="mx-auto grid max-w-300 grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:gap-10 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
@@ -595,11 +605,16 @@ function Hero({
           <p className="m-0 max-w-160 text-[18px] leading-7 text-balance text-[#3f4045]">
             {intro}
           </p>
-          {signedIn ? null : (
-            <div className="flex w-full justify-center min-[1200px]:justify-start">
-              <SignInAction />
-            </div>
-          )}
+          {/* Sign-in, with the demo beside it as the quieter second choice. */}
+          <div className="flex w-full flex-wrap items-start justify-center gap-3 min-[1200px]:justify-start">
+            <SignInAction />
+            <Link
+              className="inline-flex h-12 shrink-0 items-center justify-center rounded-[10px] border border-[#1e55c5] bg-white px-6 text-[16px] font-semibold text-[#1e55c5] transition-colors hover:bg-[#f5f8ff] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+              to="/demo"
+            >
+              See the demo
+            </Link>
+          </div>
           {secondary}
       </div>
       {/* On wide screens the demo runs into the page margin, so the topic card gets more room. */}
@@ -808,8 +823,51 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
 const NAV_LINK =
   'rounded-[10px] px-3 py-2 text-[14px] font-semibold text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:outline-2 focus-visible:outline-[#1e55c5]'
 
+/** Signed in: the account's avatar, opening Home, Profile and Log out, as in the app's sidebar. */
+function AccountMenu({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
+  const name = user.fullName?.trim() || user.email
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="Account options"
+          className="ml-2 flex cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 transition-shadow hover:ring-4 hover:ring-[#4c71f7]/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e55c5]"
+          title={name}
+          type="button"
+        >
+          <UserAvatar avatarUrl={user.avatarUrl ?? null} className="size-8 text-[12px]" email={user.email} name={user.fullName} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-50">
+        <div className="px-2 py-1.5">
+          <p className="m-0 truncate text-[13px] font-semibold text-[#3f4045]">{name}</p>
+          <p className="m-0 truncate text-[12px] text-[#6f6d6a]">{user.email}</p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/">
+            <Home size={14} />
+            Go to home
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            <UserRound size={14} />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onLogout}>
+          <LogOut size={14} />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
-  const signedIn = useAuth().status === 'ready'
+  const { status, user, logout } = useAuth()
+  const signedIn = status === 'ready'
   return (
     <header className="relative z-20 mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
       <Link
@@ -819,7 +877,11 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
       >
         <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
       </Link>
-      <nav aria-label="Site" className="flex items-center gap-1">
+      {/* On the landing page it lines up with the hero's demo, which runs 4rem into the margin from 1440px. */}
+      <nav
+        aria-label="Site"
+        className={cn('flex items-center gap-1', page === 'landing' && 'min-[1440px]:mr-[-4rem]')}
+      >
         {page === 'landing' ? (
           <Link className={NAV_LINK} to="/demo">
             See the demo
@@ -829,9 +891,13 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
             Overview
           </Link>
         )}
-        <Link className={NAV_LINK} to={signedIn ? '/' : '/login'}>
-          {signedIn ? 'Go to home' : 'Sign in'}
-        </Link>
+        {signedIn && user ? (
+          <AccountMenu onLogout={() => void logout()} user={user} />
+        ) : (
+          <Link className={NAV_LINK} to="/login">
+            Sign in
+          </Link>
+        )}
       </nav>
     </header>
   )
@@ -1082,7 +1148,7 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
                     >
                       <span className="text-[14px] leading-5 text-[#14181f]">“{comment.text}”</span>
                       <span className="file-step flex items-center gap-1 text-[12px] font-medium text-[#1e55c5]">
-                        <ArrowRight aria-hidden size={12} />
+                        <CornerDownRight aria-hidden size={12} />
                         Filed under {rows.find((row) => row.id === comment.topicId)?.label}
                       </span>
                     </li>
