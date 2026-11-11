@@ -10,7 +10,6 @@ import {
   LogOut,
   MessageSquareText,
   Server,
-  ShieldCheck,
   Sparkles,
   TrendingUp,
   TriangleAlert,
@@ -589,9 +588,11 @@ function Hero({
   secondary?: React.ReactNode
   sample: LandingSample
 }) {
-  // Wide screens: text on the left, the demo on the right. Narrower: stacked and centred.
+  // Wide screens: text on the left, the demo on the right, filling the first screen under the header (4.75rem),
+  // with more room below than above so the content sits at the eye's centre, not the geometric one.
+  // Narrower: stacked and centred.
   return (
-    <section className="mx-auto grid max-w-300 grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:gap-10 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
+    <section className="relative mx-auto grid max-w-[83rem] grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:min-h-[calc(100svh-4.75rem)] min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:content-center min-[1200px]:gap-10 min-[1200px]:pt-4 min-[1200px]:pb-[max(4rem,12svh)] max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
       <div className="flex flex-col items-center gap-6 text-center min-[1200px]:items-start min-[1200px]:text-left">
           {/* Three levels, each a step apart in size and contrast: eyebrow, headline, intro. */}
           {/* The eyebrow sits closer to the headline than the intro does, so the two read as one unit. */}
@@ -599,7 +600,7 @@ function Hero({
             <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-[#1e55c5]" />
             Feedback analytics for your organization
           </p>
-          <h1 className="m-0 max-w-208 text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-balance text-[#14181f] min-[1200px]:text-[40px] max-[560px]:text-[38px]">
+          <h1 className="m-0 max-w-208 text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-balance text-[#14181f] min-[1200px]:text-[clamp(40px,3vw,46px)] max-[560px]:text-[38px]">
             {title}
           </h1>
           <p className="m-0 max-w-160 text-[18px] leading-7 text-balance text-[#3f4045]">
@@ -617,8 +618,7 @@ function Hero({
           </div>
           {secondary}
       </div>
-      {/* On wide screens the demo runs into the page margin, so the topic card gets more room. */}
-      <div className="mx-auto w-full max-w-224 min-w-0 min-[1440px]:mr-[-4rem] min-[1440px]:ml-0 min-[1440px]:w-[calc(100%+4rem)] min-[1440px]:max-w-none">
+      <div className="mx-auto w-full max-w-224 min-w-0 min-[1200px]:max-w-none">
         <RawToRead sample={sample} />
       </div>
     </section>
@@ -707,7 +707,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(28rem_20rem_at_12%_30%,#e3ecff,transparent_70%),radial-gradient(28rem_20rem_at_90%_40%,#dcf5e8,transparent_70%)]"
       />
-      <div className={`relative ${SECTION}`}>
+      <div className={`relative ${SECTION} pt-8 max-[560px]:pt-8`}>
         <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
           <p className="m-0 flex items-center gap-2 text-[14px] font-medium text-[#726f6f]">
             Ask
@@ -720,7 +720,7 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             className="m-0 text-[56px] leading-[1.02] font-bold tracking-[-0.03em] text-balance max-[560px]:text-[40px]"
             id="how-title"
           >
-            How it <span className="text-[#1e55c5]">works</span>
+            How it works
           </h2>
           <p className="m-0 text-[20px] leading-7 font-medium text-[#3f4045] max-[560px]:text-[17px]">
             Three steps from{' '}
@@ -869,7 +869,13 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const { status, user, logout } = useAuth()
   const signedIn = status === 'ready'
   return (
-    <header className="relative z-20 mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
+    // The landing page's header is as wide as its hero (83rem), so the logo and the last link line up with it.
+    <header
+      className={cn(
+        'relative z-20 mx-auto flex items-center justify-between px-6 py-5 max-[560px]:px-4',
+        page === 'landing' ? 'max-w-[83rem]' : 'max-w-300',
+      )}
+    >
       <Link
         aria-label={`${brand.name} overview`}
         className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
@@ -877,11 +883,7 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
       >
         <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
       </Link>
-      {/* On the landing page it lines up with the hero's demo, which runs 4rem into the margin from 1440px. */}
-      <nav
-        aria-label="Site"
-        className={cn('flex items-center gap-1', page === 'landing' && 'min-[1440px]:mr-[-4rem]')}
-      >
+      <nav aria-label="Site" className="flex items-center gap-1">
         {page === 'landing' ? (
           <Link className={NAV_LINK} to="/demo">
             See the demo
@@ -929,9 +931,7 @@ const HERO_TITLE = (
   <>
     {/* Two fixed lines beside the dashboard; stacked on narrower screens they wrap as they need. */}
     <span className="min-[1200px]:block min-[1200px]:whitespace-nowrap">Turn open-ended feedback</span>{' '}
-    <span className="text-[#1e55c5] min-[1200px]:block min-[1200px]:whitespace-nowrap">
-      into insights you can drill into
-    </span>
+    <span className="min-[1200px]:block min-[1200px]:whitespace-nowrap">into insights you can drill into</span>
   </>
 )
 
@@ -1251,10 +1251,11 @@ function Finale() {
       />
       <div className="relative mx-auto flex max-w-300 flex-col items-center gap-14 px-6 py-28 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:py-20">
         <div className="flex flex-col items-center gap-4 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-semibold text-[#dbe6ff]">
-            <ShieldCheck aria-hidden size={13} />
+          {/* Same eyebrow as the hero's (bar + text), in a light blue for the dark band. */}
+          <p className="m-0 flex items-center gap-2 text-[15px] font-medium text-[#8fb3ff]">
+            <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-[#8fb3ff]" />
             Private by design
-          </span>
+          </p>
           <h2
             className="m-0 text-[44px] leading-[1.08] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[32px]"
             id="trust-title"
@@ -1266,11 +1267,12 @@ function Finale() {
           {TRUST.map(({ icon: Icon, title, text }, i) => (
             <li key={title}>
               <Reveal
-                className="flex h-full flex-col gap-3 rounded-[15px] border border-white/12 bg-white/6 p-6 backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-white/9"
+                className="flex h-full flex-col gap-3 rounded-[15px] bg-white/6 p-6 transition-colors hover:bg-white/9"
                 delay={i * 110}
               >
-                <span className="flex size-11 items-center justify-center rounded-[12px] bg-linear-to-br from-[#3b74e8] to-[#1e55c5] shadow-[0_8px_20px_rgb(30_85_197/0.45)]">
-                  <Icon aria-hidden className="text-white" size={22} />
+                {/* Flat brand blue (a step brighter, to read on navy): colour for the band, no gradient or glow. */}
+                <span className="flex size-11 items-center justify-center rounded-[12px] bg-[#3b74e8]">
+                  <Icon aria-hidden className="text-white" size={22} strokeWidth={2} />
                 </span>
                 <p className="m-0 text-[18px] font-semibold">{title}</p>
                 <p className="m-0 text-[14px] leading-5.5 text-[#b9c8ea]">{text}</p>
@@ -1314,7 +1316,7 @@ function Finale() {
 
 // A soft blue glow and faint dot grid behind the hero, so the page doesn't open on a flat fill.
 const HERO_BG =
-  'pointer-events-none absolute inset-x-0 top-0 h-[900px] bg-[radial-gradient(70rem_36rem_at_50%_-8rem,#d6e4ff,transparent_70%),radial-gradient(#c3d2f0_1.3px,transparent_1px)] bg-size-[auto,22px_22px] mask-[linear-gradient(to_bottom,black_45%,transparent)]'
+  'pointer-events-none absolute inset-x-0 top-0 h-[max(900px,100svh)] bg-[radial-gradient(70rem_36rem_at_50%_-8rem,#d6e4ff,transparent_70%),radial-gradient(#c3d2f0_1.3px,transparent_1px)] bg-size-[auto,22px_22px] mask-[linear-gradient(to_bottom,black_45%,transparent)]'
 
 const PAGE = 'relative min-h-screen bg-[#f5f9ff] text-[#14181f] selection:bg-[#cfe0ff]'
 
@@ -1335,9 +1337,16 @@ export function LandingPage() {
       <div aria-hidden="true" className={HERO_BG} />
       <SiteHeader page="landing" />
       <main className="relative">
-        <Hero intro={HERO_INTRO} sample={sample} title={HERO_TITLE} />
-        {/* White band between the tinted hero and selling points, so each section reads as its own block. */}
-        <div className="border-y border-[#e8eaf1]">
+        <div className="relative">
+          {/* The hero's tint fades into How it works' white, so there's no hard edge between them. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-b from-[#f5f9ff]/0 to-white"
+          />
+          <Hero intro={HERO_INTRO} sample={sample} title={HERO_TITLE} />
+        </div>
+        {/* White band before the selling points; only a bottom rule, as the hero fades into it from above. */}
+        <div className="border-b border-[#e8eaf1]">
           <HowItWorks sample={sample} />
         </div>
         <SellingPoints sample={sample} />
