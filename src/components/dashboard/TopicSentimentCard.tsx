@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, MessageSquareText, Search, Sparkle, Sparkles, TrendingUp, TriangleAlert, X } from 'lucide-react'
+import { ArrowUpDown, ChevronDown, Info, MessageSquareText, Search, Sparkle, Sparkles, TrendingUp, TriangleAlert, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { TopicSentiment } from '../../data/dashboardAnalytics'
@@ -137,9 +137,25 @@ function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
         <span>0</span>
         <span>{axisMax}</span>
       </div>
-      {/* The row's % is its share of all mentions, not of negative. */}
-      <span className="text-right text-[12px] font-medium text-[#726f6f]" title="Share of all mentions">
-        Share
+      {/* The row's % is its share of all mentions (so its weight in the overall score), not of negative. */}
+      <span className="inline-flex items-center justify-end gap-0.5 text-[12px] font-medium text-[#726f6f]">
+        Weight
+        <Tooltip>
+          <TooltipTrigger
+            aria-label="About weight"
+            className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[#726f6f] hover:text-[#1e55c5] focus-visible:ring-2 focus-visible:ring-[#1e55c5]/40 focus-visible:outline-none"
+          >
+            <Info size={14} />
+          </TooltipTrigger>
+          <TooltipContent
+            align="end"
+            className="w-64 rounded-[10px] p-3 text-[13px] leading-5 whitespace-normal text-[#3f4045]"
+            side="bottom"
+            sideOffset={8}
+          >
+            This topic&apos;s share of all mentions. Bigger topics count for more in the overall sentiment.
+          </TooltipContent>
+        </Tooltip>
       </span>
     </div>
   )
