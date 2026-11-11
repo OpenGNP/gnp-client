@@ -23,6 +23,8 @@ export type LandingSample = {
   responseCount: number
   /** Answers with the topic the AI filed them under, taking turns across topics so the first few differ. */
   comments: { text: string; topicId: string; violation?: boolean }[]
+  /** One whole answer the AI split across two topics, to show that split; null if the data has none. */
+  splitComment: { text: string; topicIds: string[] } | null
   topics: LandingTopic[]
   whatChanged: WhatChanged
   flaggedTopic: string
@@ -51,6 +53,22 @@ const comments = Array.from({ length: QUOTES_PER_TOPIC }, (_, i) =>
   }),
 ).flat()
 
+// The answer shown split across two topics: picked by hand, its two parts clearly about different things.
+// Null (no split shown) if a rebuilt snapshot no longer has it.
+const SPLIT_ANSWER_START = 'Overtime pay is still wrong'
+const splitComment = (() => {
+  const parts = topics.filter((topic) =>
+    topic.feedbackSegment.some((point) => point.originalFeedback?.startsWith(SPLIT_ANSWER_START)),
+  )
+  const answer = parts[0]?.feedbackSegment.find((point) => point.originalFeedback?.startsWith(SPLIT_ANSWER_START))
+    ?.originalFeedback
+  if (!answer || parts.length < 2) return null
+  // Answers come without sentence breaks: restore them before a capitalised word ("wrong I've" → "wrong. I've").
+  // shortcut: a mid-sentence name would also get a period; fine for this answer, recheck if SPLIT_ANSWER_START changes.
+  const text = answer.replace(/([a-z]) (?=[A-Z][a-z'])/g, '$1. ').replace(/([a-z])$/, '$1.')
+  return { text, topicIds: parts.map((topic) => topic.id) }
+})()
+
 const flaggedTopic = themes.violationTopics.find((topic) => topic.feedbackSegment.some((point) => point.violation))!
 
 /** Real results for the signed-out landing page, shown under a "Sample data" label. */
@@ -59,6 +77,7 @@ export const LANDING_SAMPLES: Record<'workplace', LandingSample> = {
     formTitle: 'Staff pulse survey',
     responseCount: responses.totalResponses,
     comments,
+    splitComment,
     topics: topics.map(({ id, label, negative, neutral, positive, percentOfTotal, hasViolation }) => ({
       id,
       label,

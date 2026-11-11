@@ -20,7 +20,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import type { ViolationReview } from '../api/analytics'
 import { FeedbackPointCard } from '../components/dashboard/FeedbackSegmentSection'
+import { OverallSentimentCard } from '../components/dashboard/OverallSentimentCard'
 import { SentimentBar } from '../components/dashboard/SentimentBar'
+import { SENTIMENT_SCORE_OUT_OF, sentimentScore } from '../components/dashboard/sentimentScore'
 import { SENTIMENT_COLORS } from '../components/dashboard/sentimentColors'
 import { WhatChangedCard } from '../components/dashboard/TrendView'
 import { ViolationTooltip } from '../components/dashboard/ViolationTooltip'
@@ -370,8 +372,6 @@ function DashboardPicture({
     }),
     { negative: 0, neutral: 0, positive: 0 },
   )
-  const allMentions = totals.negative + totals.neutral + totals.positive
-  const share = (n: number) => `${(n / allMentions) * 100}%`
   const violationTopics = sample.topics.filter((topic) => topic.hasViolation).length
   return (
     <AppFrame sample={sample}>
@@ -385,33 +385,13 @@ function DashboardPicture({
             label="Total responses"
             value={sample.responseCount}
           />
-          <div className="flex h-29.5 min-w-0 flex-col rounded-[10px] border border-[#e9eaed] px-3.75 pt-4">
-            <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
-            <div
-              aria-label={`Negative ${Math.round((totals.negative / allMentions) * 100)}%, neutral ${Math.round((totals.neutral / allMentions) * 100)}%, positive ${Math.round((totals.positive / allMentions) * 100)}%`}
-              className="mt-auto mb-auto flex h-2.5 gap-0.5 overflow-hidden rounded-full"
-              role="img"
-            >
-              <span
-                style={{
-                  width: share(totals.negative),
-                  backgroundColor: SENTIMENT_COLORS.negative,
-                }}
-              />
-              <span
-                style={{
-                  width: share(totals.neutral),
-                  backgroundColor: SENTIMENT_COLORS.neutral,
-                }}
-              />
-              <span
-                style={{
-                  width: share(totals.positive),
-                  backgroundColor: SENTIMENT_COLORS.positive,
-                }}
-              />
-            </div>
-          </div>
+          <OverallSentimentCard
+            negative={totals.negative}
+            neutral={totals.neutral}
+            outOf={SENTIMENT_SCORE_OUT_OF}
+            positive={totals.positive}
+            score={sentimentScore(totals)}
+          />
           <StatCard
             deltaClassName="text-[#881921]"
             footer={
@@ -433,8 +413,11 @@ function DashboardPicture({
       </div>
       <div className="rounded-[10px] border border-[#e9eaed] py-1.5">
         <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
-          <span className="flex flex-wrap items-baseline gap-x-2">
-            Topics found by AI ({rows.length})
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span className="flex items-center gap-1.5">
+              <Sparkles aria-hidden className="shrink-0 text-[#1e55c5]" size={14} />
+              Topics found by AI ({rows.length})
+            </span>
             <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to drill down</span>
           </span>
           {/* Over the weight column: the chevron column and its gap sit to its right. */}
@@ -457,12 +440,16 @@ const TILTS = [-1.2, 0.8, -0.4, 1, -0.8]
 
 /** Raw answers on the left, the topics AI filed them under on the right; steps through them until pointed at. */
 function RawToRead({ sample }: { sample: LandingSample }) {
-  const comments = sample.comments.slice(0, TILTS.length)
+  // Single-topic answers, with the one split across two topics third, early enough to be seen.
+  const singles = sample.comments.map((comment) => ({ text: comment.text, topicIds: [comment.topicId] }))
+  const comments = (
+    sample.splitComment ? [...singles.slice(0, 2), sample.splitComment, ...singles.slice(2)] : singles
+  ).slice(0, TILTS.length)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
-  const activeTopic = comments[active]?.topicId
+  const activeTopics = comments[active]?.topicIds ?? []
   // Only the topics these answers were filed under, so the card stays about as tall as the list.
-  const topics = sample.topics.filter((topic) => comments.some((comment) => comment.topicId === topic.id))
+  const topics = sample.topics.filter((topic) => comments.some((comment) => comment.topicIds.includes(topic.id)))
 
   useEffect(() => {
     if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -476,7 +463,7 @@ function RawToRead({ sample }: { sample: LandingSample }) {
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,13rem)_auto_minmax(0,1fr)] items-center gap-3 max-[1000px]:grid-cols-1">
+    <div className="grid grid-cols-[minmax(0,12rem)_auto_minmax(0,1fr)] items-center gap-2 max-[1000px]:grid-cols-1">
       <ul
         aria-label="Raw feedback: point at one to see its topic"
         className="m-0 flex list-none flex-col gap-2.5 p-0 max-[1000px]:hidden"
@@ -522,21 +509,20 @@ function RawToRead({ sample }: { sample: LandingSample }) {
         <span className="animate-in fade-in duration-500 motion-reduce:animate-none">“{comments[active]?.text}”</span>
       </p>
 
+      <div className="flex flex-col gap-3">
       <section
         aria-label="Topics found in the sample feedback"
         className="flex flex-col rounded-[15px] border border-[#e9eaed] bg-white pt-5 pb-3 shadow-[0_16px_40px_rgba(30,85,197,0.10)] animate-in fade-in slide-in-from-right-4 fill-mode-both delay-500 duration-700 ease-out motion-reduce:animate-none"
       >
         <div className="flex items-center justify-between gap-3 px-5 pb-3">
           <h3 className="m-0 flex items-center gap-2 text-[14px] font-semibold text-black">
-            <Sparkles className="text-[#1e55c5]" fill="currentColor" size={15} />
-            Topics
-            <span className="font-medium text-[#726f6f]">{sample.responseCount} responses</span>
+            <Sparkles aria-hidden className="shrink-0 text-[#1e55c5]" size={15} />
+            Topics found by AI
           </h3>
-          <span className="rounded-full bg-[#f2f3f6] px-2 py-0.5 text-[11px] font-medium text-[#726f6f]">Sample</span>
         </div>
         <ul className="m-0 flex list-none flex-col p-0">
           {topics.map((topic) => {
-            const isActive = topic.id === activeTopic
+            const isActive = activeTopics.includes(topic.id)
             return (
               <li
                 className={`flex flex-col gap-1.5 border-l-[3px] py-2.5 pr-5 pl-4.25 transition-colors duration-300 ${
@@ -569,6 +555,11 @@ function RawToRead({ sample }: { sample: LandingSample }) {
           })}
         </ul>
       </section>
+      {/* Says what the card shows: sample data, as under the dashboard further down. */}
+      <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] lowercase">
+        Sample from {sample.responseCount} staff feedback responses
+      </p>
+      </div>
     </div>
   )
 }
@@ -590,7 +581,7 @@ function Hero({
   const signedIn = useAuth().status === 'ready'
   // Wide screens: text on the left, the demo on the right. Narrower: stacked and centred.
   return (
-    <section className="mx-auto grid max-w-300 grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:gap-12 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
+    <section className="mx-auto grid max-w-300 grid-cols-1 items-center gap-14 px-6 pt-10 pb-24 min-[1200px]:grid-cols-[minmax(0,6fr)_minmax(0,7fr)] min-[1200px]:gap-10 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
       <div className="flex flex-col items-center gap-6 text-center min-[1200px]:items-start min-[1200px]:text-left">
           {/* Three levels, each a step apart in size and contrast: eyebrow, headline, intro. */}
           {/* The eyebrow sits closer to the headline than the intro does, so the two read as one unit. */}
@@ -611,7 +602,8 @@ function Hero({
           )}
           {secondary}
       </div>
-      <div className="mx-auto w-full max-w-224 min-w-0">
+      {/* On wide screens the demo runs into the page margin, so the topic card gets more room. */}
+      <div className="mx-auto w-full max-w-224 min-w-0 min-[1440px]:mr-[-4rem] min-[1440px]:ml-0 min-[1440px]:w-[calc(100%+4rem)] min-[1440px]:max-w-none">
         <RawToRead sample={sample} />
       </div>
     </section>

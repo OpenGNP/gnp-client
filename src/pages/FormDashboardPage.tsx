@@ -39,8 +39,7 @@ import { ResponseOverviewSection } from '../components/dashboard/ResponseOvervie
 import { responseLabels } from '../components/dashboard/responseLabel'
 import { filterResponses } from '../components/dashboard/responseFilter'
 import { searchResponses } from '../components/dashboard/responseSearch'
-import { SentimentGauge } from '../components/dashboard/SentimentGauge'
-import { percentOf } from '../components/dashboard/sentimentScore'
+import { OverallSentimentCard } from '../components/dashboard/OverallSentimentCard'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
 import { InsightStrip } from '../components/dashboard/InsightStrip'
@@ -652,10 +651,6 @@ export function FormDashboardPage({
     setReviewing(true)
   }
 
-  const sentimentTotal = themes
-    ? themes.sentiment.negative + themes.sentiment.neutral + themes.sentiment.positive
-    : 0
-
   // Shown whether or not the feedback has been analysed yet, so the responder count
   // is always visible. One row of three whenever the space allows: equal when there's
   // room, else Sentiment widest (its gauge), with the stat cards' icons hidden —
@@ -686,39 +681,13 @@ export function FormDashboardPage({
           value={themes.totalResponders}
         />
 
-        <div className="flex h-29.5 min-w-0 flex-col rounded-[10px] border border-[#e9eaed] bg-white px-3.75 pt-4">
-          <p className="m-0 text-[12px] font-medium text-[#726f6f]">Overall sentiment</p>
-          <div className="flex items-center gap-3">
-            <SentimentGauge
-              negative={themes.sentiment.negative}
-              neutral={themes.sentiment.neutral}
-              outOf={themes.sentiment.outOf}
-              positive={themes.sentiment.positive}
-              score={themes.sentiment.score}
-              width={80}
-            />
-            <div className="flex flex-col gap-2 text-[12px]">
-              <span className="flex items-center gap-2">
-                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(236,102,131,0.8)]')} />
-                <span className="text-[#726f6f]">
-                  Negative: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.negative, sentimentTotal)}%</span>
-                </span>
-              </span>
-              <span className="flex items-center gap-2">
-                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(253,210,118,0.8)]')} />
-                <span className="text-[#726f6f]">
-                  Neutral: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.neutral, sentimentTotal)}%</span>
-                </span>
-              </span>
-              <span className="flex items-center gap-2">
-                <span className={cn('size-1.75 shrink-0 rounded-full', sentimentTotal === 0 ? 'bg-[#d2d8e5]' : 'bg-[rgba(156,221,153,0.8)]')} />
-                <span className="text-[#726f6f]">
-                  Positive: <span className={sentimentTotal === 0 ? 'text-[#726f6f]' : 'text-[#14181f]'}>{percentOf(themes.sentiment.positive, sentimentTotal)}%</span>
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <OverallSentimentCard
+          negative={themes.sentiment.negative}
+          neutral={themes.sentiment.neutral}
+          outOf={themes.sentiment.outOf}
+          positive={themes.sentiment.positive}
+          score={themes.sentiment.score}
+        />
 
         {/* Everyone sees the same total; the owner also gets what's left to review. */}
         <StatCard

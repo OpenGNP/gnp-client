@@ -130,11 +130,10 @@ function TopicRow({
 function FeedbackPointsAxis({ axisMax }: { axisMax: number }) {
   return (
     <div className="col-span-full grid h-6.25 grid-cols-subgrid items-center px-7.5 max-[900px]:hidden">
-      <span className="min-w-0 text-[12px] font-medium text-[#726f6f]">
-        Mentions:
-      </span>
+      <span className="min-w-0 text-[12px] font-medium text-[#726f6f]">Topic</span>
       <div className="flex w-60 items-center justify-between justify-self-center text-[12px] font-medium text-[#726f6f]">
         <span>0</span>
+        <span>Mentions</span>
         <span>{axisMax}</span>
       </div>
       {/* The row's % is its share of all mentions (so its weight in the overall score), not of negative. */}
