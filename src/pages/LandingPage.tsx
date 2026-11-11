@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   EyeOff,
+  Heart,
   Link as LinkIcon,
   MessageSquareText,
   Server,
@@ -434,7 +435,7 @@ function DashboardPicture({
         <div className="flex items-center justify-between px-4 pt-2 pb-2.5 text-[13px] font-semibold text-[#14181f]">
           <span className="flex flex-wrap items-baseline gap-x-2">
             Topics found by AI ({rows.length})
-            <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to read it</span>
+            <span className="text-[12px] font-normal text-[#726f6f]">Click a topic to drill down</span>
           </span>
           {/* Over the share column: the chevron column and its gap sit to its right. */}
           <span className="mr-8 font-medium text-[#726f6f]">Share</span>
@@ -452,67 +453,21 @@ function DashboardPicture({
   )
 }
 
-// Where each loose answer floats around the hero dashboard: side, height, gap from the frame's edge,
-// how far it drops to the dashboard, how far it then rises, tilt.
-// Heights in px from the top of the sample switch (negative: up beside the headline), not %: opening a topic makes the dashboard taller, and the answers must not move with it.
-// Answers start spread up the hero and drop to land beside the dashboard; higher ones drop further, so none passes another.
-// Then they rise, higher ones faster, so the stack spreads apart.
+// Where each loose answer rests in the pile under the hero text: across from the pile's left edge, up
+// from its bottom, how far it drifts down as the page scrolls, how far it then rises, tilt.
+// Higher ones drift further and rise faster, so the pile spreads apart as the page scrolls on.
 const FLOATING_SPOTS = [
-  {
-    side: 'left',
-    top: '-380px',
-    gap: '2rem',
-    drop: '420px',
-    lift: '260px',
-    tilt: '-3deg',
-  },
-  {
-    side: 'left',
-    top: '20px',
-    gap: '3rem',
-    drop: '240px',
-    lift: '180px',
-    tilt: '2deg',
-  },
-  {
-    side: 'left',
-    top: '470px',
-    gap: '1.5rem',
-    drop: '10px',
-    lift: '100px',
-    tilt: '-1.5deg',
-  },
-  {
-    side: 'right',
-    top: '-320px',
-    gap: '2.5rem',
-    drop: '420px',
-    lift: '240px',
-    tilt: '2.5deg',
-  },
-  {
-    side: 'right',
-    top: '110px',
-    gap: '1.5rem',
-    drop: '210px',
-    lift: '160px',
-    tilt: '-2deg',
-  },
-  {
-    side: 'right',
-    top: '520px',
-    gap: '3rem',
-    drop: '20px',
-    lift: '90px',
-    tilt: '1.5deg',
-  },
+  { left: '0%', bottom: '64px', drop: '40px', lift: '90px', tilt: '-3deg' },
+  { left: '25%', bottom: '0px', drop: '24px', lift: '60px', tilt: '2deg' },
+  { left: '53%', bottom: '76px', drop: '48px', lift: '100px', tilt: '-1.5deg' },
+  { left: '74%', bottom: '12px', drop: '30px', lift: '70px', tilt: '2.5deg' },
 ] as const
 
 /**
- * Parallax: loose sample answers in the gutters, spread up the hero, that drop to gather beside the
- * dashboard as the page scrolls (index.css). Hovering one lights the topic it was filed under.
- * Decorative repeats of the sample, so hidden from
- * assistive tech, and only drawn from 1440px wide (room beside the frame) with motion welcome.
+ * Loose sample answers in a pile under the hero text, beside the dashboard, always in view; with
+ * motion welcome they drift as the page scrolls (index.css). Hovering one lights the topic it was
+ * filed under. Decorative repeats of the sample, so hidden from assistive tech, and only drawn when
+ * the hero is split in two (from 1200px wide).
  */
 function FloatingAnswers({
   sample,
@@ -540,9 +495,10 @@ function FloatingAnswers({
             onMouseLeave={() => onHoverTopic(null)}
             style={
               {
-                top: spot.top,
-                // Outside the frame's edge (half of max-w-224 = 28rem), past the card's width (w-48 = 12rem), clear of it.
-                [spot.side]: `calc(50% - 28rem - 12rem - ${spot.gap})`,
+                left: spot.left,
+                bottom: spot.bottom,
+                // The lower a card sits, the nearer the front of the pile; all under the dashboard (z-10).
+                zIndex: Math.round((100 - parseInt(spot.bottom)) / 25),
                 rotate: spot.tilt,
                 '--drop': spot.drop,
                 '--lift': spot.lift,
@@ -565,7 +521,7 @@ function Hero({
   secondary,
   sample,
 }: {
-  title: string
+  title: React.ReactNode
   intro: React.ReactNode
   /** A second, quieter action under the sign-in. */
   secondary?: React.ReactNode
@@ -577,35 +533,46 @@ function Hero({
   const [openTopic, setOpenTopic] = useState<string | null>(null)
   // Signed in, the header already offers "Go to home": the hero keeps to the headline and the proof.
   const signedIn = useAuth().status === 'ready'
+  // Wide screens: text on the left, the dashboard on the right. Narrower: stacked and centred.
   return (
-    <section className="mx-auto flex max-w-360 flex-col gap-14 px-6 pt-10 pb-24 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
-      <div className="flex flex-col items-center gap-6 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cfdcf7] bg-white/70 px-3 py-1 text-[12px] font-semibold text-[#1e55c5] backdrop-blur-sm">
-          <Sparkles aria-hidden fill="currentColor" size={13} />
-          AI feedback analysis for Organization
-        </span>
-        <h1 className="m-0 max-w-208 text-[52px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance max-[560px]:text-[38px]">
-          {title}
-        </h1>
-        <p className="m-0 max-w-160 text-[18px] leading-7 text-[#3f4045]">{intro}</p>
-        {signedIn ? null : (
-          <div className="flex w-full justify-center">
-            <SignInAction />
-          </div>
-        )}
-        {secondary}
+    <section className="mx-auto grid max-w-360 grid-cols-1 items-center gap-14 px-6 pt-6 pb-24 min-[1200px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] min-[1200px]:gap-16 max-[560px]:gap-10 max-[560px]:px-4 max-[560px]:pt-4 max-[560px]:pb-16">
+      {/* Split, the text and the pile of answers under it centre together against the dashboard. */}
+      <div className="flex flex-col gap-10">
+        <div className="flex flex-col items-center gap-6 text-center min-[1200px]:items-start min-[1200px]:text-left">
+          {/* Three levels, each a step apart in size and contrast: eyebrow, headline, intro. */}
+          {/* The eyebrow sits closer to the headline than the intro does, so the two read as one unit. */}
+          <p className="m-0 -mb-3 flex items-center gap-2 text-[15px] font-medium text-[#1e55c5]">
+            <span aria-hidden="true" className="h-3.5 w-0.5 rounded-full bg-[#1e55c5]" />
+            Feedback analytics for your organization
+          </p>
+          <h1 className="m-0 max-w-208 text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-balance text-[#14181f] min-[1200px]:text-[clamp(36px,2.9vw,52px)] max-[560px]:text-[38px]">
+            {title}
+          </h1>
+          <p className="m-0 max-w-160 text-[18px] leading-7 text-[#3f4045] min-[1200px]:whitespace-nowrap">
+            {intro}
+          </p>
+          {signedIn ? null : (
+            <div className="flex w-full justify-center min-[1200px]:justify-start">
+              <SignInAction />
+            </div>
+          )}
+          {secondary}
+        </div>
+        {/* The pile's room; the answers are only drawn when the hero is split (index.css). */}
+        <div className="relative hidden h-48 min-[1200px]:block">
+          <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
+        </div>
       </div>
-      <div className="relative flex flex-col gap-5">
-        <FloatingAnswers activeTopic={hoverTopic ?? openTopic} onHoverTopic={setHoverTopic} sample={sample} />
+      {/* Smaller beside the text than when stacked; the label is as wide as the frame, so it centres over it. */}
+      <div className="relative mx-auto flex w-full max-w-224 min-w-0 flex-col min-[1200px]:max-w-180">
         {/* Scroll-driven: leans back, then straightens as it scrolls into view (index.css). */}
-        {/* As wide as the frame only: full width, it would cover the floating answers in the gutters. */}
-        {/* Says what the dashboard is before the eye reaches it. */}
-        <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] uppercase">
-          Sample: {sample.responseCount} staff answers
-        </p>
-        <div className="hero-rise relative z-10 mx-auto w-full max-w-224">
+        <div className="hero-rise relative z-10 w-full">
           <DashboardPicture highlightId={hoverTopic} onOpenChange={setOpenTopic} sample={sample} />
         </div>
+        {/* Says what the dashboard shows: sample data. */}
+        <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] lowercase">
+          Sample from {sample.responseCount} staff feedback responses
+        </p>
       </div>
     </section>
   )
@@ -695,17 +662,18 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
       />
       <div className={`relative ${SECTION}`}>
         <div className="mx-auto flex max-w-180 flex-col items-center gap-4 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#1e55c5] px-3.5 py-1 text-[12px] font-semibold tracking-[0.08em] text-white uppercase shadow-[0_6px_16px_rgb(30_85_197/0.35)]">
-            Ask · Share · Read
-          </span>
+          <p className="m-0 flex items-center gap-2 text-[14px] font-medium text-[#726f6f]">
+            Ask
+            <ArrowRight aria-hidden className="text-[#1e55c5]" size={14} />
+            Collect
+            <ArrowRight aria-hidden className="text-[#1e55c5]" size={14} />
+            Drill down
+          </p>
           <h2
             className="m-0 text-[56px] leading-[1.02] font-bold tracking-[-0.03em] text-balance max-[560px]:text-[40px]"
             id="how-title"
           >
-            How it{' '}
-            <span className="bg-linear-to-r from-[#1e55c5] via-[#3b74e8] to-[#18a06a] bg-clip-text text-transparent">
-              works
-            </span>
+            How it <span className="text-[#1e55c5]">works</span>
           </h2>
           <p className="m-0 text-[20px] leading-7 font-medium text-[#3f4045] max-[560px]:text-[17px]">
             Three steps from{' '}
@@ -716,7 +684,6 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             <span className="text-[#14181f] underline decoration-[#5fd39a] decoration-4 underline-offset-4">
               findings
             </span>
-            
           </p>
         </div>
         <ol className="m-0 mx-auto grid w-full max-w-240 list-none grid-cols-3 gap-8 p-0 max-[900px]:max-w-110 max-[900px]:grid-cols-1">
@@ -736,8 +703,8 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             delay={110}
             n={2}
             stage="bg-linear-to-b from-[#ffe6b8] to-[#fff6e3]"
-            text="Send one link. People answer in minutes."
-            title="Share"
+            text="Send one link. Feedback comes in within minutes."
+            title="Collect"
           >
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2 text-[13px] text-[#1e55c5]">
@@ -754,8 +721,8 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
             delay={220}
             n={3}
             stage="bg-linear-to-b from-[#ccf0dc] to-[#ecfaf2]"
-            text="AI sorts answers into topics and trends."
-            title="Read"
+            text="AI groups feedback into topics and trends. Drill into any one."
+            title="Drill down"
           >
             <div className="flex flex-col gap-2">
               <span className="flex items-center justify-between gap-3 text-[13px] text-[#14181f]">
@@ -799,7 +766,7 @@ const NAV_LINK =
 function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const signedIn = useAuth().status === 'ready'
   return (
-    <header className="relative mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
+    <header className="relative z-20 mx-auto flex max-w-300 items-center justify-between px-6 py-5 max-[560px]:px-4">
       <Link
         aria-label={`${brand.name} overview`}
         className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
@@ -846,7 +813,24 @@ function SiteFooter() {
   )
 }
 
-const HERO_INTRO = <>Send one form. See what to fix first.</>
+// Two-tone: the point in full contrast, the rest a step lighter, so a skim catches the point.
+const HERO_TITLE = (
+  <>
+    {/* Two fixed lines beside the dashboard; stacked on narrower screens they wrap as they need. */}
+    <span className="min-[1200px]:block min-[1200px]:whitespace-nowrap">Turn open-ended feedback</span>{' '}
+    <span className="text-[#1e55c5] min-[1200px]:block min-[1200px]:whitespace-nowrap">
+      into insights you can drill into
+    </span>
+  </>
+)
+
+// The two ends of the drill-down carry the weight; the connecting words stay quiet.
+const HERO_INTRO = (
+  <>
+    From <span className="font-medium text-[#1e55c5]">overall sentiment</span> down to the{' '}
+    <span className="font-medium text-[#1e55c5]">grievance</span> behind it.
+  </>
+)
 
 /**
  * Eases its content in the first time it scrolls into view, from below or from a side.
@@ -1027,12 +1011,12 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
           accent="blue"
           icon={Sparkles}
           n={1}
-          points={['AI sorts answers into topics', 'See how people feel about each']}
+          points={['AI groups feedback into topics', 'See how people feel about each']}
           stillVisual
           tag="Auto-sort"
           title={
             <>
-              Stop reading every answer <Mark accent="blue">one by one</Mark>
+              Stop reading feedback <Mark accent="blue">one by one</Mark>
             </>
           }
           visual={
@@ -1042,7 +1026,7 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
               <div className={`${card} relative flex flex-col gap-2.5 p-5`}>
                 <div className="flex items-center justify-between gap-3 pb-1">
                   <span className="text-[13px] font-semibold text-[#14181f]">
-                    {sample.responseCount} answers in, {rows.length} topics out
+                    {sample.responseCount} responses in, {rows.length} topics out
                   </span>
                 </div>
                 <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -1088,11 +1072,11 @@ function SellingPoints({ sample }: { sample: LandingSample }) {
           accent="pink"
           icon={TriangleAlert}
           n={3}
-          points={['Possible violations flagged for you', 'You confirm or dismiss. Try it →']}
-          tag="Safety flags"
+          points={['Possible grievances flagged for review', 'You confirm or dismiss. Try it →']}
+          tag="Grievance flags"
           title={
             <>
-              Catch serious complaints <Mark accent="pink">early.</Mark> You make the call.
+              Catch serious grievances <Mark accent="pink">early.</Mark> You make the call.
             </>
           }
           visual={
@@ -1133,7 +1117,7 @@ const TRUST = [
   {
     icon: EyeOff,
     title: 'Names stay private',
-    text: "Shared viewers don't see who answered unless you allow it.",
+    text: "Shared viewers don't see who gave feedback unless you allow it.",
   },
   {
     icon: UserCheck,
@@ -1186,6 +1170,31 @@ function Finale() {
         <div className="flex w-full flex-col items-center gap-5 border-t border-white/12 pt-14 text-center max-[560px]:pt-10">
           <p className="m-0 text-[24px] font-semibold tracking-[-0.01em]">Ask your first question today!</p>
           <SignInAction tone="blue" />
+          <Link
+            className={cn(
+              linkClass,
+              'inline-flex items-center gap-1.5 text-[14px] font-semibold text-white underline focus-visible:outline-white',
+            )}
+            to="/demo"
+          >
+            or see the full demo first
+            <ArrowRight aria-hidden size={14} />
+          </Link>
+        </div>
+        <div className="flex w-full flex-col items-center gap-4 border-t border-white/12 pt-14 text-center max-[560px]:pt-10">
+          <p className="m-0 text-[20px] font-semibold tracking-[-0.01em]">Like what you see?</p>
+          <p className="m-0 max-w-110 text-[14px] leading-5.5 text-[#b9c8ea]">
+            Help us to get one step closer to winning the Senior Project Award 2026 by voting for us! 
+          </p>
+          <a
+            className="inline-flex h-10.5 items-center gap-2 rounded-[10px] bg-[#e0507a] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(224_80_122/0.4)] transition-colors hover:bg-[#c93f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            href="https://seniorproject.sit.kmutt.ac.th/showproject/CS66-RE67"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <Heart aria-hidden size={16} />
+            Vote for us
+          </a>
         </div>
       </div>
     </section>
@@ -1215,11 +1224,7 @@ export function LandingPage() {
       <div aria-hidden="true" className={HERO_BG} />
       <SiteHeader page="landing" />
       <main className="relative">
-        <Hero
-          intro={HERO_INTRO}
-          sample={sample}
-          title="Turn every open answer into a short list of what to fix"
-        />
+        <Hero intro={HERO_INTRO} sample={sample} title={HERO_TITLE} />
         {/* White band between the tinted hero and selling points, so each section reads as its own block. */}
         <div className="border-y border-[#e8eaf1]">
           <HowItWorks sample={sample} />
