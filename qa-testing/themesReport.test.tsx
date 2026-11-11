@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FormThemeAnalytics } from '../src/api/analytics'
 import type { FeedbackPoint, TopicSentiment } from '../src/data/dashboardAnalytics'
+import { keyInsights } from '../src/components/report/keyInsights'
 import { ThemesReport } from '../src/components/report/ThemesReport'
 
 const point = (id: string, quote: string, sentiment: FeedbackPoint['sentiment'], violation = false): FeedbackPoint => ({
@@ -50,7 +51,7 @@ describe('ThemesReport', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Canteen survey' })).toBeInTheDocument()
     expect(screen.getByText('Year = 4')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Top topic by priority' })).toBeInTheDocument()
-    const quotes = [...container.querySelectorAll('li')].map((li) => li.textContent)
+    const quotes = [...container.querySelectorAll('section li')].map((li) => li.textContent)
     expect(quotes[0]).toContain('Lecturer took a bribe')
     expect(container.textContent).not.toContain('Somchai')
   })
@@ -67,5 +68,19 @@ describe('ThemesReport', () => {
     const headings = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
     // The top-topic cards come first, ahead of the violations section's headings.
     expect(headings.slice(0, 2)).toEqual(['Canteen', 'Facilities'])
+  })
+
+  it('leads with violations, then the biggest concern and what people like most', () => {
+    expect(keyInsights(themes)).toEqual([
+      { kind: 'review', label: 'Review now', title: '1 violation in 1 topic', detail: 'Facilities' },
+      { kind: 'fix', label: 'Fix first', title: 'Facilities', detail: '100% of negative mentions' },
+      { kind: 'keep', label: 'Keep doing', title: 'Facilities', detail: '100% of positive mentions' },
+    ])
+  })
+
+  it('names the sort order on the topics table', () => {
+    render(<ThemesReport formTitle="Canteen survey" scope={[]} sort="priority" themes={themes} />)
+    expect(screen.getByRole('heading', { name: 'Topics, sorted by Priority' })).toBeInTheDocument()
+    expect(screen.getByText('Most violations, then most negative feedback.')).toBeInTheDocument()
   })
 })

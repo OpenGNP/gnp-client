@@ -1,20 +1,26 @@
 import type { FormThemeAnalytics } from '../../api/analytics'
 import type { FeedbackPoint, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SentimentGauge } from '../dashboard/SentimentGauge'
+import { keyInsights, percent, SORT_FOCUS, UNCATEGORISED_ID, type InsightKind } from './keyInsights'
 import { SENTIMENT_COLORS } from '../dashboard/sentimentColors'
-import { pinsViolations, sortTopics, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
+import { sortTopics, TOPIC_SORT_OPTIONS, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
 
 const TOP_TOPICS = 5
 const QUOTES_PER_TOPIC = 3
-const UNCATEGORISED_ID = 'uncategorised'
 
 const total = (topic: { negative: number; neutral: number; positive: number }) =>
   topic.negative + topic.neutral + topic.positive
-const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0)
 
 // Flagged first, then the most negative — what a reader of the report should see.
 const quoteRank = (point: FeedbackPoint) =>
   point.violation ? 0 : point.sentiment === 'negative' ? 1 : point.sentiment === 'neutral' ? 2 : 3
+
+// Red / orange / green, so "look here first" reads before any number does.
+const INSIGHT_STYLES: Record<InsightKind, { box: string; label: string }> = {
+  review: { box: 'border-[#c1121f] bg-[#fdecee]', label: 'text-[#c1121f]' },
+  fix: { box: 'border-[#e8590c] bg-[#fff1e6]', label: 'text-[#c2410c]' },
+  keep: { box: 'border-[#2f9e44] bg-[#ebf7ee]', label: 'text-[#2b7a3b]' },
+}
 
 /** A plain stacked bar (no hover card), scaled to `max`. */
 function Bar({ topic, max }: { topic: TopicSentiment; max: number }) {
@@ -71,6 +77,8 @@ export function ThemesReport({
   const top = sortTopics(ranked, sort, { pinViolations: false }).slice(0, TOP_TOPICS)
   const topTitle = `${top.length === 1 ? 'Top topic' : `Top ${top.length} topics`} by ${topicSortLabel(sort).toLowerCase()}`
   const violations = topics.reduce((sum, topic) => sum + topic.feedbackSegment.filter((p) => p.violation).length, 0)
+  const insights = keyInsights(themes)
+  const sortHint = TOPIC_SORT_OPTIONS.find((option) => option.value === sort)?.hint
 
   return (
     <article className="text-[12px] leading-[1.5] text-[#14181f]">
@@ -82,12 +90,16 @@ export function ThemesReport({
           {scope.length > 0 ? scope.join('; ') : `All feedback, ${themes.rangeLabel}`}
         </p>
         <p className="m-0 mt-0.5 text-[11px] text-[#726f6f]">
-          Topics sorted by {topicSortLabel(sort)}
-          {pinsViolations(sort) ? ' (violations first)' : ''}. Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          Generated {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
       </header>
 
-      <div className="mt-5 flex items-center gap-8 break-inside-avoid">
+      <p className="m-0 mt-4 rounded-r-lg border-l-4 border-[#1e55c5] bg-[#eef3fc] px-3 py-2">
+        <span className="text-[11px] font-semibold tracking-[0.6px] text-[#1e55c5] uppercase">Focus of this report: </span>
+        <span className="font-semibold">{topicSortLabel(sort)}.</span> {SORT_FOCUS[sort]}
+      </p>
+
+      <div className="mt-5 flex items-center gap-6 break-inside-avoid">
         <SentimentGauge
           negative={negative}
           neutral={neutral}
@@ -96,44 +108,67 @@ export function ThemesReport({
           score={themes.sentiment.score}
         />
         <dl className="m-0 grid grid-cols-2 gap-x-8 gap-y-2">
-          {[
-            ['Respondents', themes.totalResponders],
-            ['Analysed feedback', analysed],
-            ['Topics', ranked.length],
-            ['Flagged as violation', violations],
-            ['Negative', `${percent(negative, analysed)}%`],
-            ['Positive', `${percent(positive, analysed)}%`],
-          ].map(([label, value]) => (
+          {(
+            [
+              ['Respondents', themes.totalResponders, ''],
+              ['Mentions analysed', analysed, ''],
+              ['Topics', ranked.length, ''],
+              ['Flagged as violation', violations, violations > 0 ? 'text-[#c1121f]' : ''],
+              ['Negative', `${percent(negative, analysed)}%`, 'text-[#c1121f]'],
+              ['Positive', `${percent(positive, analysed)}%`, 'text-[#2b7a3b]'],
+            ] as const
+          ).map(([label, value, tone]) => (
             <div key={label}>
               <dt className="text-[11px] text-[#726f6f]">{label}</dt>
-              <dd className="m-0 text-[16px] font-bold">{value}</dd>
+              <dd className={`m-0 text-[16px] font-bold ${tone}`}>{value}</dd>
             </div>
           ))}
         </dl>
+        {insights.length > 0 ? (
+          <aside className="min-w-0 flex-1">
+            <h2 className="m-0 mb-1.5 text-[11px] font-semibold tracking-[0.6px] text-[#726f6f] uppercase">Key insights</h2>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+              {insights.map((insight) => (
+                <li className={`rounded-r-md border-l-4 px-2.5 py-1.5 ${INSIGHT_STYLES[insight.kind].box}`} key={insight.label}>
+                  <span className={`block text-[10px] font-bold tracking-[0.6px] uppercase ${INSIGHT_STYLES[insight.kind].label}`}>
+                    {insight.label}
+                  </span>
+                  <span className="block font-semibold">{insight.title}</span>
+                  <span className="block text-[11px] text-[#3f4045]">{insight.detail}</span>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
       </div>
 
-      <Section title="Topics">
+      <Section title={`Topics, sorted by ${topicSortLabel(sort)}`}>
+        {sortHint ? <p className="m-0 mb-2 text-[11px] text-[#726f6f]">{sortHint}.</p> : null}
         <table className="w-full border-collapse">
           <thead>
             <tr className="text-left text-[10px] text-[#726f6f] uppercase">
-              <th className="pb-1 font-semibold">Topic</th>
+              <th className="pb-1 pl-2 font-semibold">Topic</th>
               <th className="w-16 pb-1 text-right font-semibold">Mentions</th>
               <th className="w-[38%] px-3 pb-1 font-semibold">Sentiment</th>
-              <th className="w-16 pb-1 text-right font-semibold">Negative</th>
+              <th className="w-20 pr-2 pb-1 text-right font-semibold whitespace-nowrap">% negative</th>
             </tr>
           </thead>
           <tbody>
             {topics.map((topic) => (
-              <tr className="break-inside-avoid border-t border-[#f0f1f4]" key={topic.id}>
-                <td className="py-1.5 pr-2">
+              <tr
+                // Same tint and icon colour as the dashboard's violation rows.
+                className={`break-inside-avoid border-t border-[#f0f1f4] ${topic.hasViolation ? 'bg-[#fff7f8]' : ''}`}
+                key={topic.id}
+              >
+                <td className="py-1.5 pr-2 pl-2">
                   {topic.label}
-                  {topic.hasViolation ? <span className="ml-1 text-[#c1121f]">⚠</span> : null}
+                  {topic.hasViolation ? <span className="ml-1 text-[#e0507a]">⚠</span> : null}
                 </td>
                 <td className="py-1.5 text-right">{total(topic)}</td>
                 <td className="px-3 py-1.5">
                   <Bar max={max} topic={topic} />
                 </td>
-                <td className="py-1.5 text-right">{percent(topic.negative, total(topic))}%</td>
+                <td className="py-1.5 pr-2 text-right">{percent(topic.negative, total(topic))}%</td>
               </tr>
             ))}
           </tbody>
@@ -145,7 +180,10 @@ export function ThemesReport({
               {key}
             </span>
           ))}
-          <span>⚠ contains feedback flagged as a violation</span>
+          <span className="flex items-center gap-1">
+            <span className="inline-flex h-3.5 items-center rounded-sm bg-[#fff7f8] px-1 text-[#e0507a]">⚠</span>
+            contains feedback flagged as a violation
+          </span>
         </p>
       </Section>
 
