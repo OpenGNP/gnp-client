@@ -29,6 +29,7 @@ import {
   FormSectionTitle,
 } from "./FormPaper";
 import { showAlert } from "../../lib/alertDialog";
+import { resizeCoverImage } from "../../lib/resizeImage";
 import { cn } from "../../lib/utils";
 import { createQuestion } from "./question-types";
 import type {
@@ -205,7 +206,10 @@ export type CreateFormCardProps = {
   onChange: (partial: Partial<FormEditorModel>) => void;
 };
 
+// What the server accepts (formValidator).
 const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024;
+// Bigger photos are fine to pick: they're shrunk before upload.
+const MAX_PICKED_IMAGE_BYTES = 25 * 1024 * 1024;
 const ALLOWED_COVER_IMAGE_TYPES = [
   "image/png",
   "image/jpeg",
@@ -240,17 +244,24 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
   // The actual upload happens on save (see App.tsx / EditFormPage.tsx) — a
   // brand-new form has no id yet to upload against, so selecting a file here just
   // stages it and previews it locally.
-  const handleSelectImage = (file: File) => {
-    if (!ALLOWED_COVER_IMAGE_TYPES.includes(file.type)) {
+  const handleSelectImage = async (picked: File) => {
+    if (!ALLOWED_COVER_IMAGE_TYPES.includes(picked.type)) {
       void showAlert("Please choose a PNG, JPEG, WEBP, or GIF image.", {
         title: "Can't use this image",
       });
       return;
     }
+    if (picked.size > MAX_PICKED_IMAGE_BYTES) {
+      void showAlert("Please choose an image under 25MB.", { title: "Image too large" });
+      return;
+    }
+    const file = await resizeCoverImage(picked);
+    // Still over the server's limit: a big GIF, or a photo that wouldn't shrink enough.
     if (file.size > MAX_COVER_IMAGE_BYTES) {
-      void showAlert("Please choose an image under 5MB.", {
-        title: "Image too large",
-      });
+      void showAlert(
+        picked.type === "image/gif" ? "Please choose a GIF under 5MB." : "Please choose a smaller image.",
+        { title: "Image too large" },
+      );
       return;
     }
     revokeIfBlobUrl(coverImageUrl);
