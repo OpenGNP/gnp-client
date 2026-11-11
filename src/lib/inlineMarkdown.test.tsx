@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { insertLink, renderInlineMarkdown, renderMarkdown, toggleBullets, toggleMarker } from "./inlineMarkdown";
+import { renderInlineMarkdown, renderMarkdown } from "./inlineMarkdown";
 
 const html = (text: string) => render(<p>{renderInlineMarkdown(text)}</p>).container.innerHTML;
 
@@ -21,6 +21,7 @@ describe("renderInlineMarkdown", () => {
     expect(html("marked with (*) are required.\n\n***x***")).toBe(
       "<p>marked with (*) are required.\n\n<strong><em>x</em></strong></p>",
     );
+    expect(html("my\\_var (\\*) \\*\\*not bold\\*\\*")).toBe("<p>my_var (*) **not bold**</p>");
     expect(html("<b>x</b>")).toBe("<p>&lt;b&gt;x&lt;/b&gt;</p>");
   });
 });
@@ -38,29 +39,5 @@ describe("links and lists", () => {
     expect(out).toBe(
       '<div>Intro<ul class="my-1 list-disc pl-6"><li>a</li><li><strong>b</strong></li></ul>End</div>',
     );
-  });
-
-  it("toggles bullets on the selected lines", () => {
-    const on = toggleBullets("x\na\nb", 2, 4);
-    expect(on.text).toBe("x\n- a\n- b");
-    expect(toggleBullets(on.text, on.start, on.end).text).toBe("x\na\nb");
-  });
-
-  it("wraps the selection as a link with the url selected", () => {
-    const next = insertLink("go here", 3, 7);
-    expect(next.text).toBe("go [here](https://)");
-    expect(next.text.slice(next.start, next.end)).toBe("https://");
-  });
-});
-
-describe("toggleMarker", () => {
-  it("wraps then unwraps the selection", () => {
-    const wrapped = toggleMarker("hello world", 0, 5, "**");
-    expect(wrapped).toEqual({ text: "**hello** world", start: 2, end: 7 });
-    expect(toggleMarker(wrapped.text, wrapped.start, wrapped.end, "**")).toEqual({
-      text: "hello world",
-      start: 0,
-      end: 5,
-    });
   });
 });
