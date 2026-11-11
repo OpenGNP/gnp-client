@@ -700,8 +700,9 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
   const worse = sample.topics.find((topic) => topic.id === worseId) ?? sample.topics[0]!
   const total = worse.negative + worse.neutral + worse.positive
   const share = (n: number) => `${(n / total) * 100}%`
+  // overflow-clip, not -hidden: hidden makes a scroll container, and the dashboard's view() timeline would follow it.
   return (
-    <section aria-labelledby="how-title" className="relative overflow-hidden bg-white">
+    <section aria-labelledby="how-title" className="relative overflow-clip bg-white">
       {/* Soft colour blobs in the step tints, so the section isn't a flat white sheet. */}
       <div
         aria-hidden="true"
@@ -810,7 +811,10 @@ function HowItWorks({ sample }: { sample: LandingSample }) {
         </ol>
         </div>
         <div className="relative z-10 flex flex-col gap-3">
-          <DashboardPicture sample={sample} />
+          {/* Leans back, then straightens as it scrolls into view (index.css). */}
+          <div className="dash-rise">
+            <DashboardPicture sample={sample} />
+          </div>
           <p className="m-0 text-center text-[13px] font-medium tracking-[0.04em] text-[#726f6f] lowercase">
             Sample from {sample.responseCount} staff feedback responses
           </p>
