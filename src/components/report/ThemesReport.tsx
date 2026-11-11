@@ -1,7 +1,7 @@
 import type { FormThemeAnalytics } from '../../api/analytics'
 import type { FeedbackPoint, TopicSentiment } from '../../data/dashboardAnalytics'
 import { SentimentGauge } from '../dashboard/SentimentGauge'
-import { keyInsights, percent, SORT_FOCUS, UNCATEGORISED_ID, type InsightKind } from './keyInsights'
+import { INSIGHT_STYLES, keyInsights, percent, SORT_FOCUS, UNCATEGORISED_ID } from './keyInsights'
 import { SENTIMENT_COLORS } from '../dashboard/sentimentColors'
 import { sortTopics, TOPIC_SORT_OPTIONS, topicSortLabel, type TopicSortOption } from '../dashboard/topicSort'
 
@@ -14,13 +14,6 @@ const total = (topic: { negative: number; neutral: number; positive: number }) =
 // Flagged first, then the most negative — what a reader of the report should see.
 const quoteRank = (point: FeedbackPoint) =>
   point.violation ? 0 : point.sentiment === 'negative' ? 1 : point.sentiment === 'neutral' ? 2 : 3
-
-// Red / orange / green, so "look here first" reads before any number does.
-const INSIGHT_STYLES: Record<InsightKind, { box: string; label: string }> = {
-  review: { box: 'border-[#c1121f] bg-[#fdecee]', label: 'text-[#c1121f]' },
-  fix: { box: 'border-[#e8590c] bg-[#fff1e6]', label: 'text-[#c2410c]' },
-  keep: { box: 'border-[#2f9e44] bg-[#ebf7ee]', label: 'text-[#2b7a3b]' },
-}
 
 /** A plain stacked bar (no hover card), scaled to `max`. */
 function Bar({ topic, max }: { topic: TopicSentiment; max: number }) {
@@ -113,9 +106,9 @@ export function ThemesReport({
               ['Respondents', themes.totalResponders, ''],
               ['Mentions analysed', analysed, ''],
               ['Topics', ranked.length, ''],
-              ['Flagged as violation', violations, violations > 0 ? 'text-[#c1121f]' : ''],
-              ['Negative', `${percent(negative, analysed)}%`, 'text-[#c1121f]'],
-              ['Positive', `${percent(positive, analysed)}%`, 'text-[#2b7a3b]'],
+              ['Flagged as violation', violations, violations > 0 ? INSIGHT_STYLES.review.text : ''],
+              ['Negative', `${percent(negative, analysed)}%`, INSIGHT_STYLES.fix.text],
+              ['Positive', `${percent(positive, analysed)}%`, INSIGHT_STYLES.keep.text],
             ] as const
           ).map(([label, value, tone]) => (
             <div key={label}>
@@ -130,7 +123,7 @@ export function ThemesReport({
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
               {insights.map((insight) => (
                 <li className={`rounded-r-md border-l-4 px-2.5 py-1.5 ${INSIGHT_STYLES[insight.kind].box}`} key={insight.label}>
-                  <span className={`block text-[10px] font-bold tracking-[0.6px] uppercase ${INSIGHT_STYLES[insight.kind].label}`}>
+                  <span className={`block text-[10px] font-bold tracking-[0.6px] uppercase ${INSIGHT_STYLES[insight.kind].text}`}>
                     {insight.label}
                   </span>
                   <span className="block font-semibold">{insight.title}</span>
@@ -202,7 +195,7 @@ export function ThemesReport({
               <ul className="m-0 mt-2 list-none p-0">
                 {quotes.map((point) => (
                   <li className="mt-1 border-l-2 pl-2 text-[11px] text-[#3f4045]" key={point.id} style={{ borderColor: SENTIMENT_COLORS[point.sentiment] }}>
-                    “{point.quote}”{point.violation ? <span className="ml-1 text-[#c1121f]">⚠ violation</span> : null}
+                    “{point.quote}”{point.violation ? <span className="ml-1 text-[#e0507a]">⚠ violation</span> : null}
                   </li>
                 ))}
               </ul>
@@ -223,7 +216,7 @@ export function ThemesReport({
                 {topic.feedbackSegment
                   .filter((point) => point.violation)
                   .map((point) => (
-                    <li className="mt-1 border-l-2 border-[#c1121f] pl-2 text-[11px] text-[#3f4045]" key={point.id}>
+                    <li className="mt-1 border-l-2 border-[#e0507a] pl-2 text-[11px] text-[#3f4045]" key={point.id}>
                       “{point.quote}”
                     </li>
                   ))}

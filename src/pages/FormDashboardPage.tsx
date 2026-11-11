@@ -43,7 +43,9 @@ import { SentimentGauge } from '../components/dashboard/SentimentGauge'
 import { percentOf } from '../components/dashboard/sentimentScore'
 import { TopicDetailPanel } from '../components/dashboard/TopicDetailPanel'
 import { TopicPicker } from '../components/dashboard/TopicPicker'
+import { InsightStrip } from '../components/dashboard/InsightStrip'
 import { type TopicChanges, TopicSentimentCard } from '../components/dashboard/TopicSentimentCard'
+import { keyInsights } from '../components/report/keyInsights'
 import { sortTopics, type TopicSortOption } from '../components/dashboard/topicSort'
 import { computeAxisMax } from '../components/dashboard/topicAxis'
 import { TrendView } from '../components/dashboard/TrendView'
@@ -1026,6 +1028,7 @@ export function FormDashboardPage({
                     {filterRow(themesPending)}
                     {activeFilterBar}
                     {themesStatCards}
+                    <InsightStrip insights={keyInsights(themes, { violations: false })} onSelectTopic={selectTopic} />
 
                     <TopicSentimentCard
                       axisMax={topicAxisMax}

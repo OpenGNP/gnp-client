@@ -72,9 +72,9 @@ describe('ThemesReport', () => {
 
   it('leads with violations, then the biggest concern and what people like most', () => {
     expect(keyInsights(themes)).toEqual([
-      { kind: 'review', label: 'Review now', title: '1 violation in 1 topic', detail: 'Facilities' },
-      { kind: 'fix', label: 'Fix first', title: 'Facilities', detail: '100% of negative mentions' },
-      { kind: 'keep', label: 'Keep doing', title: 'Facilities', detail: '100% of positive mentions' },
+      { kind: 'review', label: 'Review now', title: '1 violation in 1 topic', detail: 'Facilities', topicId: null },
+      { kind: 'fix', label: 'Fix first', title: 'Facilities', detail: '100% of negative mentions', topicId: '1', share: 100 },
+      { kind: 'keep', label: 'Keep doing', title: 'Facilities', detail: '100% of positive mentions', topicId: '1', share: 100 },
     ])
   })
 
