@@ -15,6 +15,7 @@ import { ApiError } from "../lib/api";
 import { logout } from "../lib/auth";
 import { deriveResponseState, formatDateTime } from "../lib/responseWindow";
 import { PublicFormSkeleton } from "../components/skeletons/PublicFormSkeleton";
+import { renderMarkdown } from "../lib/inlineMarkdown";
 import { cn } from "../lib/utils";
 import {
   FORM_DESCRIPTION_CLASS,
@@ -582,7 +583,7 @@ export function PublicFormPage() {
           <AccountBar className="mt-1" email={viewer.email} onSwitch={() => void switchAccount()} />
         ) : null}
         {form.formDescription ? (
-          <p className={cn(FORM_DESCRIPTION_CLASS, "whitespace-pre-line")}>{form.formDescription}</p>
+          <div className={cn(FORM_DESCRIPTION_CLASS, "whitespace-pre-line")}>{renderMarkdown(form.formDescription)}</div>
         ) : null}
         </div>
 

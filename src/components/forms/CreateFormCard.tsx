@@ -13,7 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Circle, Info, Type } from "lucide-react";
+import { Bold, Circle, Info, Italic, Link, List, Type } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import type { FormEditorModel } from "../../hooks/useFormEditorModel";
@@ -29,6 +29,7 @@ import {
   FormSectionTitle,
 } from "./FormPaper";
 import { showAlert } from "../../lib/alertDialog";
+import { insertLink, renderMarkdown, toggleBullets, toggleMarker } from "../../lib/inlineMarkdown";
 import { cn } from "../../lib/utils";
 import { createQuestion } from "./question-types";
 import type {
@@ -76,6 +77,98 @@ function AutoGrowTextarea(props: ComponentProps<"textarea">) {
     return () => observer.disconnect();
   }, [props.value]);
   return <textarea ref={ref} {...props} />;
+}
+
+type Edit = { text: string; start: number; end: number };
+
+const FORMAT_BUTTONS: {
+  key?: string;
+  label: string;
+  icon: typeof Bold;
+  apply: (text: string, start: number, end: number) => Edit;
+}[] = [
+  { key: "b", label: "Bold", icon: Bold, apply: (t, s, e) => toggleMarker(t, s, e, "**") },
+  { key: "i", label: "Italic", icon: Italic, apply: (t, s, e) => toggleMarker(t, s, e, "_") },
+  { key: "k", label: "Link", icon: Link, apply: insertLink },
+  { label: "Bulleted list", icon: List, apply: toggleBullets },
+];
+
+const DESCRIPTION_FIELD_CLASS = cn(FORM_DESCRIPTION_CLASS, "w-full bg-transparent p-0 border-0 border-b-2 border-transparent pb-1 transition-colors duration-150 outline-none hover:border-[#d2d8e5] focus:border-[#1e55c5]");
+
+/** Description stored as markdown: shown rendered (as respondents see it) until clicked, then a textarea + format bar. */
+function DescriptionField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+
+  if (!editing && value.trim()) {
+    return (
+      <div
+        aria-label="Form description, click to edit"
+        // Links are for respondents; here a click means "edit".
+        className={cn(DESCRIPTION_FIELD_CLASS, "cursor-text whitespace-pre-line [&_a]:pointer-events-none")}
+        onClick={() => setEditing(true)}
+        onFocus={() => setEditing(true)}
+        role="button"
+        tabIndex={0}
+      >
+        {renderMarkdown(value)}
+      </div>
+    );
+  }
+
+  const applyFormat = (apply: (typeof FORMAT_BUTTONS)[number]["apply"]) => {
+    const textarea = wrapperRef.current?.querySelector("textarea");
+    if (!textarea) return;
+    const next = apply(value, textarea.selectionStart, textarea.selectionEnd);
+    onChange(next.text);
+    requestAnimationFrame(() => textarea.setSelectionRange(next.start, next.end));
+  };
+
+  return (
+    <div
+      className="group flex flex-col gap-1"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setEditing(false);
+      }}
+      ref={wrapperRef}
+    >
+      <AutoGrowTextarea
+        className={cn(DESCRIPTION_FIELD_CLASS, "resize-none overflow-hidden placeholder:text-[#616161]")}
+        aria-label="Form description"
+        autoFocus={editing}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (!(event.metaKey || event.ctrlKey)) return;
+          const button = FORMAT_BUTTONS.find((b) => b.key === event.key.toLowerCase());
+          if (!button) return;
+          event.preventDefault();
+          applyFormat(button.apply);
+        }}
+        placeholder="Form description"
+        rows={1}
+        value={value}
+      />
+      <div className="hidden gap-1 group-focus-within:flex">
+        {FORMAT_BUTTONS.map(({ label, icon: Icon, apply }) => (
+          <Tooltip key={label}>
+            <TooltipTrigger asChild>
+              <button
+                aria-label={label}
+                className="inline-flex size-8 items-center justify-center rounded text-[#616161] hover:bg-[#f1f3f4]"
+                // Keep focus (and the selection) in the textarea.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => applyFormat(apply)}
+                type="button"
+              >
+                <Icon size={18} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const questionTypes: QuestionTypeOption[] = [
@@ -303,14 +396,7 @@ export function CreateFormCard({ value, onChange }: CreateFormCardProps) {
             placeholder="Untitled form"
             value={value.title}
           />
-          <AutoGrowTextarea
-            className={cn(FORM_DESCRIPTION_CLASS, "w-full resize-none overflow-hidden bg-transparent p-0 placeholder:text-[#616161] border-0 border-b-2 border-transparent pb-1 transition-colors duration-150 outline-none hover:border-[#d2d8e5] focus:border-[#1e55c5]")}
-            aria-label="Form description"
-            onChange={(event) => onChange({ description: event.target.value })}
-            placeholder="Form description"
-            rows={1}
-            value={value.description}
-          />
+          <DescriptionField onChange={(description) => onChange({ description })} value={value.description} />
         </div>
 
         <div className={FORM_DIVIDER_CLASS} />
