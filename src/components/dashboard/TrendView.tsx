@@ -529,7 +529,7 @@ function TimelineCard({
 
 // The same two-segment bar as the Themes tab's InsightStrip: a coloured label, the subject, a chevron.
 const SEGMENT =
-  'flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-[#e9eaed] px-3.75 py-2.5 text-left transition-colors not-first:border-t hover:bg-[#fbfcfe] focus-visible:outline-2 focus-visible:-outline-offset-2 @min-[40rem]:not-first:border-t-0 @min-[40rem]:not-first:border-l'
+  'flex min-w-0 flex-auto cursor-pointer items-center gap-2.5 bg-white px-3.75 py-2.5 text-left transition-colors hover:bg-[#fbfcfe] focus-visible:outline-2 focus-visible:-outline-offset-2'
 
 /** One bar above the chart: what changed and the biggest spike, each jumping to where it's explained. */
 function TrendSummaryBar({
@@ -546,34 +546,40 @@ function TrendSummaryBar({
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
   const changes = comparison
     ? [
-        comparison.worse > 0 ? `${comparison.worse} worse` : null,
-        comparison.new > 0 ? `${comparison.new} new` : null,
-        comparison.violations > 0 ? plural(comparison.violations, 'possible violation') : null,
-      ].filter((c) => c !== null)
+        { key: 'worse', n: comparison.worse, ...GROUPS[0], text: `${comparison.worse} worse` },
+        { key: 'new', n: comparison.new, ...GROUPS[1], text: `${comparison.new} new` },
+        {
+          key: 'violations',
+          n: comparison.violations,
+          Icon: TriangleAlert,
+          tone: 'text-[#e0507a]',
+          text: plural(comparison.violations, 'possible violation'),
+        },
+      ].filter((c) => c.n > 0)
     : []
-  // The label takes the look of the most urgent change present.
-  const lead =
-    comparison && comparison.worse > 0
-      ? GROUPS[0]
-      : comparison && comparison.new > 0
-        ? GROUPS[1]
-        : { Icon: TriangleAlert, tone: changes.length > 0 ? 'text-[#e0507a]' : 'text-[#726f6f]' }
 
   return (
-    <section aria-label="Trend summary" className="@container">
-      <div className="flex flex-col overflow-hidden rounded-[10px] border border-[#e9eaed] bg-white @min-[40rem]:flex-row">
+    <section aria-label="Trend summary">
+      {/* Side by side while both fit in full, else one row each; the 1px gap is the divider. */}
+      <div className="flex flex-wrap gap-px overflow-hidden rounded-[10px] border border-[#e9eaed] bg-[#e9eaed]">
         {comparison ? (
           <button className={SEGMENT} onClick={onShowChanges} type="button">
-            <span className={`inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold ${lead.tone}`}>
-              <lead.Icon aria-hidden className="shrink-0" size={13} strokeWidth={2.4} />
-              What changed
-            </span>
-            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]">
-              {changes.length > 0 ? changes.join(', ') : 'No big changes'}
-            </span>
-            {/* Dropped first when space runs out, so the changes stay readable. */}
-            <span className="hidden shrink-0 text-[12px] whitespace-nowrap text-[#726f6f] @min-[30rem]:inline">
-              {comparison.current} vs {comparison.previous}
+            <span className="shrink-0 text-[12px] font-semibold text-[#3f4045]">What changed</span>
+            {/* Wraps only once a full row is too narrow (phones), so no count is ever hidden. */}
+            <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-[14px] font-medium">
+              {changes.length > 0 ? (
+                changes.map(({ key, Icon, tone, text }) => (
+                  <span className={`inline-flex items-center gap-1 whitespace-nowrap ${tone}`} key={key}>
+                    <Icon aria-hidden className="shrink-0" size={13} strokeWidth={2.4} />
+                    {text}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[#14181f]">No big changes</span>
+              )}
+              <span className="text-[12px] font-normal whitespace-nowrap text-[#726f6f]">
+                {comparison.current} vs {comparison.previous}
+              </span>
             </span>
             <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
           </button>
@@ -584,12 +590,14 @@ function TrendSummaryBar({
               <ArrowUp aria-hidden className="shrink-0" size={13} strokeWidth={2.4} />
               Biggest spike
             </span>
-            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]" title={spike.label}>
-              {spike.label}
-            </span>
-            {/* Dropped first when space runs out, so the topic name stays readable. */}
-            <span className="hidden shrink-0 text-[12px] text-[#726f6f] @min-[30rem]:inline">
-              {spike.period}: {spike.count} mentions (usually ~{spike.usual})
+            <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+              {/* The name truncates down to ~6rem; past that the details wrap below so it stays readable. */}
+              <span className="max-w-fit min-w-24 flex-1 truncate text-[14px] font-medium text-[#14181f]" title={spike.label}>
+                {spike.label}
+              </span>
+              <span className="shrink-0 text-[12px] whitespace-nowrap text-[#726f6f]">
+                {spike.period}: {spike.count} mentions (usually ~{spike.usual})
+              </span>
             </span>
             <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
           </button>

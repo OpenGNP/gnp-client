@@ -19,11 +19,12 @@ export function InsightStrip({ insights, onSelectTopic }: { insights: Insight[];
   if (shown.length === 0) return null
 
   return (
-    <div className="@container">
-      <div className="flex flex-col overflow-hidden rounded-[10px] border border-[#e9eaed] bg-white @min-[40rem]:flex-row">
+    <div>
+      {/* Side by side while both fit in full, else one row each; the 1px gap is the divider. */}
+      <div className="flex flex-wrap gap-px overflow-hidden rounded-[10px] border border-[#e9eaed] bg-[#e9eaed]">
         {shown.map((insight) => (
           <button
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-[#e9eaed] px-3.75 py-2.5 text-left transition-colors not-first:border-t hover:bg-[#fbfcfe] focus-visible:outline-2 focus-visible:-outline-offset-2 @min-[40rem]:not-first:border-t-0 @min-[40rem]:not-first:border-l"
+            className="flex min-w-0 flex-auto cursor-pointer items-center gap-2.5 bg-white px-3.75 py-2.5 text-left transition-colors hover:bg-[#fbfcfe] focus-visible:outline-2 focus-visible:-outline-offset-2"
             key={insight.kind}
             onClick={() => onSelectTopic(insight.topicId)}
             type="button"
@@ -34,12 +35,14 @@ export function InsightStrip({ insights, onSelectTopic }: { insights: Insight[];
               </span>
               {insight.label}
             </span>
-            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]" title={insight.title}>
-              {insight.title}
-            </span>
-            {/* Dropped first when space runs out, so the topic name stays readable. */}
-            <span className="hidden shrink-0 text-[12px] text-[#726f6f] @min-[30rem]:inline">
-              {insight.share}% of all {insight.kind === 'fix' ? 'negative' : 'positive'} mentions
+            <span className="flex min-w-0 items-center gap-2.5">
+              {/* Only the name truncates; the details always show in full. */}
+              <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]" title={insight.title}>
+                {insight.title}
+              </span>
+              <span className="shrink-0 text-[12px] whitespace-nowrap text-[#726f6f]">
+                {insight.share}% of all {insight.kind === 'fix' ? 'negative' : 'positive'} mentions
+              </span>
             </span>
             <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
           </button>
