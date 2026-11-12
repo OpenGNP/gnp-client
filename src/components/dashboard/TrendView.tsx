@@ -527,10 +527,11 @@ function TimelineCard({
   )
 }
 
-const SUMMARY_CHIP =
-  'inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#e9eaed] bg-white px-3 py-1 text-[12px] font-semibold transition-colors hover:bg-[#f7f8fb] focus-visible:outline-2 focus-visible:outline-[#1e55c5]'
+// The same two-segment bar as the Themes tab's InsightStrip: a coloured label, the subject, a chevron.
+const SEGMENT =
+  'flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-[#e9eaed] px-3.75 py-2.5 text-left transition-colors not-first:border-t hover:bg-[#fbfcfe] focus-visible:outline-2 focus-visible:-outline-offset-2 @min-[40rem]:not-first:border-t-0 @min-[40rem]:not-first:border-l'
 
-/** One line above the chart: what to look at first, each part jumping to where it's explained. */
+/** One bar above the chart: what changed and the biggest spike, each jumping to where it's explained. */
 function TrendSummaryBar({
   trend,
   onShowChanges,
@@ -542,60 +543,58 @@ function TrendSummaryBar({
 }) {
   const { comparison, spike } = summarizeTrend(trend)
   if (!comparison && !spike) return null
-  const group = (kind: ChangeKind) => GROUPS.find((g) => g.kind === kind)!
-  const counts = comparison
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+  const changes = comparison
     ? [
-        { key: 'worse', n: comparison.worse, ...group('worse'), title: 'getting worse' },
-        { key: 'new', n: comparison.new, ...group('new'), title: comparison.new === 1 ? 'new topic' : 'new topics' },
-        {
-          key: 'violations',
-          n: comparison.violations,
-          Icon: TriangleAlert,
-          tone: 'text-[#e0507a]',
-          title: comparison.violations === 1 ? 'possible violation' : 'possible violations',
-        },
-      ].filter((c) => c.n > 0)
+        comparison.worse > 0 ? `${comparison.worse} worse` : null,
+        comparison.new > 0 ? `${comparison.new} new` : null,
+        comparison.violations > 0 ? plural(comparison.violations, 'possible violation') : null,
+      ].filter((c) => c !== null)
     : []
+  // The label takes the look of the most urgent change present.
+  const lead =
+    comparison && comparison.worse > 0
+      ? GROUPS[0]
+      : comparison && comparison.new > 0
+        ? GROUPS[1]
+        : { Icon: TriangleAlert, tone: changes.length > 0 ? 'text-[#e0507a]' : 'text-[#726f6f]' }
 
   return (
-    <section
-      aria-label="Trend summary"
-      className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-[15px] border border-[#e9eaed] bg-white px-5.5 py-3.5"
-    >
-      {comparison ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] font-medium text-[#3f4045]">
-            {comparison.current} vs {comparison.previous}:
-          </span>
-          {counts.length === 0 ? (
-            <span className="text-[13px] text-[#726f6f]">No big changes</span>
-          ) : (
-            counts.map(({ key, n, Icon, tone, title }) => (
-              <button className={`${SUMMARY_CHIP} ${tone}`} key={key} onClick={onShowChanges} type="button">
-                <Icon className="shrink-0" size={14} />
-                {n} {title}
-              </button>
-            ))
-          )}
-        </div>
-      ) : null}
-      {spike ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="text-[13px] font-medium text-[#3f4045]">Biggest spike:</span>
-          <button
-            // Wraps instead of truncating, so the topic name survives on a phone.
-            className={`${SUMMARY_CHIP} min-w-0 flex-wrap gap-y-0.5 rounded-[12px] text-left text-[#14181f]`}
-            onClick={() => onShowSpike(spike.topicId)}
-            type="button"
-          >
-            <ArrowUp className="shrink-0 text-[#1e55c5]" size={14} />
-            <span>{spike.label}</span>
-            <span className="font-medium text-[#726f6f]">
+    <section aria-label="Trend summary" className="@container">
+      <div className="flex flex-col overflow-hidden rounded-[10px] border border-[#e9eaed] bg-white @min-[40rem]:flex-row">
+        {comparison ? (
+          <button className={SEGMENT} onClick={onShowChanges} type="button">
+            <span className={`inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold ${lead.tone}`}>
+              <lead.Icon aria-hidden className="shrink-0" size={13} strokeWidth={2.4} />
+              What changed
+            </span>
+            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]">
+              {changes.length > 0 ? changes.join(', ') : 'No big changes'}
+            </span>
+            {/* Dropped first when space runs out, so the changes stay readable. */}
+            <span className="hidden shrink-0 text-[12px] whitespace-nowrap text-[#726f6f] @min-[30rem]:inline">
+              {comparison.current} vs {comparison.previous}
+            </span>
+            <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
+          </button>
+        ) : null}
+        {spike ? (
+          <button className={SEGMENT} onClick={() => onShowSpike(spike.topicId)} type="button">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[#1e55c5]">
+              <ArrowUp aria-hidden className="shrink-0" size={13} strokeWidth={2.4} />
+              Biggest spike
+            </span>
+            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]" title={spike.label}>
+              {spike.label}
+            </span>
+            {/* Dropped first when space runs out, so the topic name stays readable. */}
+            <span className="hidden shrink-0 text-[12px] text-[#726f6f] @min-[30rem]:inline">
               {spike.period}: {spike.count} mentions (usually ~{spike.usual})
             </span>
+            <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   )
 }

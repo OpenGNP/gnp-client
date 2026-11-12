@@ -34,12 +34,12 @@ export function InsightStrip({ insights, onSelectTopic }: { insights: Insight[];
               </span>
               {insight.label}
             </span>
-            <span className="min-w-0 truncate text-[14px] font-semibold text-[#14181f]" title={insight.title}>
+            <span className="min-w-0 truncate text-[14px] font-medium text-[#14181f]" title={insight.title}>
               {insight.title}
             </span>
             {/* Dropped first when space runs out, so the topic name stays readable. */}
             <span className="hidden shrink-0 text-[12px] text-[#726f6f] @min-[30rem]:inline">
-              {insight.share}% of {insight.kind === 'fix' ? 'negative' : 'positive'}
+              {insight.share}% of all {insight.kind === 'fix' ? 'negative' : 'positive'} mentions
             </span>
             <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />
           </button>

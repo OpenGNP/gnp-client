@@ -30,7 +30,8 @@ export const SORT_FOCUS: Record<TopicSortOption, string> = {
 
 /**
  * The report's top takeaways: violations to review (when there are any), what drags the
- * score down most (share of all negative mentions), and what people like most.
+ * score down most (share of all negative mentions), and what people like most (among topics
+ * with more positive than negative and no violation).
  */
 export function keyInsights(
   themes: FormThemeAnalytics,
@@ -40,7 +41,11 @@ export function keyInsights(
   const topics = themes.aiDiscoveredTopics.filter((topic) => topic.id !== UNCATEGORISED_ID)
   const { negative, positive } = themes.sentiment
   const byNegative = topics.filter((t) => t.negative > 0).sort((a, b) => b.negative - a.negative)
-  const mostPraised = topics.filter((t) => t.positive > 0).sort((a, b) => b.positive - a.positive)[0]
+  // Only topics people mostly like and that have no violation, so "Keep doing" never points at a problem.
+  // None qualifies → no Keep doing card.
+  const mostPraised = topics
+    .filter((t) => t.positive > t.negative && !t.hasViolation)
+    .sort((a, b) => b.positive - a.positive)[0]
 
   const flagged = themes.aiDiscoveredTopics.filter((t) => t.hasViolation)
   const flaggedCount = !violations ? 0 : flagged.reduce((sum, t) => sum + t.feedbackSegment.filter((p) => p.violation).length, 0)
@@ -56,14 +61,14 @@ export function keyInsights(
   }
   const [first] = byNegative
   if (first) {
-    insights.push({ kind: 'fix', label: 'Fix first', title: first.label, detail: `${percent(first.negative, negative)}% of negative mentions`, topicId: first.id, share: percent(first.negative, negative) })
+    insights.push({ kind: 'fix', label: 'Fix first', title: first.label, detail: `${percent(first.negative, negative)}% of all negative mentions`, topicId: first.id, share: percent(first.negative, negative) })
   }
   if (mostPraised) {
     insights.push({
       kind: 'keep',
       label: 'Keep doing',
       title: mostPraised.label,
-      detail: `${percent(mostPraised.positive, positive)}% of positive mentions`,
+      detail: `${percent(mostPraised.positive, positive)}% of all positive mentions`,
       topicId: mostPraised.id,
       share: percent(mostPraised.positive, positive),
     })

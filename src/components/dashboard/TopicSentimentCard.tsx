@@ -219,6 +219,14 @@ export function TopicSentimentCard({
     return sortTopics(found, sortOption)
   }, [topics, matches, sortable, sortOption])
 
+  // A topic opened from elsewhere (e.g. the insight strip) brings its page into view.
+  const [shownTopicId, setShownTopicId] = useState(selectedTopicId)
+  if (selectedTopicId !== shownTopicId) {
+    setShownTopicId(selectedTopicId)
+    const index = sortedTopics.findIndex((topic) => topic.id === selectedTopicId)
+    if (pageSize && index >= 0) setPage(Math.floor(index / pageSize) + 1)
+  }
+
   const totalPages = pageSize ? Math.max(1, Math.ceil(sortedTopics.length / pageSize)) : 1
   // Clamped: a refetch can leave fewer pages.
   const currentPage = Math.min(page, totalPages)
