@@ -55,6 +55,9 @@ const GROUPS: {
   },
 ]
 
+/** One pink for possible violations on this tab (AA on white, unlike the lighter #e0507a). */
+const VIOLATION_TONE = 'text-[#c2365f]'
+
 /** Rows shown per group before "Show all". */
 const WHAT_CHANGED_PREVIEW = 5
 /** Spikes shown before "Show all". */
@@ -73,6 +76,15 @@ const DUMBBELL_COLOR: Record<ChangeKind, string> = {
  * Complaints share before (hollow dot) → now (filled dot) on a shared 0–100% track,
  * so rows compare at a glance. A big move on too few mentions = dashed line + hollow dots.
  */
+/** "3/8": the negative count in red, the total grey. */
+function fraction({ negative, total }: { negative: number; total: number }) {
+  return (
+    <span>
+      <span className="font-medium text-[#c2365f]">{negative}</span>/{total}
+    </span>
+  )
+}
+
 function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKind }) {
   const { previous, current } = row.complaints
   const isNew = kind === 'new'
@@ -127,11 +139,15 @@ function ComplaintsDumbbell({ row, kind }: { row: WhatChangedRow; kind: ChangeKi
               />
             </span>
           </span>
-          {/* Counts, not %: the dots already show %, and counts reveal a small sample. */}
+          {/* Counts, not %: the dots already show %, and counts reveal a small sample. Mentions, not responses. */}
           <span className="text-center text-[11px] text-[#726f6f] tabular-nums">
-            {counts
-              ? `${isNew ? '—' : `${counts.previous.negative} of ${counts.previous.total}`} → ${counts.current.negative} of ${counts.current.total}`
-              : `${isNew ? '—' : `${previous}%`} → ${current}%`}
+            {counts ? (
+              <>
+                {isNew ? 'new' : fraction(counts.previous)} → {fraction(counts.current)}
+              </>
+            ) : (
+              `${isNew ? 'new' : `${previous}%`} → ${current}% negative`
+            )}
           </span>
         </span>
       </TooltipTrigger>
@@ -195,7 +211,7 @@ function WhatChangedItem({
             </span>
             {row.violations > 0 ? (
               <ViolationTooltip count={row.violations} focusable={false} scope="topic">
-                <span className="flex items-center gap-1 text-[12px] font-medium text-[#c2365f]">
+                <span className={`flex items-center gap-1 text-[12px] font-medium ${VIOLATION_TONE}`}>
                   <TriangleAlert className="shrink-0" size={14} />
                   {row.violations} possible violation
                   {row.violations === 1 ? '' : 's'}
@@ -334,7 +350,7 @@ export function WhatChangedCard({
             </div>
             {data ? (
               <span className="text-[12px] font-medium text-[#726f6f]">
-                {data.currentLabel} compared with {data.previousLabel}
+                {data.currentLabel} vs {data.previousLabel}
               </span>
             ) : null}
           </div>
@@ -480,10 +496,9 @@ function TimelineCard({
                             type="button"
                           >
                             <span className="min-w-0 truncate text-[14px] text-[#14181f]">{label}</span>
-                            {/* Neutral, not red: more mentions isn't good or bad by itself. */}
-                            <span className="flex shrink-0 items-center gap-0.5 text-[14px] font-semibold tracking-[0.14px] text-[#1e55c5]">
-                              <ArrowUp size={15} />
-                              {event.count - event.usual}
+                            {/* Neutral, not red: more mentions isn't good or bad by itself. "+N", as in the summary bar. */}
+                            <span className="shrink-0 text-[14px] font-semibold tracking-[0.14px] text-[#1e55c5]">
+                              +{event.count - event.usual}
                               <span className="sr-only">
                                 {' '}
                                 more mentions than usual ({event.count}, usually about {event.usual})
@@ -552,7 +567,7 @@ function TrendSummaryBar({
           key: 'violations',
           n: comparison.violations,
           Icon: TriangleAlert,
-          tone: 'text-[#e0507a]',
+          tone: VIOLATION_TONE,
           text: plural(comparison.violations, 'possible violation'),
         },
       ].filter((c) => c.n > 0)
@@ -595,8 +610,16 @@ function TrendSummaryBar({
               <span className="max-w-fit min-w-24 flex-1 truncate text-[14px] font-medium text-[#14181f]" title={spike.label}>
                 {spike.label}
               </span>
-              <span className="shrink-0 text-[12px] whitespace-nowrap text-[#726f6f]">
-                {spike.period}: {spike.count} mentions (usually ~{spike.usual})
+              {/* Mentions above usual, as the Unusual spikes list counts them; "+" since the label already has the ↑. */}
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] whitespace-nowrap text-[#726f6f]">
+                {spike.period}
+                <span className="font-semibold text-[#1e55c5]">
+                  +{spike.count - spike.usual}
+                  <span className="sr-only">
+                    {' '}
+                    more mentions than usual ({spike.count}, usually about {spike.usual})
+                  </span>
+                </span>
               </span>
             </span>
             <ChevronRight aria-hidden="true" className="ml-auto shrink-0 text-[#726f6f]" size={16} />

@@ -49,6 +49,7 @@ import { FormDashboardPage } from './FormDashboardPage'
 import { showAlert } from '../lib/alertDialog'
 import { formQuery, responsesQuery, themesQuery, trendQuery } from '../api/queries'
 import { DEMO_FORM_ID, DemoContext, demoSaveError } from '../lib/demo'
+import { useHeadroomHidden, useScrolledPastBar } from '../hooks/useHeadroom'
 import { useAuth, type AuthUser } from '../lib/auth'
 import { msalInstance } from '../lib/msal'
 import { cn } from '../lib/utils'
@@ -872,8 +873,48 @@ function AccountMenu({ user, onLogout }: { user: AuthUser; onLogout: () => void 
 function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
   const { status, user, logout } = useAuth()
   const signedIn = status === 'ready'
+  // Landing only: hides while scrolling down, back on any scroll up (/demo has its own sticky bar).
+  const hidden = useHeadroomHidden()
+  const floating = useScrolledPastBar()
+  const sticky = page === 'landing'
+  // Over a dark section ([data-nav-dark]) the glass goes dark and the text white, so it stays readable.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [overDark, setOverDark] = useState(false)
+  useEffect(() => {
+    if (!sticky) return
+    const check = () => {
+      const height = headerRef.current?.offsetHeight ?? 0
+      setOverDark(
+        [...document.querySelectorAll('[data-nav-dark]')].some((el) => {
+          const box = el.getBoundingClientRect()
+          return box.top < height && box.bottom > 0
+        }),
+      )
+    }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+    }
+  }, [sticky])
+  const dark = sticky && overDark
+  const navLink = cn(NAV_LINK, dark && 'text-white hover:bg-white/10 focus-visible:outline-white')
   return (
-    // The landing page's header is as wide as its hero (83rem), so the logo and the last link line up with it.
+    <div
+      ref={headerRef}
+      className={cn(
+        'relative z-30',
+        sticky &&
+          'sticky top-0 transition-[translate,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none',
+        // Mostly clear: the page shows through, blurred, light or dark section alike.
+        sticky && floating && !dark && 'bg-white/30 shadow-[0_1px_0_rgb(0_0_0/0.06)] backdrop-blur-lg backdrop-saturate-150',
+        dark && 'bg-[#0d1b3e]/40 shadow-[0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-lg backdrop-saturate-150',
+        sticky && hidden && '-translate-y-full',
+      )}
+    >
+    {/* The landing page's header is as wide as its hero (83rem), so the logo and the last link line up with it. */}
     <header
       className={cn(
         'relative z-20 mx-auto flex items-center justify-between px-6 py-5 max-[560px]:px-4',
@@ -885,27 +926,33 @@ function SiteHeader({ page }: { page: 'landing' | 'demo' }) {
         className="rounded-[6px] focus-visible:outline-2 focus-visible:outline-[#1e55c5]"
         to="/about"
       >
-        <img alt={brand.name} className="h-9 w-17.25 object-cover object-center" src={brand.logo} />
+        {/* One logo file only (dark text): turned white over dark sections. */}
+        <img
+          alt={brand.name}
+          className={cn('h-9 w-17.25 object-cover object-center transition-[filter] duration-200', dark && 'brightness-0 invert')}
+          src={brand.logo}
+        />
       </Link>
       <nav aria-label="Site" className="flex items-center gap-1">
         {page === 'landing' ? (
-          <Link className={NAV_LINK} to="/demo">
+          <Link className={navLink} to="/demo">
             See the demo
           </Link>
         ) : (
-          <Link className={NAV_LINK} to="/about">
+          <Link className={navLink} to="/about">
             Overview
           </Link>
         )}
         {signedIn && user ? (
           <AccountMenu onLogout={() => void logout()} user={user} />
         ) : (
-          <Link className={NAV_LINK} to="/login">
+          <Link className={navLink} to="/login">
             Sign in
           </Link>
         )}
       </nav>
     </header>
+    </div>
   )
 }
 
@@ -1246,6 +1293,7 @@ function Finale() {
   return (
     <section
       aria-labelledby="trust-title"
+      data-nav-dark
       className="relative overflow-hidden bg-[#0d1b3e] text-white bg-[radial-gradient(60rem_30rem_at_50%_-10%,rgb(30_85_197/0.55),transparent_70%),radial-gradient(30rem_20rem_at_100%_100%,rgb(224_80_122/0.18),transparent_70%)]"
     >
       {/* Faint grid, fading out toward the bottom. */}
