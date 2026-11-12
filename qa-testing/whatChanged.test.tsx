@@ -39,13 +39,15 @@ const base: FormTrendAnalytics = {
 }
 
 const noop = () => {}
+// The counts are split across spans (negative count is coloured), so match on the whole text.
+const counts = () => screen.getAllByText((_, el) => el?.tagName === 'SPAN' && el.textContent === '2/5 → 3/4').at(-1)!
 
 describe('What changed', () => {
   it('reads each row as a sentence, with the violation badge and a quote', () => {
     render(<TrendView onPinnedChange={noop} pinned={null} trend={base} />)
-    expect(screen.getByText('Aug 2026 compared with Jul 2026')).toBeInTheDocument()
+    expect(screen.getAllByText('Aug 2026 vs Jul 2026').length).toBeGreaterThan(0)
     // Under the complaints dumbbell: the counts (the dots already show the %).
-    expect(screen.getByText('2 of 5 → 3 of 4')).toBeInTheDocument()
+    expect(counts()).toBeInTheDocument()
     expect(screen.getAllByText('2 possible violations').length).toBeGreaterThan(0)
     expect(screen.getByText('“Quote 1”')).toBeInTheDocument()
     expect(screen.queryByText('“Quote 2”')).not.toBeInTheDocument()
@@ -53,7 +55,7 @@ describe('What changed', () => {
 
   it("hovering the complaints dumbbell shows the counts behind the %", async () => {
     render(<TrendView onPinnedChange={noop} pinned={null} trend={base} />)
-    await userEvent.hover(screen.getByText('2 of 5 → 3 of 4'))
+    await userEvent.hover(counts())
     expect((await screen.findAllByText('Now: 3 of 4 mentions (75%)')).length).toBeGreaterThan(0)
   })
 

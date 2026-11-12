@@ -70,11 +70,11 @@ describe('ThemesReport', () => {
     expect(headings.slice(0, 2)).toEqual(['Canteen', 'Facilities'])
   })
 
-  it('leads with violations, then the biggest concern and what people like most', () => {
+  // Facilities has a violation, so it never shows as "Keep doing".
+  it('leads with violations, then the biggest concern', () => {
     expect(keyInsights(themes)).toEqual([
       { kind: 'review', label: 'Review now', title: '1 violation in 1 topic', detail: 'Facilities', topicId: null },
-      { kind: 'fix', label: 'Fix first', title: 'Facilities', detail: '100% of negative mentions', topicId: '1', share: 100 },
-      { kind: 'keep', label: 'Keep doing', title: 'Facilities', detail: '100% of positive mentions', topicId: '1', share: 100 },
+      { kind: 'fix', label: 'Fix first', title: 'Facilities', detail: '100% of all negative mentions', topicId: '1', share: 100 },
     ])
   })
 
