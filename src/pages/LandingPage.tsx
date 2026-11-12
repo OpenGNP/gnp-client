@@ -76,24 +76,21 @@ function SignInAction({ tone = 'light' }: { tone?: 'light' | 'blue' }) {
   useEffect(() => {
     if (signedIn && signingIn.current) void navigate('/', { replace: true })
   }, [signedIn, navigate])
-  if (signedIn) {
-    return (
-      <Button
-        asChild
-        // As tall as the sign-in button it replaces: primary (48px) on the light hero, default on the blue band.
-        className={`w-full max-w-80 justify-center rounded-[10px] font-semibold ${
-          tone === 'blue'
-            ? 'h-10.5 bg-white text-[14px] text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white'
-            : 'h-12 text-[16px]'
-        }`}
-      >
-        <Link to="/">Go to home</Link>
-      </Button>
-    )
-  }
   return (
     <div className="flex w-full max-w-80 flex-col gap-3">
-      {msalInstance ? (
+      {signedIn ? (
+        <Button
+          asChild
+          // As tall as the sign-in button it replaces: primary (48px) on the light hero, default on the blue band.
+          className={`w-full justify-center rounded-[10px] font-semibold ${
+            tone === 'blue'
+              ? 'h-10.5 bg-white text-[14px] text-[#1e55c5] hover:bg-[#e8eefc] focus-visible:ring-white'
+              : 'h-12 text-[16px]'
+          }`}
+        >
+          <Link to="/">Go to home</Link>
+        </Button>
+      ) : msalInstance ? (
         <MicrosoftSignInButton
           onBusyChange={(busy) => {
             if (busy) signingIn.current = true
